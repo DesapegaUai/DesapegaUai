@@ -1,0 +1,10 @@
+# Mantém as quebras de linha iguais no Windows, no Mac e no Linux
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.pdf binary

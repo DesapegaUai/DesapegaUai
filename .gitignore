@@ -1,0 +1,21 @@
+# Variáveis de ambiente (senhas e chaves): só o .env.example vai para o GitHub
+.env
+.env.*
+!.env.example
+
+# Dependências
+node_modules/
+
+# Build e logs
+dist/
+coverage/
+*.log
+npm-debug.log*
+
+# Editores e sistema operacional
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

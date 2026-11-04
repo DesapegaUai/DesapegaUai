@@ -1,0 +1,20 @@
+{
+  "name": "desapegauai-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API do DesapegaUai (Node.js + Express + MySQL)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "mysql2": "^3.24.6"
+  }
+}
