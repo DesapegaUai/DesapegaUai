@@ -54,8 +54,8 @@ Cada pasta tem o seu README com mais detalhes: [frontend](frontend/README.md) e 
 1. Clone o repositório (o link está no botão **Code** do GitHub):
 
    ```bash
-   git clone https://github.com/NOME-DA-ORGANIZACAO/desapegauai.git
-   cd desapegauai
+   git clone https://github.com/DesapegaUai/DesapegaUai.git
+   cd DesapegaUai
    ```
 
 2. No MySQL, crie o banco vazio:
