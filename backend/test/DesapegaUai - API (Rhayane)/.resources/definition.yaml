@@ -1,0 +1,4 @@
+$kind: collection
+description: Rode o npm run dev e envie os pedidos na ordem (ou use Run collection). O cookie do login fica guardado entre um pedido e outro.
+variables:
+  api: http://localhost:3333/api

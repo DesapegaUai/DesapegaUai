@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{api}}/perfil"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "nome": "A" }'
+scripts:
+  - type: afterResponse
+    code: pm.test('status 400', () => pm.response.to.have.status(400))
+    language: text/javascript
+order: 13000
