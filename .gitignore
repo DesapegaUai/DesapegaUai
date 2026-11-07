@@ -6,6 +6,13 @@
 # Dependências
 node_modules/
 
+# Fotos dos anúncios
+backend/uploads/
+
+# Configuração local do Postman de cada um
+/.postman/
+/postman/
+
 # Build e logs
 dist/
 coverage/
@@ -15,6 +22,7 @@ npm-debug.log*
 # Editores e sistema operacional
 .vscode/*
 !.vscode/extensions.json
+backend/.vscode/
 .idea/
 .DS_Store
 Thumbs.db
