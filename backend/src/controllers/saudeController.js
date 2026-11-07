@@ -1,6 +1,6 @@
 import { db } from '../config/db.js'
 
-// GET /api/saude: mostra se a API está no ar e se ela conseguiu falar com o banco.
+// GET /api/saude
 export async function verificar(req, res) {
   try {
     await db.query('SELECT 1')
