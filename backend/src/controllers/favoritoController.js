@@ -1,29 +1,43 @@
 import * as favoritoModel from '../models/favoritoModel.js'
 import * as anuncioModel from '../models/anuncioModel.js'
-import * as fotoModel from '../models/fotoModel.js'
 
 import { erroHttp } from '../utils/erroHttp.js'
 import { lerId } from '../utils/validacao.js'
-import { formatarFoto } from '../utils/fotos.js'
 
-// GET /api/favoritos
+const POR_PAGINA_PADRAO = 12
+const POR_PAGINA_MAXIMO = 50
+
+// parâmetro opcional da URL: vazio usa o padrão
+function lerNumeroOpcional(valor, nome, padrao) {
+  if (valor === undefined || valor === '') {
+    return padrao
+  }
+
+  return lerId(valor, nome)
+}
+
+// GET /api/favoritos?categoria_id=&pagina=&por_pagina=
 export async function listar(req, res) {
-  const usuarioId = req.usuario.id
-
-  const anuncios = await favoritoModel.listarPorUsuario(usuarioId)
-
-  const resultado = await Promise.all(
-    anuncios.map(async (anuncio) => {
-      const fotos = await fotoModel.listarPorAnuncio(anuncio.id)
-
-      return {
-        ...anuncio,
-        fotos: fotos.map((foto) => formatarFoto(anuncio.id, foto)),
-      }
-    })
+  const categoriaId = lerNumeroOpcional(req.query.categoria_id, 'categoria_id', null)
+  const pagina = lerNumeroOpcional(req.query.pagina, 'número da página', 1)
+  const porPagina = Math.min(
+    lerNumeroOpcional(req.query.por_pagina, 'tamanho da página', POR_PAGINA_PADRAO),
+    POR_PAGINA_MAXIMO,
   )
 
-  res.json(resultado)
+  const { itens, total } = await favoritoModel.listarCards(req.usuario.id, {
+    categoriaId,
+    pagina,
+    porPagina,
+  })
+
+  res.json({
+    itens,
+    pagina,
+    por_pagina: porPagina,
+    total,
+    total_paginas: Math.ceil(total / porPagina),
+  })
 }
 
 // POST /api/favoritos/:anuncioId
@@ -37,6 +51,10 @@ export async function favoritar(req, res) {
     throw erroHttp(404, 'Anúncio não encontrado.')
   }
 
+  if (Number(anuncio.usuario_id) === Number(usuarioId)) {
+    throw erroHttp(400, 'Você não pode favoritar o próprio anúncio.')
+  }
+
   const adicionado = await favoritoModel.adicionar(usuarioId, anuncioId)
 
   res.status(adicionado ? 201 : 200).json({
@@ -48,12 +66,9 @@ export async function favoritar(req, res) {
 
 // DELETE /api/favoritos/:anuncioId
 export async function desfavoritar(req, res) {
-  const usuarioId = req.usuario.id
   const anuncioId = lerId(req.params.anuncioId, 'id do anúncio')
 
-  await favoritoModel.excluir(usuarioId, anuncioId)
+  await favoritoModel.excluir(req.usuario.id, anuncioId)
 
-  res.json({
-    mensagem: 'Anúncio removido dos favoritos.',
-  })
+  res.status(204).end()
 }
