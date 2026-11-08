@@ -1,0 +1,70 @@
+# Teste manual com a extensão REST Client: rode npm run dev e clique em "Send Request", na ordem.
+# O cookie do login fica guardado de um pedido para o outro.
+
+@api = http://localhost:3333/api
+
+### saúde: {"api":"ok","banco":"ok"}
+GET {{api}}/saude
+
+### categorias
+GET {{api}}/categorias
+
+### cidades
+GET {{api}}/cidades
+
+### bairros de Viçosa
+GET {{api}}/cidades/1/bairros
+
+### cidade que não existe (404)
+GET {{api}}/cidades/999/bairros
+
+### sessão sem login ({"usuario": null})
+GET {{api}}/auth/sessao
+
+### perfil sem login (401)
+GET {{api}}/perfil
+
+### login com Google sem token (503 enquanto não tiver GOOGLE_CLIENT_ID; depois, 400)
+POST {{api}}/auth/google
+Content-Type: application/json
+
+{}
+
+### login de teste: 1 Diego, 2 Larissa, 3 Usuário Teste
+POST {{api}}/auth/teste
+Content-Type: application/json
+
+{ "usuario_id": 1 }
+
+### sessão com login
+GET {{api}}/auth/sessao
+
+### meu perfil
+GET {{api}}/perfil
+
+### editar perfil (o telefone volta só com números)
+PUT {{api}}/perfil
+Content-Type: application/json
+
+{ "telefone": "(31) 99752-6486", "bio": "Testando a edição do perfil." }
+
+### nome curto demais (400)
+PUT {{api}}/perfil
+Content-Type: application/json
+
+{ "nome": "A" }
+
+### volta o perfil do Diego ao original
+PUT {{api}}/perfil
+Content-Type: application/json
+
+{ "telefone": "31999990001", "bio": "Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento." }
+
+### rota da Marina ainda não feita (501)
+GET {{api}}/meus-anuncios
+
+### logout (204)
+POST {{api}}/auth/logout
+
+### perfil depois do logout (401)
+GET {{api}}/perfil

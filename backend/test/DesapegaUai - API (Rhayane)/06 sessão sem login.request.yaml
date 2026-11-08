@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{api}}/auth/sessao"
+method: GET
+scripts:
+  - type: afterResponse
+    code: pm.test('usuario null', () => pm.expect(pm.response.json().usuario).to.equal(null))
+    language: text/javascript
+order: 6000

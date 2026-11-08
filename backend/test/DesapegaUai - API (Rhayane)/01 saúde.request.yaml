@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{api}}/saude"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('status 200', () => pm.response.to.have.status(200))
+      pm.test('API e banco ok', () => pm.expect(pm.response.json()).to.eql({ api: 'ok', banco: 'ok' }))
+    language: text/javascript
+order: 1000

@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{api}}/auth/sessao"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('mostra o Diego', () => pm.expect(pm.response.json().usuario.id).to.equal(1))
+      pm.test('sem telefone na sessão', () => pm.expect(pm.response.json().usuario).to.not.have.property('telefone'))
+    language: text/javascript
+order: 10000

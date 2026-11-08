@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{api}}/auth/google"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: pm.test('status 400 ou 503', () => pm.expect([400, 503]).to.include(pm.response.code))
+    language: text/javascript
+order: 8000

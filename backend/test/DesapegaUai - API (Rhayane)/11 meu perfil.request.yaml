@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{api}}/perfil"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('status 200', () => pm.response.to.have.status(200))
+      pm.test('tem os totais', () => pm.expect(pm.response.json()).to.include.keys('total_anuncios_ativos', 'total_favoritos', 'total_conversas'))
+    language: text/javascript
+order: 11000

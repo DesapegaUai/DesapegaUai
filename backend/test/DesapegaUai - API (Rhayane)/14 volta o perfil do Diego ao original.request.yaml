@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{api}}/perfil"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "telefone": "31999990001", "bio": "Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento." }'
+scripts:
+  - type: afterResponse
+    code: pm.test('status 200', () => pm.response.to.have.status(200))
+    language: text/javascript
+order: 14000

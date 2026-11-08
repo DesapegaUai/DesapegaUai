@@ -9,12 +9,19 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "banco": "node database/recriar-banco.js",
+    "test": "node --test"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.3.0",
+    "google-auth-library": "^11.3.3",
     "helmet": "^8.3.0",
-    "mysql2": "^3.24.6"
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "mysql2": "^3.24.6",
+    "sharp": "^0.35.5",
+    "socket.io": "^4.8.4"
   }
 }

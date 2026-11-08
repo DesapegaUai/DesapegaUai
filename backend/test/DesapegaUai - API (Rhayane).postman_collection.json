@@ -1,0 +1,562 @@
+{
+  "info": {
+    "_postman_id": "b7ab2988-a207-4599-90e4-70aa706ea6b8",
+    "name": "DesapegaUai - API (Rhayane)",
+    "description": "Rode o npm run dev e envie os pedidos na ordem (ou use Run collection). O cookie do login fica guardado entre um pedido e outro.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 saúde",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('API e banco ok', () => pm.expect(pm.response.json()).to.eql({ api: 'ok', banco: 'ok' }))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/saude",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "saude"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 categorias",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('8 categorias', () => pm.expect(pm.response.json()).to.have.lengthOf(8))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/categorias",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "categorias"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 cidades",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('4 cidades', () => pm.expect(pm.response.json()).to.have.lengthOf(4))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/cidades",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "cidades"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 bairros de Viçosa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('20 bairros', () => pm.expect(pm.response.json()).to.have.lengthOf(20))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/cidades/1/bairros",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "cidades",
+            "1",
+            "bairros"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 cidade que não existe (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 404', () => pm.response.to.have.status(404))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/cidades/999/bairros",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "cidades",
+            "999",
+            "bairros"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 sessão sem login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('usuario null', () => pm.expect(pm.response.json().usuario).to.equal(null))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/auth/sessao",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "auth",
+            "sessao"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 perfil sem login (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 401', () => pm.response.to.have.status(401))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 login Google sem token (503 sem GOOGLE_CLIENT_ID, depois 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 400 ou 503', () => pm.expect([400, 503]).to.include(pm.response.code))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/auth/google",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "09 login de teste (1 Diego, 2 Larissa, 3 Usuário Teste)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('entrou como Diego', () => pm.expect(pm.response.json().usuario.nome).to.equal('Diego Martins'))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/auth/teste",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "auth",
+            "teste"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"usuario_id\": 1 }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "10 sessão com login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('mostra o Diego', () => pm.expect(pm.response.json().usuario.id).to.equal(1))",
+              "pm.test('sem telefone na sessão', () => pm.expect(pm.response.json().usuario).to.not.have.property('telefone'))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/auth/sessao",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "auth",
+            "sessao"
+          ]
+        }
+      }
+    },
+    {
+      "name": "11 meu perfil",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('tem os totais', () => pm.expect(pm.response.json()).to.include.keys('total_anuncios_ativos', 'total_favoritos', 'total_conversas'))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        }
+      }
+    },
+    {
+      "name": "12 editar perfil",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))",
+              "pm.test('telefone só com números', () => pm.expect(pm.response.json().telefone).to.equal('31997526486'))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"telefone\": \"(31) 99752-6486\", \"bio\": \"Testando a edição do perfil.\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "13 nome curto demais (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 400', () => pm.response.to.have.status(400))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"nome\": \"A\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "14 volta o perfil do Diego ao original",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"telefone\": \"31999990001\", \"bio\": \"Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento.\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "15 meus anúncios (501 até a Marina fazer)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('rota existe', () => pm.expect(pm.response.code).to.not.equal(404))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/meus-anuncios",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "meus-anuncios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16 logout (204)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 204', () => pm.response.to.have.status(204))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/auth/logout",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      }
+    },
+    {
+      "name": "17 perfil depois do logout (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 401', () => pm.response.to.have.status(401))"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api}}/perfil",
+          "host": [
+            "{{api}}"
+          ],
+          "path": [
+            "perfil"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "api",
+      "value": "http://localhost:3333/api"
+    }
+  ]
+}
