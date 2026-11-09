@@ -111,7 +111,10 @@ Cada pasta tem o seu README com mais detalhes: [frontend](frontend/README.md) e 
 
 | Nome | Equipe | GitHub |
 | --- | --- | --- |
-| Rhayane de Freitas Eloi |  | [@devrhayaneads-maker](https://github.com/devrhayaneads-maker) |
-|  |  |  |
-|  |  |  |
-|  |  |  |
+| Rhayane de Freitas Eloi | Front-end e Back-end | [@devrhayaneads-maker](https://github.com/devrhayaneads-maker) |
+| João Pedro | Front-end | [@Jonesevill](https://github.com/Jonesevill) |
+| Rayanne Fernandes | Front-end | [@Rayanne-dev](https://github.com/Rayanne-dev) |
+| Marina Vieira | Back-end | [@MarinaVieira-dev](https://github.com/MarinaVieira-dev) |
+| Alice Campos | Front-end e Back-end | [@alicecamposads-alt](https://github.com/alicecamposads-alt) |
+| Anthony Rocha | Back-end | [@rochaAnthony](https://github.com/rochaAnthony) |
+| Henrique Lucrécio | Front-end e Back-end | [@henriquelucrecio44-commits](https://github.com/henriquelucrecio44-commits) |
