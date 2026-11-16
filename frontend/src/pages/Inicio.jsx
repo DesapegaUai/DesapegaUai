@@ -1,25 +1,26 @@
-import { useEffect, useState } from 'react'
-import { api } from '../services/api.js'
+import { useState } from 'react'
+import Achados from '../components/Achados.jsx'
+import Cabecalho from '../components/Cabecalho.jsx'
+import Categorias from '../components/Categorias.jsx'
+import Destaque from '../components/Destaque.jsx'
+import Rodape from '../components/Rodape.jsx'
+import SecaoConectando from '../components/SecaoConectando.jsx'
+import './Inicio.css'
 
-// Página provisória: só confere se o front está falando com a API.
-// A equipe do front substitui pelo layout da Home do Figma.
+// Página inicial (Home). O texto digitado na busca do cabeçalho filtra os "Achados perto de você".
 export default function Inicio() {
-  const [status, setStatus] = useState('verificando...')
-
-  useEffect(() => {
-    api
-      .get('/saude')
-      .then((dados) => setStatus(dados.banco === 'ok' ? 'API e banco conectados' : 'API conectada, banco sem conexão'))
-      .catch((erro) => setStatus(erro.message))
-  }, [])
+  const [busca, setBusca] = useState('')
 
   return (
-    <main className="container">
-      <h1 className="logo">
-        Desapega<span>Uai</span>
-      </h1>
-      <p>Estrutura inicial do front-end.</p>
-      <p className="status">Status: {status}</p>
-    </main>
+    <div className="pagina-inicio">
+      <Cabecalho busca={busca} onBusca={setBusca} />
+      <main>
+        <Destaque />
+        <Categorias />
+        <Achados busca={busca} />
+        <SecaoConectando />
+      </main>
+      <Rodape />
+    </div>
   )
 }

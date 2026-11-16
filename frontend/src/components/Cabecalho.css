@@ -1,0 +1,357 @@
+/*
+  Cabeçalho do site: logo, busca, cidade e atalhos.
+  Larguras: acima de 1560 (telas grandes), 1281 a 1560, 1101 a 1280 e até 1100 (tablet e celular).
+*/
+.cabecalho {
+  position: relative;
+  z-index: 40;
+  background: var(--cor-fundo);
+}
+
+/* Mesma largura máxima e o mesmo respiro lateral das seções da página, para tudo ficar alinhado */
+.cabecalho__barra {
+  max-width: 1548px;
+  height: 112px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.cabecalho__logo {
+  flex: none;
+  display: block;
+}
+
+.cabecalho__logo img {
+  width: auto;
+  height: 48px;
+}
+
+.cabecalho__busca {
+  flex: none;
+  width: 480px;
+  height: 50px;
+  margin-left: 86px;
+  padding: 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 25px;
+  background: var(--cor-campo);
+  color: #8b8f8b; /* cor da lupa */
+  cursor: text;
+}
+
+.cabecalho__busca input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 1px 2px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 400 17px var(--fonte);
+  color: var(--cor-texto-campo);
+  text-overflow: ellipsis;
+  appearance: none;
+}
+
+.cabecalho__busca input::placeholder {
+  color: #757575;
+  opacity: 1;
+}
+
+.cabecalho__busca input::-webkit-search-decoration {
+  appearance: none;
+}
+
+.cabecalho__busca:focus-within {
+  box-shadow: 0 0 0 2px var(--cor-principal-clara);
+}
+
+.cabecalho__local {
+  flex: none;
+  height: 50px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 0;
+  border-radius: 25px;
+  background: var(--cor-campo);
+  color: var(--cor-texto);
+  font: 700 17px var(--fonte);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cabecalho__acoes {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.cabecalho__icone {
+  position: relative;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+/* Aumenta a área de clique/toque do ícone sem mudar o desenho */
+.cabecalho__icone::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.cabecalho__icone:hover {
+  color: var(--cor-principal);
+}
+
+.botao-anunciar {
+  height: 56px;
+  padding: 0 38px;
+  border: 0;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #3f8a22, #6cb338);
+  box-shadow: 0 6px 16px rgba(70, 140, 40, 0.28);
+  color: #fff;
+  font: 700 18px var(--fonte);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.botao-anunciar:hover {
+  filter: brightness(1.06);
+}
+
+/* Computador comum (referência 1440) */
+@media (max-width: 1560px) {
+  .cabecalho__logo img {
+    height: 41.1px;
+  }
+
+  .cabecalho__busca {
+    width: 400px;
+    margin-left: 44px;
+  }
+
+  .cabecalho__acoes {
+    gap: 26px;
+  }
+}
+
+/* Computador estreito: a busca encolhe e os atalhos se aproximam, para tudo caber em uma linha */
+@media (max-width: 1280px) {
+  .cabecalho__barra {
+    height: 96px;
+    gap: 20px;
+  }
+
+  .cabecalho__busca {
+    flex: 0 1 400px;
+    width: auto;
+    min-width: 0;
+    margin-left: 20px;
+    padding: 0 20px;
+    gap: 12px;
+  }
+
+  .cabecalho__acoes {
+    gap: 20px;
+  }
+
+  .botao-anunciar {
+    padding: 0 24px;
+    font-size: 16.5px;
+  }
+}
+
+/* Tablet e celular: logo e atalhos na 1ª linha, busca na 2ª e cidade na 3ª */
+@media (max-width: 1100px) {
+  .cabecalho {
+    position: sticky;
+    top: 0;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .cabecalho--encolhido {
+    box-shadow: 0 2px 14px rgba(20, 40, 20, 0.1);
+  }
+
+  .cabecalho__barra {
+    height: auto;
+    padding: 12px 16px 14px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'logo acoes'
+      'busca busca'
+      'local local';
+    align-items: center;
+    gap: 0 10px;
+    transition: padding 0.2s ease;
+  }
+
+  .cabecalho__logo {
+    grid-area: logo;
+  }
+
+  .cabecalho__logo img {
+    height: 34px;
+  }
+
+  .cabecalho__acoes {
+    grid-area: acoes;
+    justify-self: end;
+    margin-left: 0;
+    gap: 16px;
+  }
+
+  .cabecalho__icone .icone {
+    width: 23px;
+    height: 23px;
+  }
+
+  .cabecalho__so-desktop {
+    display: none;
+  }
+
+  .botao-anunciar {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 15px;
+    box-shadow: none;
+  }
+
+  .cabecalho__busca {
+    grid-area: busca;
+    flex: none;
+    width: auto;
+    height: 44px;
+    margin: 12px 0 0;
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .cabecalho__busca .icone {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* 16px no campo: com letra menor que isso o iPhone dá zoom na página ao tocar na busca */
+  .cabecalho__busca input {
+    font-size: 16px;
+  }
+
+  .cabecalho__busca input::placeholder {
+    font-size: 15px;
+  }
+
+  .cabecalho__local {
+    grid-area: local;
+    justify-self: start;
+    max-width: 100%;
+    height: 24px;
+    margin-top: 12px;
+    padding: 0;
+    gap: 7px;
+    overflow: hidden;
+    border-radius: 0;
+    background: none;
+    font-size: 14.5px;
+    font-weight: 600;
+    transition:
+      height 0.2s ease,
+      margin-top 0.2s ease,
+      opacity 0.15s ease,
+      visibility 0s;
+  }
+
+  .cabecalho__local .icone {
+    width: 16px;
+    height: 16px;
+  }
+
+  .cabecalho__local .icone:last-child {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* Depois de rolar a página, a linha da cidade some e o cabeçalho fica mais baixo */
+  .cabecalho--encolhido .cabecalho__barra {
+    padding-bottom: 10px;
+  }
+
+  .cabecalho--encolhido .cabecalho__local {
+    height: 0;
+    margin-top: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      height 0.2s ease,
+      margin-top 0.2s ease,
+      opacity 0.15s ease,
+      visibility 0s 0.2s;
+  }
+}
+
+/* Tela deitada e baixa (celular na horizontal): o cabeçalho não fica preso, senão cobre boa parte da tela */
+@media (max-width: 1100px) and (max-height: 520px) {
+  .cabecalho {
+    position: relative;
+  }
+}
+
+/* Celular */
+@media (max-width: 560px) {
+  .cabecalho__logo img {
+    height: 27.7px;
+  }
+
+  .cabecalho__acoes {
+    gap: 13px;
+  }
+
+  .botao-anunciar {
+    padding: 0 16px;
+  }
+}
+
+/* Celular bem estreito (320 px): aperta um pouco mais para a 1ª linha caber */
+@media (max-width: 359px) {
+  .cabecalho__barra {
+    column-gap: 8px;
+  }
+
+  .cabecalho__logo img {
+    height: 24px;
+  }
+
+  .cabecalho__acoes {
+    gap: 10px;
+  }
+
+  .botao-anunciar {
+    padding: 0 13px;
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecalho,
+  .cabecalho__barra,
+  .cabecalho__local,
+  .cabecalho--encolhido .cabecalho__local {
+    transition: none;
+  }
+}

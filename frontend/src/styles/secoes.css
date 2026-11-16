@@ -1,0 +1,70 @@
+/*
+  Base das seções da página inicial: largura máxima, respiro lateral e o topo
+  (título à esquerda, link "ver todos" à direita).
+*/
+.secao {
+  max-width: 1548px;
+  margin: 0 auto;
+  padding: 54px 24px 0;
+}
+
+.secao__topo {
+  margin-bottom: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.secao__topo h2 {
+  margin: 0;
+  font: 700 26px var(--fonte);
+  letter-spacing: -0.01em;
+  color: var(--cor-texto);
+}
+
+.secao__link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 700 16px var(--fonte);
+  color: var(--cor-link);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.secao__link:hover {
+  color: var(--cor-link-hover);
+}
+
+/* Computador comum (referência 1440) */
+@media (max-width: 1560px) {
+  .secao__topo h2 {
+    font-size: 25px;
+  }
+}
+
+/* Tablet e celular */
+@media (max-width: 1100px) {
+  .secao {
+    padding: 34px 16px 0;
+  }
+
+  .secao__topo {
+    margin-bottom: 16px;
+    gap: 8px;
+  }
+
+  .secao__topo h2 {
+    font-size: 20px;
+  }
+
+  .secao__link {
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .secao__link .icone {
+    width: 17px;
+    height: 17px;
+  }
+}

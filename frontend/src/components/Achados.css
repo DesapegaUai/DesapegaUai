@@ -1,0 +1,92 @@
+/* "Achados perto de você": 5 cards lado a lado no computador; no tablet e no celular, carrossel que rola para o lado */
+.secao.achados {
+  --achados-apoio: #7c837e; /* cinza do subtítulo "Anúncios na sua região" */
+  padding-top: 58px;
+}
+
+.achados .secao__topo {
+  margin-bottom: 36px;
+}
+
+.achados__titulos {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.achados__titulos .icone {
+  color: var(--achados-apoio);
+}
+
+.achados__sub {
+  font: 400 16px var(--fonte);
+  color: var(--achados-apoio);
+}
+
+.lista-anuncios {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 36px;
+}
+
+.achados__vazio {
+  margin: 0;
+  padding: 24px 0;
+  font: 400 16px/1.5 var(--fonte);
+  color: var(--cor-texto-2);
+}
+
+/* Computador comum (referência 1440) */
+@media (max-width: 1560px) {
+  .lista-anuncios {
+    gap: 26px;
+  }
+}
+
+/* Tablet e celular */
+@media (max-width: 1100px) {
+  .secao.achados {
+    padding-top: 38px;
+  }
+
+  .achados .secao__topo {
+    margin-bottom: 16px;
+  }
+
+  /* o subtítulo desce para a linha de baixo quando não cabe ao lado do título */
+  .achados__titulos {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .achados__sub {
+    font-size: 13.5px;
+  }
+
+  /* no celular o link "Ver todos os anúncios" pode quebrar em duas linhas para caber ao lado do título */
+  .achados .secao__link {
+    white-space: normal;
+  }
+
+  /* carrossel: os cards têm largura fixa e a fila rola encostando nas bordas da tela */
+  .lista-anuncios {
+    margin: 0 -16px;
+    padding: 4px 16px 10px;
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;
+    scrollbar-width: none;
+  }
+
+  .lista-anuncios::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lista-anuncios .card-anuncio {
+    flex: 0 0 224px;
+    scroll-snap-align: start;
+  }
+}

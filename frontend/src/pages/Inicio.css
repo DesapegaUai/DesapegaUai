@@ -1,0 +1,5 @@
+/* Fundo da página inicial: um branco levemente quente, o mesmo usado no degradê da seção da cidade */
+.pagina-inicio {
+  background: var(--cor-fundo-pagina);
+  color: var(--cor-texto);
+}

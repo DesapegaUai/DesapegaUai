@@ -1,0 +1,96 @@
+/* Categorias: 8 quadros lado a lado no computador; no tablet e no celular viram botões que rolam para o lado */
+.categorias {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.categoria {
+  min-width: 0;
+  height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border: 1px solid var(--cor-linha);
+  border-radius: 18px;
+  background: var(--cor-fundo);
+  font: 500 15.5px var(--fonte);
+  color: var(--cor-texto-campo);
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.categoria .icone {
+  color: var(--cor-principal);
+}
+
+.categoria:hover {
+  border-color: #bfd9ae;
+  box-shadow: 0 4px 14px rgba(20, 60, 20, 0.06);
+  color: var(--cor-texto-campo);
+}
+
+/* Computador comum (referência 1440) */
+@media (max-width: 1560px) {
+  .categorias {
+    gap: 14px;
+  }
+
+  .categoria {
+    height: 160px;
+    gap: 18px;
+    font-size: 14.5px;
+  }
+
+  .categoria .icone {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Tablet e celular: fila de botões que rola na horizontal, encostando nas bordas da tela */
+@media (max-width: 1100px) {
+  .categorias {
+    margin: 0 -16px;
+    padding: 2px 16px 8px;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;
+    scrollbar-width: none;
+  }
+
+  .categorias::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categoria {
+    flex: none;
+    height: 46px;
+    padding: 0 16px;
+    flex-direction: row;
+    gap: 9px;
+    border-color: transparent;
+    border-radius: 23px;
+    background: #f4f6f1;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .categoria .icone {
+    width: 19px;
+    height: 19px;
+  }
+
+  .categoria:hover {
+    border-color: #bfd9ae;
+    box-shadow: none;
+  }
+}
