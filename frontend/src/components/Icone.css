@@ -1,0 +1,5 @@
+/* O ícone não encolhe dentro de um flex e não deixa a sobra de linha que o svg tem por padrão */
+.icone {
+  flex: none;
+  display: block;
+}

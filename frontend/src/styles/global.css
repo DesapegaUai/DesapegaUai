@@ -1,3 +1,25 @@
+/* Fonte da marca. Os arquivos ficam em public/fonts (são os do pacote de design, pasta 09.7),
+   então o site não depende de nenhum endereço de fora. Cada arquivo cobre os pesos de 200 a 800. */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Cores e fonte da marca (design system do Figma). Use as variáveis em vez de repetir as cores. */
 :root {
   --cor-principal: #3e8b22;
@@ -8,11 +30,40 @@
   --cor-marca-clara: #82c03a;
   --cor-fundo: #ffffff;
 
+  /* Textos */
+  --cor-titulo: #0f3d20; /* título grande da página inicial */
+  --cor-texto-corpo: #1f2a24; /* parágrafo logo abaixo do título */
+  --cor-texto-campo: #3a403c; /* o que a pessoa digita e nomes das categorias */
+  --cor-texto-2: #6b726c; /* texto de apoio */
+  --cor-texto-3: #8c918b; /* legendas, como o bairro do anúncio */
+  --cor-texto-apoio: #7c837e; /* subtítulo "Anúncios na sua região" */
+  --cor-texto-sobre-escuro: #ffffff; /* texto em cima dos botões verdes e do rodapé */
+  --cor-placeholder: #757575; /* texto de exemplo dentro da busca */
+  --cor-icone-busca: #8b8f8b; /* lupa da busca */
+  --cor-link: #4a9a2b;
+  --cor-link-hover: #3a7a20;
+  --cor-favorito: #e4483c; /* coração do anúncio favoritado */
+
+  /* Fundos e traços */
+  --cor-fundo-pagina: #fefefe; /* fundo da página inicial */
+  --cor-fundo-foto: #eff2ec; /* aparece enquanto a foto do anúncio carrega */
+  --cor-fundo-hover: #f5f6f3; /* botão de contorno com o mouse em cima */
+  --cor-fundo-chip: #f4f6f1; /* botões de categoria no tablet e no celular */
+  --cor-campo: #f2f2f0; /* busca e seletor de cidade */
+  --cor-linha: #eaeae6; /* bordas finas */
+  --cor-borda-hover: #bfd9ae; /* borda da categoria com o mouse em cima */
+  --sombra-card: 0 2px 12px rgba(20, 40, 20, 0.07);
+
+  /* Degradês dos botões verdes */
+  --degrade-anunciar: linear-gradient(135deg, #3f8a22, #6cb338); /* "Anunciar" do cabeçalho */
+  --degrade-destaque: linear-gradient(135deg, #4c8b16, #356e0a); /* "Anunciar agora" do destaque */
+
   --fonte: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   font-family: var(--fonte);
   color: var(--cor-texto);
   background: var(--cor-fundo);
+  -webkit-font-smoothing: antialiased;
 }
 
 *,
@@ -40,23 +91,4 @@ a {
   width: min(1200px, 100% - 32px);
   margin-inline: auto;
   padding-block: 48px;
-}
-
-.logo {
-  margin: 0 0 8px;
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: var(--cor-marca-escura);
-}
-
-.logo span {
-  color: var(--cor-marca-clara);
-}
-
-.status {
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--cor-suave);
-  font-weight: 600;
 }

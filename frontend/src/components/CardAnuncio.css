@@ -1,0 +1,122 @@
+/* Card de anúncio: foto, botão de favoritar, título, preço e bairro */
+.card-anuncio {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--cor-fundo);
+  box-shadow: var(--sombra-card);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.card-anuncio:hover {
+  box-shadow: 0 8px 24px rgba(20, 40, 20, 0.13);
+}
+
+/* A foto mantém sempre a mesma proporção, em qualquer largura de card */
+.card-anuncio__foto {
+  position: relative;
+  background: var(--cor-fundo-foto);
+}
+
+.card-anuncio__foto img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 262 / 235;
+  object-fit: cover;
+}
+
+/* Posição em porcentagem para o botão ficar no mesmo canto da foto em qualquer tamanho */
+.card-anuncio__fav {
+  position: absolute;
+  top: calc(23% - 18px);
+  right: calc(8.3% - 18px);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cor-fundo);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+/* Aumenta a área de toque sem mudar o desenho */
+.card-anuncio__fav::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+
+.card-anuncio__fav svg {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.card-anuncio__fav.ativo svg {
+  fill: var(--cor-favorito);
+}
+
+.card-anuncio__info {
+  padding: 22px 20px 26px;
+}
+
+/* Título e bairro ficam em uma linha só; se não couber, termina com reticências */
+.card-anuncio__info h3,
+.card-anuncio__local {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-anuncio__info h3 {
+  margin: 0;
+  font: 700 17.5px var(--fonte);
+  color: var(--cor-texto);
+}
+
+.card-anuncio__preco {
+  margin: 12px 0 0;
+  font: 700 20px var(--fonte);
+  color: var(--cor-principal-clara);
+}
+
+.card-anuncio__local {
+  margin: 14px 0 0;
+  font: 400 15px var(--fonte);
+  color: var(--cor-texto-3);
+}
+
+/* Tablet e celular: card compacto */
+@media (max-width: 900px) {
+  .card-anuncio {
+    border-radius: 14px;
+  }
+
+  .card-anuncio__fav {
+    top: calc(23% - 15px);
+    right: calc(8.3% - 15px);
+    width: 30px;
+    height: 30px;
+  }
+
+  .card-anuncio__fav::after {
+    inset: -7px;
+  }
+
+  .card-anuncio__fav svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-anuncio__info {
+    padding: 14px 12px 16px;
+  }
+}
