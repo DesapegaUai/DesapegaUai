@@ -17,7 +17,7 @@ const simplificar = (texto) =>
   texto
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
 
 export default function Achados({ busca = '' }) {
   const termo = simplificar(busca.trim())

@@ -37,14 +37,14 @@
 }
 
 /* Computador comum (referência 1440) */
-@media (max-width: 1560px) {
+@media (min-width: 1281px) and (max-width: 1560px) {
   .secao__topo h2 {
     font-size: 25px;
   }
 }
 
 /* Tablet e celular */
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .secao {
     padding: 34px 16px 0;
   }

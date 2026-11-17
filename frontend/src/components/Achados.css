@@ -1,6 +1,8 @@
-/* "Achados perto de você": 5 cards lado a lado no computador; no tablet e no celular, carrossel que rola para o lado */
+/*
+  "Achados perto de você": 5 cards lado a lado acima de 1280; de 901 a 1280, 3 por linha;
+  até 900 (tablet e celular), carrossel que rola para o lado.
+*/
 .secao.achados {
-  --achados-apoio: #7c837e; /* cinza do subtítulo "Anúncios na sua região" */
   padding-top: 58px;
 }
 
@@ -16,12 +18,12 @@
 }
 
 .achados__titulos .icone {
-  color: var(--achados-apoio);
+  color: var(--cor-texto-apoio);
 }
 
 .achados__sub {
   font: 400 16px var(--fonte);
-  color: var(--achados-apoio);
+  color: var(--cor-texto-apoio);
 }
 
 .lista-anuncios {
@@ -38,14 +40,22 @@
 }
 
 /* Computador comum (referência 1440) */
-@media (max-width: 1560px) {
+@media (min-width: 1281px) and (max-width: 1560px) {
   .lista-anuncios {
     gap: 26px;
   }
 }
 
+/* Computador estreito (901 a 1280): 3 cards por linha */
+@media (min-width: 901px) and (max-width: 1280px) {
+  .lista-anuncios {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+  }
+}
+
 /* Tablet e celular */
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .secao.achados {
     padding-top: 38px;
   }

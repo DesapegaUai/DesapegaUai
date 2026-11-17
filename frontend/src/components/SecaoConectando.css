@@ -89,7 +89,7 @@
   border-radius: 999px;
   background: var(--cor-principal);
   box-shadow: 0 6px 16px rgba(62, 139, 34, 0.24);
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
   font-weight: 700;
   font-size: clamp(16px, 1.293cqw, 18.5px);
   line-height: 1.278;
@@ -99,7 +99,7 @@
 
 .rg-btn:hover {
   filter: brightness(1.07);
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 .rg-btn .icone {
@@ -163,7 +163,7 @@
   align-items: center;
   gap: 1.078cqw;
   border-radius: 0.862cqw;
-  background: #fff;
+  background: var(--cor-fundo);
   box-shadow:
     0 1.006cqw 2.299cqw rgba(10, 30, 10, 0.22),
     0 0.144cqw 0.431cqw rgba(10, 30, 10, 0.08);

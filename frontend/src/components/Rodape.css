@@ -15,6 +15,8 @@
   --rd-claro: #ccd2ca;
   --rd-lima: #82c03a;
   --rd-lima-tinta: #15290d;
+  --rd-lima-hover: #8fcb4a; /* botão "Anunciar grátis" com o mouse em cima */
+  --rd-lima-link-hover: #a3d86a; /* link "Ver dicas de segurança" com o mouse em cima */
   background: var(--rd-fundo);
   color: var(--rd-texto);
 }
@@ -69,7 +71,7 @@
 }
 
 .rodape-cta:hover {
-  background: #8fcb4a;
+  background: var(--rd-lima-hover);
   color: var(--rd-lima-tinta);
 }
 
@@ -86,7 +88,7 @@
 .rodape-tit {
   margin: 0;
   font: 700 17px/1.2 var(--fonte);
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 .rodape-tit label {
@@ -118,7 +120,7 @@
 }
 
 .rodape-lista a:hover {
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 /* Aviso de segurança */
@@ -163,7 +165,7 @@
 
 .rodape-seg b {
   font-weight: 700;
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 .rodape-seg-link {
@@ -177,7 +179,7 @@
 }
 
 .rodape-seg-link:hover {
-  color: #a3d86a;
+  color: var(--rd-lima-link-hover);
 }
 
 /* Barra final */
@@ -215,7 +217,7 @@
 }
 
 .rodape-links a:hover {
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 .rodape-local {

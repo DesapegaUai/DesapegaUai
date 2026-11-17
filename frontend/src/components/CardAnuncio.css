@@ -17,7 +17,7 @@
 /* A foto mantém sempre a mesma proporção, em qualquer largura de card */
 .card-anuncio__foto {
   position: relative;
-  background: #eff2ec; /* aparece enquanto a foto carrega */
+  background: var(--cor-fundo-foto);
 }
 
 .card-anuncio__foto img {
@@ -61,7 +61,7 @@
 }
 
 .card-anuncio__fav.ativo svg {
-  fill: #e4483c;
+  fill: var(--cor-favorito);
 }
 
 .card-anuncio__info {
@@ -94,15 +94,8 @@
   color: var(--cor-texto-3);
 }
 
-/* Computador estreito: o card fica mais estreito, então o texto ganha espaço nas laterais */
-@media (max-width: 1280px) {
-  .card-anuncio__info {
-    padding: 18px 12px 22px;
-  }
-}
-
 /* Tablet e celular: card compacto */
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .card-anuncio {
     border-radius: 14px;
   }

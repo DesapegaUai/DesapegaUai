@@ -1,6 +1,7 @@
 /*
   Destaque do topo da página inicial: título, botões e a ilustração da caixa.
-  No computador são duas colunas (texto | imagem). No tablet e no celular fica tudo em uma coluna.
+  Acima de 1280 são duas colunas (texto | imagem). De 901 a 1280 fica empilhado (texto em cima,
+  ilustração embaixo) e até 900 vira o layout de tablet e celular, como no protótipo 13-home.
 */
 .destaque {
   max-width: 1548px;
@@ -59,9 +60,9 @@
   align-items: center;
   gap: 16px;
   border: 0;
-  background: linear-gradient(135deg, #4c8b16, #356e0a);
+  background: var(--degrade-destaque);
   box-shadow: 0 8px 20px rgba(53, 110, 10, 0.25);
-  color: #fff;
+  color: var(--cor-texto-sobre-escuro);
 }
 
 .destaque__botoes .btn-verde:hover {
@@ -77,7 +78,7 @@
 }
 
 .destaque__botoes .btn-contorno:hover {
-  background: #f5f6f3;
+  background: var(--cor-fundo-hover);
 }
 
 .destaque__imagem {
@@ -89,7 +90,7 @@
 }
 
 /* Computador comum (referência 1440) */
-@media (max-width: 1560px) {
+@media (min-width: 1281px) and (max-width: 1560px) {
   .destaque {
     padding: 40px 24px 32px;
     gap: 20px;
@@ -117,24 +118,27 @@
   }
 }
 
-/* Computador estreito: botões um pouco mais justos para continuarem lado a lado */
+/* Computador estreito (901 a 1280): uma coluna, com a ilustração centralizada embaixo do texto */
 @media (max-width: 1280px) {
-  .destaque__botoes {
-    gap: 16px;
+  .destaque {
+    padding: 40px 24px 32px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
   }
 
-  .destaque__botoes .btn-verde {
-    padding: 0 26px;
-    gap: 12px;
+  .destaque__texto h1 {
+    max-width: 640px;
+    font-size: 52px;
   }
 
-  .destaque__botoes .btn-contorno {
-    padding: 0 30px;
+  .destaque__imagem {
+    max-width: 760px;
+    margin: 0 auto;
   }
 }
 
 /* Tablet e celular: uma coluna, botões na largura toda e a imagem centralizada embaixo */
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .destaque {
     padding: 24px 16px 8px;
     grid-template-columns: minmax(0, 1fr);
@@ -171,6 +175,10 @@
     justify-content: center;
     font-size: 16px;
     box-shadow: none;
+  }
+
+  .destaque__botoes .btn-verde {
+    gap: 12px;
   }
 
   .destaque__imagem {
