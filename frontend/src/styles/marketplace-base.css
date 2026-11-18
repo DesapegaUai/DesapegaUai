@@ -1,0 +1,76 @@
+/* =========================================================
+   DesapegaUai — base do design system
+   Fonte: 09-recursos-para-desenvolvimento/09.7-arquivos-exportados/css/design-system.css
+   Breakpoints: computador 1440 · tablet 834 (≤1024) · celular 390 (≤600)
+   ========================================================= */
+
+:root {
+  /* Marca */
+  --marca: #3E8B22; --marca-clara: #4CA02B; --marca-suave: #EFF6EB; --marca-escura: #2E6A19;
+  /* Texto */
+  --tinta: #16281C; --texto-2: #6B726C; --texto-3: #8C918B; --texto-inv: #FFFFFF;
+  /* Superfície */
+  --sup: #FFFFFF; --sup-2: #FAFAF8; --sup-3: #F2F2F0; --sup-foto: #EFF2EC;
+  /* Traço */
+  --linha: #EAEAE6; --linha-forte: #D8DAD4;
+  /* Estado */
+  --erro: #C0392B; --erro-suave: #FDF3F2; --aviso: #B8860B; --sucesso: #2E7D32;
+  /* Espaçamento 4/8/12/16/20/24/32/40 */
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 20px; --e6: 24px; --e7: 32px; --e8: 40px;
+  /* Raio */
+  --r-card: 16px; --r-campo: 22px; --r-pill: 999px;
+  /* Elevação */
+  --elev-1: 0 1px 2px rgba(20, 51, 31, .04);
+  --elev-2: 0 1px 2px rgba(20, 51, 31, .03), 0 4px 14px rgba(20, 51, 31, .04);
+  --elev-3: 0 6px 16px rgba(62, 139, 34, .24);
+}
+
+.telas-marketplace {
+  background: var(--sup);
+  color: var(--tinta);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+:where(.telas-marketplace) p { margin: 0; }
+:where(.telas-marketplace) img { display: inline; max-width: 100%; }
+:where(.telas-marketplace) a { color: var(--marca); text-decoration: none; }
+:where(.telas-marketplace) a:hover { color: var(--marca-clara); }
+:where(.telas-marketplace) button { cursor: pointer; }
+
+/* Esconde visualmente, mas mantém para leitores de tela */
+.oculto {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* Foco visível em todos os interativos (11-acessibilidade) */
+:where(.telas-marketplace) :focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
+
+/* ---------- Tipografia ---------- */
+.t-titulo-1 { font-family: inherit; font-weight: 800; font-size: 40px; line-height: 1.05; letter-spacing: -.01em; margin: 0; }
+.t-titulo-2 { font-family: inherit; font-weight: 700; font-size: 28px; line-height: 1.15; margin: 0; }
+.t-titulo-3 { font-family: inherit; font-weight: 700; font-size: 21px; line-height: 1.2; margin: 0; }
+.t-preco { font-family: inherit; font-weight: 700; font-size: 20px; line-height: 1; color: var(--marca-clara); }
+.t-corpo { font-family: inherit; font-weight: 400; font-size: 16px; line-height: 1.5; }
+.t-corpo-forte { font-family: inherit; font-weight: 600; font-size: 16px; line-height: 1.4; }
+.t-rotulo { font-family: inherit; font-weight: 600; font-size: 15px; line-height: 1.2; }
+.t-botao { font-family: inherit; font-weight: 700; font-size: 17px; line-height: 1; }
+.t-legenda { font-family: inherit; font-weight: 400; font-size: 15px; line-height: 1.35; color: var(--texto-3); }
+.mut { color: var(--texto-2); }
+.mut2 { color: var(--texto-3); }
+
+@media (max-width: 1024px) {
+  .t-titulo-1 { font-size: 34px; }
+}
+@media (max-width: 600px) {
+  .t-titulo-1 { font-size: 26px; }
+}
+
+/* Movimento reduzido (07-interacoes / 11-acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+  :where(.telas-marketplace) *, :where(.telas-marketplace) *::before, :where(.telas-marketplace) *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
