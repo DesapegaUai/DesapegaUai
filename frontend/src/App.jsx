@@ -5,7 +5,7 @@ import Conversas from './pages/Conversas.jsx'
 import Eletronicos from './pages/Eletronicos.jsx'
 import Favoritos from './pages/Favoritos.jsx'
 import Games from './pages/Games.jsx'
-import Inicio from './pages/Inicio.jsx'
+import Home from './pages/Home.jsx'
 import Livros from './pages/Livros.jsx'
 import Moda from './pages/Moda.jsx'
 import NaoEncontrada from './pages/NaoEncontrada.jsx'
@@ -17,7 +17,7 @@ import Veiculos from './pages/Veiculos.jsx'
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Inicio />} />
+      <Route path="/" element={<Home />} />
 
       <Route element={<TelasMarketplace />}>
         <Route path="/categoria/casa" element={<Casa />} />

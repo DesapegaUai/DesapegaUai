@@ -8,7 +8,7 @@ A API precisa estar rodando junto (veja o [README da raiz](../README.md)). Em de
 
 | Pasta | O que vai nela |
 | --- | --- |
-| `src/pages/` | Uma tela por arquivo (`Inicio.jsx`, `Favoritos.jsx`...). Toda tela nova entra nas rotas do `src/App.jsx`. |
+| `src/pages/` | Uma tela por arquivo (`Home.jsx`, `Favoritos.jsx`...). Toda tela nova entra nas rotas do `src/App.jsx`. |
 | `src/components/` | Partes que se repetem entre as telas: cabeçalho, rodapé, card de anúncio, botões. |
 | `src/services/api.js` | Chamadas para o back-end: `api.get('/rota')`, `api.post('/rota', dados)`. |
 | `src/contexts/` | Estado compartilhado entre as telas (ex.: usuário logado). |
@@ -16,8 +16,6 @@ A API precisa estar rodando junto (veja o [README da raiz](../README.md)). Em de
 | `src/styles/global.css` | CSS global e as cores da marca em variáveis (`var(--cor-principal)`). |
 | `src/assets/` | Imagens e ícones usados no código. |
 | `public/` | Arquivos usados como estão, sem passar pelo código (logo, favicon). |
-
-A `Inicio.jsx` que está aí é provisória: ela só confere se o front está falando com a API. Podem trocar pela Home do Figma.
 
 ## Comandos
 

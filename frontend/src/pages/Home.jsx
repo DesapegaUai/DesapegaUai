@@ -5,10 +5,10 @@ import Categorias from '../components/Categorias.jsx'
 import Destaque from '../components/Destaque.jsx'
 import Rodape from '../components/Rodape.jsx'
 import SecaoConectando from '../components/SecaoConectando.jsx'
-import './Inicio.css'
+import './Home.css'
 
 // Página inicial (Home). O texto digitado na busca do cabeçalho filtra os "Achados perto de você".
-export default function Inicio() {
+export default function Home() {
   const [busca, setBusca] = useState('')
 
   return (
