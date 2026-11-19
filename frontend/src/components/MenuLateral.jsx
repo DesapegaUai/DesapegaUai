@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link, useLocation } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import useGaveta from '../hooks/useGaveta.js';
+import useSair from '../hooks/useSair.js';
 import { NAO_LIDAS_TOTAL } from '../services/conversas.js';
 import '../styles/marketplace-menu-lateral.css';
 
@@ -12,7 +13,7 @@ const ITENS = [
   { rotulo: 'Categorias', icone: 'grade', para: '/categoria/casa', ativo: (p) => p.startsWith('/categoria') },
   { rotulo: 'Favoritos', icone: 'favorito', para: '/favoritos', ativo: (p) => p.startsWith('/favoritos') },
   { rotulo: 'Mensagens', icone: 'mensagens', para: '/conversas', ativo: (p) => p.startsWith('/conversas'), contador: true },
-  { rotulo: 'Meus anúncios', icone: 'etiqueta', para: '/perfil#meus-anuncios', ativo: () => false },
+  { rotulo: 'Meus anúncios', icone: 'etiqueta', para: '/meus-anuncios', ativo: (p) => p.startsWith('/meus-anuncios') || p.startsWith('/anunciar') || p.startsWith('/anuncios/') },
   { rotulo: 'Perfil', icone: 'perfil', para: '/perfil', ativo: (p) => p.startsWith('/perfil') },
 ];
 
@@ -27,8 +28,8 @@ export default function MenuLateral({ modo = 'fixo', aberto = false, onFechar, o
   const ehGaveta = modo === 'gaveta';
   useGaveta(ehGaveta && aberto, onFechar, fecharRef);
 
-  // TODO: ligar no logout do back-end
-  const sair = onSair ?? (() => {});
+  const sairDaConta = useSair();
+  const sair = onSair ?? sairDaConta;
 
   const nav = (
     <nav

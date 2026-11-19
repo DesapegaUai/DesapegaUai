@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import MenuLateral from './MenuLateral.jsx';
+import MenuCidade from './MenuCidade.jsx';
+import { posicaoDoMenu, useCidade } from '../services/cidade.js';
 
 const logoPrincipal = '/img/logo-principal.svg';
 
@@ -12,9 +14,13 @@ const logoPrincipal = '/img/logo-principal.svg';
  * Celular: ☰ · logo · lupa (o "Anunciar" vira o botão flutuante)
  *
  * ☰ abre o menu lateral (gaveta). A lupa, no celular, abre a busca numa linha abaixo.
- * onTrocarLocal: o protótipo não desenha o seletor de cidade — ligar quando existir.
+ * O botão de localização abre a lista das cidades atendidas.
  */
-export default function CabecalhoMarketplace({ cidade = 'Viçosa, MG', onTrocarLocal }) {
+export default function CabecalhoMarketplace() {
+  const cidade = `${useCidade()}, MG`;
+  const localRef = useRef(null);
+  const [menuCidade, setMenuCidade] = useState(null);
+  const fecharCidade = useCallback(() => setMenuCidade(null), []);
   const navegar = useNavigate();
   const [termo, setTermo] = useState('');
   const [menuAberto, setMenuAberto] = useState(false);
@@ -80,12 +86,16 @@ export default function CabecalhoMarketplace({ cidade = 'Viçosa, MG', onTrocarL
           type="button"
           className="local"
           aria-label={`Localização: ${cidade}. Trocar`}
-          onClick={onTrocarLocal}
+          aria-haspopup="menu"
+          aria-expanded={Boolean(menuCidade)}
+          ref={localRef}
+          onClick={() => setMenuCidade(menuCidade ? null : posicaoDoMenu(localRef.current))}
         >
           <Icone nome="local" tamanho={20} cor="#3E8B22" />
           <span>{cidade}</span>
           <span className="seta"><Icone nome="seta-baixo" tamanho={18} cor="#4CA02B" /></span>
         </button>
+        {menuCidade && <MenuCidade posicao={menuCidade} ancoraRef={localRef} onFechar={fecharCidade} />}
 
         <nav className="cab-icones" aria-label="Atalhos">
           <Link className="cab-icone" to="/favoritos" aria-label="Favoritos">

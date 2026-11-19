@@ -120,3 +120,30 @@
     padding: 14px 12px 16px;
   }
 }
+
+/* Card com link: o título cobre o card inteiro e o coração fica por cima */
+.card-anuncio__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-anuncio__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.card-anuncio__link:focus-visible {
+  outline: none;
+}
+
+.card-anuncio__link:focus-visible::after {
+  border-radius: 16px;
+  outline: 2px solid var(--cor-principal);
+  outline-offset: -2px;
+}
+
+.card-anuncio__fav {
+  z-index: 2;
+}

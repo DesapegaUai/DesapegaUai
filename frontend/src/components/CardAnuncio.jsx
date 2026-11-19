@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import './CardAnuncio.css'
 
 // Preço no formato do site: "R$ 1.250", sem centavos.
 const formatarPreco = (valor) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
-export default function CardAnuncio({ anuncio }) {
+// Com `link`, o card inteiro abre o anúncio (o coração continua funcionando por cima).
+export default function CardAnuncio({ anuncio, link }) {
   const [favorito, setFavorito] = useState(false)
 
   return (
@@ -27,7 +29,9 @@ export default function CardAnuncio({ anuncio }) {
       </div>
 
       <div className="card-anuncio__info">
-        <h3 title={anuncio.titulo}>{anuncio.titulo}</h3>
+        <h3 title={anuncio.titulo}>
+          {link ? <Link className="card-anuncio__link" to={link}>{anuncio.titulo}</Link> : anuncio.titulo}
+        </h3>
         <p className="card-anuncio__preco">{formatarPreco(anuncio.preco)}</p>
         <p className="card-anuncio__local">{anuncio.local}</p>
       </div>

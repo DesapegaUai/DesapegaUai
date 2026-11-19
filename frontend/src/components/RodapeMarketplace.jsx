@@ -6,22 +6,22 @@ import '../styles/marketplace-rodape.css';
 
 const logoNegativo = '/img/logo-negativo.svg';
 
-// Links internos usam rotas do app; os institucionais ainda não têm tela (href="#").
+// Todos os links do rodapé abrem telas do site (as institucionais ficam em /ajuda).
 const COLUNAS = [
   {
     id: 'institucional',
     titulo: 'Institucional',
     links: [
-      { texto: 'Sobre nós', href: '#' },
-      { texto: 'Como funciona', href: '#' },
-      { texto: 'Regras para anunciar', href: '#' },
+      { texto: 'Sobre nós', para: '/ajuda/sobre-nos' },
+      { texto: 'Como funciona', para: '/ajuda/como-funciona' },
+      { texto: 'Regras para anunciar', para: '/ajuda/regras-para-anunciar' },
     ],
   },
   {
     id: 'conta',
     titulo: 'Minha conta',
     links: [
-      { texto: 'Meus anúncios', para: '/perfil' },
+      { texto: 'Meus anúncios', para: '/meus-anuncios' },
       { texto: 'Favoritos', para: '/favoritos' },
       { texto: 'Mensagens', para: '/conversas' },
     ],
@@ -30,9 +30,9 @@ const COLUNAS = [
     id: 'ajuda',
     titulo: 'Ajuda',
     links: [
-      { texto: 'Perguntas frequentes', href: '#' },
-      { texto: 'Dicas de segurança', href: '#' },
-      { texto: 'Fale conosco', href: '#' },
+      { texto: 'Perguntas frequentes', para: '/ajuda/perguntas-frequentes' },
+      { texto: 'Dicas de segurança', para: '/ajuda/dicas-de-seguranca' },
+      { texto: 'Fale conosco', para: '/ajuda/fale-conosco' },
     ],
   },
 ];
@@ -102,7 +102,7 @@ export default function RodapeMarketplace() {
               Combine tudo direto com o anunciante, nunca pague adiantado e prefira encontros em
               locais públicos.
             </p>
-            <a className="mkt-rodape-seg-link" href="#">Ver dicas de segurança</a>
+            <Link className="mkt-rodape-seg-link" to="/ajuda/dicas-de-seguranca">Ver dicas de segurança</Link>
           </div>
         </div>
       </div>
@@ -111,8 +111,8 @@ export default function RodapeMarketplace() {
         <div className="mkt-rodape-base-in">
           <span className="mkt-rodape-copy">© {new Date().getFullYear()} DesapegaUai. Todos os direitos reservados.</span>
           <nav className="mkt-rodape-links" aria-label="Links legais">
-            <a href="#">Termos de uso</a>
-            <a href="#">Política de privacidade</a>
+            <Link to="/ajuda/termos-de-uso">Termos de uso</Link>
+            <Link to="/ajuda/politica-de-privacidade">Política de privacidade</Link>
           </nav>
           <div className="mkt-rodape-local">
             <span className="mkt-rodape-cidade">

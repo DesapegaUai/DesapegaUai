@@ -1,0 +1,63 @@
+/* Ajuda e páginas institucionais */
+
+.ins-corpo { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: var(--e6); }
+.ins-menu { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--linha); border-radius: var(--r-card); background: var(--sup); }
+.ins-menu a { display: flex; align-items: center; min-height: 46px; padding: 0 14px; border-radius: 12px; font-weight: 600; font-size: 15.5px; color: var(--tinta); }
+.ins-menu a:hover { background: var(--sup-3); color: var(--tinta); }
+.ins-menu a.on { background: var(--marca-suave); color: var(--marca); }
+
+.ins-conteudo { max-width: 820px; min-width: 0; }
+.ins-resumo { margin-top: 12px; font-size: 18px; line-height: 1.5; color: var(--texto-2); }
+.ins-aviso { margin-top: 18px; padding: 14px 16px; border-left: 4px solid var(--aviso); border-radius: 10px; background: #FBF6E6; font-weight: 600; font-size: 15px; color: #6B5300; }
+
+.ins-secao { margin-top: 34px; }
+.ins-secao h2 { margin: 0; font-weight: 700; font-size: 22px; line-height: 1.25; color: var(--tinta); }
+.ins-secao h2 + * { margin-top: 12px; }
+.ins-secao p { margin-top: 10px; font-size: 16.5px; line-height: 1.6; color: var(--tinta); }
+.ins-lista, .ins-passos { margin: 12px 0 0; padding-left: 22px; }
+.ins-lista li, .ins-passos li { margin-top: 8px; padding-left: 4px; font-size: 16.5px; line-height: 1.55; color: var(--tinta); }
+.ins-lista li::marker { color: var(--marca-clara); }
+.ins-passos li::marker { font-weight: 800; color: var(--marca); }
+
+.ins-tabela { margin-top: 14px; overflow-x: auto; border: 1px solid var(--linha); border-radius: 14px; }
+.ins-tabela table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 15px; }
+.ins-tabela th, .ins-tabela td { padding: 13px 16px; border-bottom: 1px solid var(--linha); text-align: left; vertical-align: top; line-height: 1.45; }
+.ins-tabela thead th { background: var(--marca-suave); font-weight: 700; color: var(--marca-escura); }
+.ins-tabela tbody th { font-weight: 700; color: var(--tinta); white-space: nowrap; }
+.ins-tabela tr:last-child th, .ins-tabela tr:last-child td { border-bottom: 0; }
+
+.ins-perguntas { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ins-perguntas details { border: 1px solid var(--linha); border-radius: 14px; background: var(--sup); }
+.ins-perguntas summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; padding: 12px 18px; font-weight: 700; font-size: 16px; line-height: 1.35; color: var(--tinta); list-style: none; cursor: pointer; }
+.ins-perguntas summary::-webkit-details-marker { display: none; }
+.ins-perguntas summary svg { transition: transform .2s ease; }
+.ins-perguntas details[open] summary svg { transform: rotate(180deg); }
+.ins-perguntas details p { margin: 0; padding: 0 18px 16px; color: var(--texto-2); }
+
+.ins-cartoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ins-cartao { padding: 20px; border: 1px solid var(--linha); border-radius: var(--r-card); background: var(--sup); }
+.ins-icone { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-bottom: 14px; border-radius: 12px; background: var(--marca-suave); }
+.ins-cartao b { font-size: 17px; color: var(--tinta); }
+.ins-cartao p { margin-top: 6px; font-size: 15.5px; color: var(--texto-2); }
+
+.ins-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 10px; font-weight: 700; font-size: 16px; }
+
+@media (max-width: 1024px) {
+  .ins-corpo { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .ins-menu { position: static; flex-direction: row; padding: 0 0 4px; overflow-x: auto; border: 0; border-radius: 0; background: none; scrollbar-width: none; }
+  .ins-menu::-webkit-scrollbar { display: none; }
+  .ins-menu a { flex: none; min-height: 44px; border: 1px solid var(--linha); border-radius: 999px; background: var(--sup); font-size: 15px; }
+  .ins-menu a.on { border-color: var(--marca-clara); }
+}
+
+@media (max-width: 600px) {
+  .ins-corpo { margin-top: var(--e5); }
+  .ins-menu { margin-inline: -16px; padding-inline: 16px; }
+  .ins-resumo { font-size: 16.5px; }
+  .ins-secao { margin-top: 28px; }
+  .ins-secao h2 { font-size: 20px; }
+  .ins-secao p, .ins-lista li, .ins-passos li { font-size: 16px; }
+  .ins-cartoes { grid-template-columns: minmax(0, 1fr); }
+  .ins-perguntas summary { padding: 12px 14px; font-size: 15.5px; }
+  .ins-perguntas details p { padding: 0 14px 14px; }
+}

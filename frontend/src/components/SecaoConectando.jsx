@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import Icone from './Icone.jsx'
 import './SecaoConectando.css'
 
@@ -34,10 +35,10 @@ export default function SecaoConectando() {
 
         <div className="rg-cab-cta">
           <p className="rg-apoio">Produtos mais perto de você, mais praticidade e uma comunidade mais forte.</p>
-          <a className="rg-btn" href="#">
+          <Link className="rg-btn" to="/busca">
             Ver anúncios perto de mim
             <Icone nome="home-seta-botao" tamanho={19} />
-          </a>
+          </Link>
         </div>
 
         {/* Para o leitor de tela, a foto com os cards por cima conta como uma imagem só */}

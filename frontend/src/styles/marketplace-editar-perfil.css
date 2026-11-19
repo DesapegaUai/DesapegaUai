@@ -1,0 +1,31 @@
+/* Editar perfil (usa os campos da tela de cadastro) */
+
+.painel-main.ep-main { display: block; padding: 28px 28px 48px; }
+.ep-voltar { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 700; font-size: 15px; }
+.ep-titulo { margin: 6px 0 0; font-weight: 800; font-size: 34px; line-height: 1.05; letter-spacing: -.015em; color: var(--tinta); }
+.ep-lead { margin-top: 8px; font-size: 17px; color: var(--texto-2); }
+.ep-form { display: flex; flex-direction: column; gap: 20px; max-width: 760px; margin-top: 22px; padding: 24px; }
+.ep-conta { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 14px; background: var(--marca-suave); }
+.ep-avatar { flex: none; display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border: 2px solid #fff; border-radius: 32px; background: #DDEBD3; font-weight: 800; font-size: 22px; color: var(--marca); }
+.ep-conta b { font-weight: 700; font-size: 16px; color: var(--tinta); }
+.ep-conta p { margin-top: 4px; font-size: 14.5px; line-height: 1.4; color: var(--texto-2); }
+.ep-bloqueado { background: var(--sup-2); color: var(--texto-2); cursor: not-allowed; }
+.ep-opcional { font-weight: 400; color: var(--texto-2); }
+.ep-area { margin-top: 0; }
+.ep-botoes { display: flex; justify-content: flex-end; gap: 12px; padding-top: 4px; }
+.ep-botoes .cad-btn { min-width: 170px; }
+
+@media (max-width: 1180px) {
+  .painel-main.ep-main { padding: 24px 20px 36px; }
+}
+
+@media (max-width: 600px) {
+  .painel-main.ep-main { padding: 14px 16px 30px; }
+  .ep-titulo { font-size: 26px; }
+  .ep-lead { font-size: 15.5px; }
+  .ep-form { gap: 16px; margin-top: 16px; padding: 18px 16px; }
+  .ep-conta { align-items: flex-start; padding: 14px; }
+  .ep-avatar { width: 52px; height: 52px; font-size: 18px; }
+  .ep-botoes { flex-direction: column-reverse; }
+  .ep-botoes .cad-btn { width: 100%; }
+}

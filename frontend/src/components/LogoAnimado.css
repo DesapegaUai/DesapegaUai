@@ -1,0 +1,10 @@
+/* O logo ocupa toda a largura do espaço onde ele está e mantém o formato.
+   O overflow: visible deixa a bolinha aparecer quando ela está acima do logo,
+   caindo ou pulando. Sem isso, ela ficaria cortada. */
+.logo-animado {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1221 / 261;
+  overflow: visible;
+}

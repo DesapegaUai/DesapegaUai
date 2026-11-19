@@ -5,6 +5,7 @@ import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
 import Paginacao from '../components/Paginacao.jsx';
 import SeletorOrdem from '../components/SeletorOrdem.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
+import Toast from '../components/Toast.jsx';
 import { CATEGORIAS } from '../services/categorias.js';
 import {
   FAVORITOS, FAVORITOS_POR_PAGINA, LISTAS, ORDENACOES_FAVORITOS,
@@ -28,6 +29,7 @@ export default function Favoritos() {
   const [categoria, setCategoria] = useState('todas');
   const [ordem, setOrdem] = useState('recentes');
   const [pagina, setPagina] = useState(1);
+  const [toast, setToast] = useState(null);
   const [removido, setRemovido] = useState(null); // { item } para o "Desfazer"
   const timerRef = useRef(null);
 
@@ -82,6 +84,7 @@ export default function Favoritos() {
 
   return (
     <LayoutMarketplace>
+      <Toast aviso={toast} onFechar={() => setToast(null)} />
       <nav aria-label="Você está em">
         <ol className="trilha">
           <li><Link to="/">Início</Link></li>
@@ -141,8 +144,11 @@ export default function Favoritos() {
             })}
           </div>
           <div className="div" />
-          {/* TODO: o protótipo não mostra como criar a lista nem como mover itens para ela */}
-          <button type="button" className="nova-lista">
+          <button
+            type="button"
+            className="nova-lista"
+            onClick={() => setToast({ tipo: 'info', titulo: 'Listas personalizadas em breve', texto: 'Por enquanto, todos os favoritos ficam em Todos favoritos.', chave: Date.now() })}
+          >
             <Icone nome="mais" tamanho={19} cor="#3E8B22" />
             Criar nova lista
           </button>
