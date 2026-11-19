@@ -1,0 +1,27 @@
+/* Resultado da busca */
+
+.bus-cabeca { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.bus-cabeca .titulo-pagina { min-width: 0; }
+.bus-cabeca h1 { overflow-wrap: anywhere; }
+.bus-grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px; margin-top: var(--e7); }
+
+.bus-vazio { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: var(--e7); padding: 56px 20px; border: 1px dashed var(--linha-forte); border-radius: var(--r-card); text-align: center; }
+.bus-vazio h2 { margin: 0; font-weight: 700; font-size: 22px; color: var(--tinta); }
+.bus-vazio p { color: var(--texto-2); }
+.bus-vazio ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+.bus-vazio a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--linha); border-radius: 999px; font-weight: 600; font-size: 15px; color: var(--tinta); }
+.bus-vazio a:hover { border-color: var(--marca-clara); background: var(--marca-suave); color: var(--marca); }
+
+@media (max-width: 1280px) {
+  .bus-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+  .bus-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+}
+
+@media (max-width: 600px) {
+  .bus-cabeca .ordenar { width: 100%; }
+  .bus-grade { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: var(--e5); }
+  .bus-vazio { padding: 40px 16px; }
+}

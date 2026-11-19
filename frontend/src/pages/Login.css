@@ -1,0 +1,554 @@
+/*
+  Estilo da tela de login, seguindo o protótipo 00-login.html da pasta de design.
+
+  Todas as classes começam com "login-". Assim este CSS não mexe nas outras telas,
+  porque o global.css vale para o site todo.
+
+  A tela muda de jeito em três tamanhos, os mesmos do design:
+  computador a partir de 1025px, tablet de 601px a 1024px e celular até 600px.
+  As regras do tablet e do celular ficam no final do arquivo.
+*/
+
+.login-tela {
+  /* Cores da tela de login, tiradas do design */
+  --login-tinta: #14300d;
+  --login-tinta-forte: #173b08;
+  --login-tinta-media: #274310;
+  --login-tinta-suave: #3a5a20;
+  --login-botao: #1b4409;
+  --login-botao-texto: #f4ffe4;
+  --login-erro: #c0392b;
+  --login-erro-texto: #a3281c;
+  --login-vidro-borda: rgba(255, 255, 255, 0.55);
+  --login-vidro-fundo: linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.16));
+  --login-sombra-campo: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(255, 255, 255, 0.35),
+    0 10px 26px -14px rgba(20, 48, 13, 0.5);
+  --login-foco: rgba(23, 59, 8, 0.55);
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh; /* no celular, desconta a barra de endereço do navegador */
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--login-tinta);
+  background: linear-gradient(128deg, #5e9e27 0%, #8cd02f 20%, #c4f63c 34%, #e4ff8e 45%, #f7ffdf 55%, #ffffff 66%);
+  -webkit-font-smoothing: antialiased;
+}
+
+.login-brilho {
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(115% 85% at 6% 4%, rgba(58, 110, 20, 0.55) 0%, rgba(58, 110, 20, 0) 56%),
+    radial-gradient(85% 60% at 30% 28%, rgba(213, 255, 80, 0.72) 0%, rgba(213, 255, 80, 0) 64%),
+    radial-gradient(95% 80% at 90% 40%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+}
+
+.login-coluna {
+  position: relative;
+  width: 100%;
+  max-width: 392px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px; /* espaço entre o logo e o formulário. No design eram 30px, mas ficou apertado. */
+}
+
+.login-logo {
+  width: 290px;
+  max-width: 100%;
+  flex: none;
+  margin: 0;
+}
+
+/* A animação do logo está em src/components/LogoAnimado.jsx. Aqui só fica a largura dele. */
+
+/* Texto que não aparece na tela, mas o leitor de tela lê */
+.login-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.login-carregando {
+  margin: 0;
+  font-weight: 600;
+  color: var(--login-tinta-media);
+}
+
+.login-corpo,
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Campos */
+
+.login-grupo > label {
+  display: block;
+  margin: 0 0 7px 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--login-tinta-forte);
+}
+
+.login-campo {
+  position: relative;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 19px;
+  border: 1.5px solid var(--login-vidro-borda);
+  border-radius: 999px;
+  background: var(--login-vidro-fundo);
+  box-shadow: var(--login-sombra-campo);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.login-campo:focus-within {
+  border-color: #fff;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(255, 255, 255, 0.45),
+    0 10px 26px -14px rgba(20, 48, 13, 0.5);
+  /* contorno escuro para dar para ver qual campo está selecionado, mesmo no fundo claro */
+  outline: 2px solid var(--login-foco);
+  outline-offset: 2px;
+}
+
+.login-campo:has([aria-invalid='true']) {
+  border-color: var(--login-erro);
+}
+
+.login-campo input {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 15.5px;
+  color: var(--login-tinta);
+}
+
+.login-campo input::placeholder {
+  color: rgba(20, 48, 13, 0.4);
+  opacity: 1;
+}
+
+/* O Edge coloca um olhinho próprio no campo de senha. Escondemos porque a tela já tem o dela. */
+.login-campo input::-ms-reveal,
+.login-campo input::-ms-clear {
+  display: none;
+}
+
+/* Quando o navegador preenche o e-mail sozinho, ele pinta o fundo do campo. Isto tira essa cor. */
+.login-campo input:-webkit-autofill {
+  -webkit-text-fill-color: var(--login-tinta);
+  transition: background-color 600000s 0s;
+}
+
+.login-icone {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: rgba(20, 48, 13, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.login-icone--cheio {
+  fill: var(--login-tinta);
+  stroke: none;
+}
+
+.login-olho {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: -11px; /* o botão é maior para ser fácil de tocar, e a margem negativa deixa o ícone no lugar */
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+/* Links e botões */
+
+.login-tela a,
+.login-link {
+  color: var(--login-tinta-forte);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-link {
+  padding: 6px 0; /* deixa o link mais fácil de tocar no celular */
+  margin: -6px 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.login-tela a:hover,
+.login-link:hover {
+  color: var(--cor-principal);
+  text-decoration: underline;
+}
+
+.login-tela :is(a, button, input[type='checkbox']):focus-visible {
+  outline: 2px solid var(--login-tinta-forte);
+  outline-offset: 3px;
+}
+
+.login-esqueci {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 6px;
+  margin-top: -4px;
+  font-size: 12.5px;
+  line-height: 1;
+}
+
+.login-entrar {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--login-botao);
+  box-shadow: 0 16px 30px -16px rgba(12, 36, 4, 0.85);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.login-tela .login-entrar {
+  color: var(--login-botao-texto); /* também vale para o link "Ir para o início" */
+  text-decoration: none;
+}
+
+.login-tela .login-entrar:hover {
+  background: #22550c;
+  color: var(--login-botao-texto);
+  text-decoration: none;
+}
+
+.login-entrar:active {
+  transform: translateY(1px);
+}
+
+.login-tela button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* Termos */
+
+.login-aceite {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  font-weight: 500;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--login-tinta-media);
+  cursor: pointer;
+}
+
+.login-cx {
+  appearance: none;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  border: 1.5px solid rgba(23, 59, 8, 0.45);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.4) center / 14px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.login-cx:checked {
+  border-color: var(--login-botao);
+  background-color: var(--login-botao);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F4FFE4' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
+.login-cx[aria-invalid='true'] {
+  border-color: var(--login-erro);
+  border-width: 2px;
+}
+
+/* Avisos de erro e de informação */
+
+.login-aviso {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.login-aviso:not(:empty) {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.login-aviso--erro {
+  color: var(--login-erro-texto);
+}
+
+.login-aviso--erro:not(:empty) {
+  border-color: rgba(192, 57, 43, 0.35);
+}
+
+/* Linha "ou entre com" e os botões do Google e da Apple */
+
+.login-ou {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-ou-linha {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 0;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--login-tinta-suave);
+  white-space: nowrap;
+}
+
+.login-ou-linha::before,
+.login-ou-linha::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(23, 59, 8, 0.22);
+}
+
+.login-social {
+  display: flex;
+  gap: 12px;
+}
+
+.login-social > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/*
+  Botão do Google: a pessoa vê o .login-soc (igual ao design), e o botão oficial do Google
+  fica por cima dele, invisível. O botão do Google tem no máximo 40px de altura e 400px de largura,
+  então ele é esticado para cobrir o botão do design inteiro. O overflow: hidden corta
+  o que sobra, para o clique só valer dentro da pílula.
+*/
+.login-google {
+  position: relative;
+  display: flex;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.login-google > .login-soc {
+  flex: 1;
+  min-width: 0;
+}
+
+.login-google:hover > .login-soc {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Contorno quando o botão do Google é selecionado pelo teclado (tecla Tab) */
+.login-google:focus-within {
+  outline: 2px solid var(--login-tinta-forte);
+  outline-offset: 3px;
+}
+
+.login-google-botao {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.0001; /* invisível, mas continua recebendo o clique */
+  transform: scale(calc(var(--google-esticar, 1) * 1.1), 1.4);
+}
+
+/* Botão invisível que fica por cima do Google enquanto os termos não foram aceitos */
+.login-google-trava {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.login-tela .login-google-trava:focus-visible {
+  outline: 0; /* quem mostra o contorno é o .login-google:focus-within */
+}
+
+.login-soc {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 1px 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--login-tinta);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.login-soc:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.login-criar {
+  margin: 0;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--login-tinta-media);
+}
+
+/* Cartão que aparece depois que a pessoa entra: "Olá, Fulana!" */
+
+.login-cartao {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 24px;
+  border: 1.5px solid var(--login-vidro-borda);
+  border-radius: 28px;
+  background: var(--login-vidro-fundo);
+  box-shadow: var(--login-sombra-campo);
+  text-align: center;
+}
+
+.login-cartao h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--login-tinta-forte);
+}
+
+.login-cartao p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--login-tinta-media);
+  overflow-wrap: anywhere;
+}
+
+.login-cartao .login-aviso {
+  font-size: 13px;
+}
+
+.login-foto {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+}
+
+.login-avisos,
+.login-sair {
+  width: 100%;
+}
+
+.login-sair {
+  min-height: 50px;
+}
+
+/* Tablet: telas até 1024px */
+@media (max-width: 1024px) {
+  .login-tela {
+    padding: 32px 24px;
+  }
+}
+
+/* Celular: telas até 600px */
+@media (max-width: 600px) {
+  .login-tela {
+    align-items: flex-start;
+  }
+
+  .login-coluna {
+    max-width: none;
+    gap: 40px; /* no design eram 24px */
+    padding-top: 24px; /* no design eram 8px. Esse espaço também ajuda a ver a bolinha caindo. */
+  }
+
+  .login-logo {
+    width: 210px;
+  }
+
+  .login-campo input {
+    font-size: 16px; /* no design é 15px, mas com menos de 16px o iPhone dá zoom sozinho quando toca no campo */
+  }
+
+  /* Google e Apple ficam um embaixo do outro, ocupando a largura toda */
+  .login-social {
+    flex-direction: column;
+  }
+
+  .login-social > * {
+    flex: none;
+    width: 100%;
+  }
+
+  .login-soc {
+    min-height: 52px;
+  }
+}

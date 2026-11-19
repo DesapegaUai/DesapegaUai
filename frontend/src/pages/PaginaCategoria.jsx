@@ -7,6 +7,7 @@ import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
 import Paginacao from '../components/Paginacao.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import { buscarCategoria } from '../services/categorias.js';
+import { escolherCidade, useCidade } from '../services/cidade.js';
 import {
   DISTANCIA, PAGINAS_CATEGORIA, filtrosIniciais, filtrosLimpos, listarAnuncios,
 } from '../services/anuncios.js';
@@ -27,6 +28,7 @@ export default function PaginaCategoria({ slug }) {
   const idPainel = `filtros-${slug}`;
 
   const ehGaveta = useMediaQuery(TABLET);
+  const cidade = useCidade();
   const [filtros, setFiltros] = useState(() => filtrosIniciais(slug));
   const [ordem, setOrdem] = useState('recentes');
   const [numPagina, setNumPagina] = useState(1);
@@ -40,11 +42,12 @@ export default function PaginaCategoria({ slug }) {
   // Saiu do tablet/celular com a gaveta aberta → fecha
   if (!ehGaveta && painelAberto) setPainelAberto(false);
 
-  // Filtros aplicados de fato (a busca só roda ao clicar nos chips, ordenar, paginar ou "Aplicar filtros")
-  const [filtrosAplicados, setFiltrosAplicados] = useState(filtros);
+  // Filtros aplicados de fato (a busca só roda ao clicar nos chips ou em "Aplicar filtros").
+  // Antes da primeira escolha, a tela mostra a lista completa do protótipo.
+  const [filtrosAplicados, setFiltrosAplicados] = useState(null);
   const resultado = useMemo(
-    () => listarAnuncios(slug, { pagina: numPagina, ordem, filtros: filtrosAplicados }),
-    [slug, numPagina, ordem, filtrosAplicados],
+    () => listarAnuncios(slug, { pagina: numPagina, ordem, filtros: filtrosAplicados, cidade }),
+    [slug, numPagina, ordem, filtrosAplicados, cidade],
   );
 
   const mudarFiltros = useCallback((parcial) => setFiltros((f) => ({ ...f, ...parcial })), []);
@@ -107,7 +110,7 @@ export default function PaginaCategoria({ slug }) {
 
       <div className="titulo-pagina">
         <h1 className="t-titulo-1">{categoria.nome}</h1>
-        <span className="cont">{formatarQuantidade(resultado.total)} em Viçosa e região</span>
+        <span className="cont">{formatarQuantidade(resultado.total)} em {cidade} e região</span>
       </div>
 
       <BarraChips
@@ -138,16 +141,27 @@ export default function PaginaCategoria({ slug }) {
 
         <div className="col-grade">
           <h2 className="oculto">Anúncios de {categoria.nome}</h2>
-          <div className="grade">
-            {resultado.anuncios.map((anuncio) => (
-              <CardAnuncio
-                key={anuncio.id}
-                anuncio={anuncio}
-                favorito={favoritos.has(anuncio.id)}
-                onFavoritar={alternarFavorito}
-              />
-            ))}
-          </div>
+          {resultado.anuncios.length === 0 ? (
+            <div className="cat-vazio" role="status">
+              <Icone nome="busca" tamanho={36} cor="#4CA02B" />
+              <b>{cidade === 'Viçosa' ? 'Nenhum anúncio com esses filtros' : `Ainda não há anúncios de ${categoria.nome} em ${cidade}`}</b>
+              <p>{cidade === 'Viçosa' ? 'Tire alguns filtros ou aumente a distância.' : 'Por enquanto, os anúncios são de Viçosa.'}</p>
+              {cidade === 'Viçosa'
+                ? <button type="button" onClick={limpar}>Limpar filtros</button>
+                : <button type="button" onClick={() => escolherCidade('Viçosa')}>Ver anúncios de Viçosa</button>}
+            </div>
+          ) : (
+            <div className="grade">
+              {resultado.anuncios.map((anuncio) => (
+                <CardAnuncio
+                  key={anuncio.id}
+                  anuncio={anuncio}
+                  favorito={favoritos.has(anuncio.id)}
+                  onFavoritar={alternarFavorito}
+                />
+              ))}
+            </div>
+          )}
           <Paginacao pagina={numPagina} totalPaginas={resultado.totalPaginas} onMudar={mudarPagina} />
         </div>
       </div>

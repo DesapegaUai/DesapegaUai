@@ -1,0 +1,25 @@
+/* Menu de três pontos e confirmação de exclusão dos anúncios */
+
+.acoes-abrir { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--linha); border-radius: 12px; background: var(--sup); }
+.acoes-abrir:hover { background: var(--sup-3); }
+
+.acoes-menu { position: fixed; z-index: 70; width: 232px; max-width: calc(100vw - 16px); padding: 6px; border: 1px solid var(--linha); border-radius: 14px; background: var(--sup); box-shadow: 0 12px 32px rgba(20, 51, 31, .16); }
+.acoes-menu a, .acoes-menu button { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--tinta); font-family: inherit; font-weight: 600; font-size: 15px; text-align: left; }
+.acoes-menu a:hover, .acoes-menu button:hover { background: var(--marca-suave); color: var(--tinta); }
+.acoes-menu .perigo, .acoes-menu .perigo:hover { color: var(--erro); }
+.acoes-menu .perigo:hover { background: var(--erro-suave); }
+
+.acoes-fundo { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(22, 40, 28, .5); }
+.acoes-dialogo { width: 100%; max-width: 460px; padding: 26px; border-radius: 18px; background: var(--sup); box-shadow: 0 20px 50px rgba(20, 51, 31, .24); }
+.acoes-dialogo h2 { margin: 0; font-weight: 800; font-size: 22px; line-height: 1.2; color: var(--tinta); }
+.acoes-dialogo p { margin-top: 12px; font-size: 16px; line-height: 1.5; color: var(--texto-2); overflow-wrap: anywhere; }
+.acoes-dialogo b { color: var(--tinta); }
+.acoes-botoes { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.acoes-btn { min-height: 48px; padding: 0 20px; border: 1px solid var(--linha-forte); border-radius: 12px; background: var(--sup); color: var(--tinta); font-family: inherit; font-weight: 700; font-size: 15.5px; }
+.acoes-btn.perigo { border-color: var(--erro); background: var(--erro); color: #fff; }
+
+@media (max-width: 600px) {
+  .acoes-dialogo { padding: 22px 18px; }
+  .acoes-botoes { flex-direction: column-reverse; }
+  .acoes-btn { width: 100%; }
+}

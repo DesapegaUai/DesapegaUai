@@ -1,0 +1,174 @@
+/*
+  Aviso rápido (toast). Fica centralizado no alto da tela, por cima de tudo.
+  As cores vêm do global.css (--cor-texto, --cor-principal) para valer em qualquer tela do site.
+*/
+
+.toast-area {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 1000;
+  width: min(380px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none; /* a área vazia não atrapalha os cliques na tela */
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px 14px 16px;
+  border: 1px solid rgba(22, 40, 28, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  box-shadow:
+    0 1px 2px rgba(22, 40, 28, 0.06),
+    0 14px 36px -10px rgba(22, 40, 28, 0.28);
+  color: var(--cor-texto);
+  font-family: var(--fonte);
+  pointer-events: auto;
+  animation: toast-entra 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
+
+.toast--saindo {
+  animation: toast-sai 0.2s ease-in forwards;
+}
+
+/* Entra descendo do alto com um leve "pulinho" no fim */
+@keyframes toast-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-sai {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+}
+
+/* Ícone redondo do tipo do aviso */
+.toast-icone {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.toast-icone path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toast-icone .toast-icone-ponto {
+  fill: #fff;
+}
+
+.toast-icone--sucesso > circle:first-child {
+  fill: var(--cor-principal);
+}
+
+.toast-icone--info > circle:first-child {
+  fill: #1b4409;
+}
+
+.toast-icone--erro > circle:first-child {
+  fill: #c0392b;
+}
+
+.toast-conteudo {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.toast-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.toast-texto {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(22, 40, 28, 0.68);
+}
+
+.toast-fechar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0 -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: rgba(22, 40, 28, 0.45);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.toast-fechar:hover {
+  background: rgba(22, 40, 28, 0.06);
+  color: var(--cor-texto);
+}
+
+.toast-fechar:focus-visible {
+  outline: 2px solid var(--cor-principal);
+  outline-offset: 1px;
+}
+
+.toast-fechar svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Celular: o aviso fica um pouco mais perto do topo */
+@media (max-width: 600px) {
+  .toast-area {
+    top: 16px;
+  }
+}
+
+/* Quem pediu menos movimento no computador ou celular vê o aviso só aparecer e sumir, sem deslizar */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: toast-aparece 0.2s ease both;
+  }
+
+  .toast--saindo {
+    animation: toast-some 0.2s ease forwards;
+  }
+
+  @keyframes toast-aparece {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes toast-some {
+    to {
+      opacity: 0;
+    }
+  }
+}

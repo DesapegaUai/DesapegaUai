@@ -1,6 +1,4 @@
 // As 8 categorias do DesapegaUai, na ordem das abas (03-arquitetura-da-informacao).
-// Este projeto entrega as telas de: Casa, Eletrônicos, Moda, Veículos, Livros, Games e Serviços.
-// Outros aparece nas abas, mas a tela fica com outra pessoa da equipe.
 
 export const CATEGORIAS = [
   { slug: 'casa', nome: 'Casa', icone: 'casa' },

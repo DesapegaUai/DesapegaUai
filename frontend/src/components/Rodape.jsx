@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import Icone from './Icone.jsx'
 import './Rodape.css'
 
@@ -7,6 +8,19 @@ const colunas = [
   { id: 'ajuda', titulo: 'Ajuda', links: ['Perguntas frequentes', 'Dicas de segurança', 'Fale conosco'] },
 ]
 
+// Destino de cada link do rodapé
+const DESTINOS = {
+  'Sobre nós': '/ajuda/sobre-nos',
+  'Como funciona': '/ajuda/como-funciona',
+  'Regras para anunciar': '/ajuda/regras-para-anunciar',
+  'Meus anúncios': '/meus-anuncios',
+  Favoritos: '/favoritos',
+  Mensagens: '/conversas',
+  'Perguntas frequentes': '/ajuda/perguntas-frequentes',
+  'Dicas de segurança': '/ajuda/dicas-de-seguranca',
+  'Fale conosco': '/ajuda/fale-conosco',
+}
+
 export default function Rodape() {
   return (
     <footer className="rodape">
@@ -15,10 +29,10 @@ export default function Rodape() {
           <div className="rodape-marca">
             <img className="rodape-logo" src="/img/logo-negativo.svg" alt="DesapegaUai" width="1221" height="261" />
             <p className="rodape-desc">Compre e venda com gente do seu bairro, em Viçosa e região.</p>
-            <a className="rodape-cta" href="#">
+            <Link className="rodape-cta" to="/anunciar">
               <Icone nome="adicionar" tamanho={18} />
               Anunciar grátis
-            </a>
+            </Link>
           </div>
 
           {/* No celular cada coluna vira uma sanfona: a caixinha escondida (checkbox) abre e fecha a lista só com CSS */}
@@ -33,9 +47,9 @@ export default function Rodape() {
               </h3>
               <div className="rodape-lista">
                 {c.links.map((l) => (
-                  <a key={l} href="#">
+                  <Link key={l} to={DESTINOS[l]}>
                     {l}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -51,9 +65,9 @@ export default function Rodape() {
               <b>Negocie com segurança.</b> O DesapegaUai não intermedia pagamentos nem entregas. Combine tudo
               direto com o anunciante, nunca pague adiantado e prefira encontros em locais públicos.
             </p>
-            <a className="rodape-seg-link" href="#">
+            <Link className="rodape-seg-link" to="/ajuda/dicas-de-seguranca">
               Ver dicas de segurança
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -64,8 +78,8 @@ export default function Rodape() {
             © {new Date().getFullYear()} DesapegaUai. Todos os direitos reservados.
           </span>
           <nav className="rodape-links" aria-label="Links legais">
-            <a href="#">Termos de uso</a>
-            <a href="#">Política de privacidade</a>
+            <Link to="/ajuda/termos-de-uso">Termos de uso</Link>
+            <Link to="/ajuda/politica-de-privacidade">Política de privacidade</Link>
           </nav>
           <div className="rodape-local">
             <span className="rodape-cidade">

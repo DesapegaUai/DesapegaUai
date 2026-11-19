@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import Icone from './Icone.jsx'
 import '../styles/secoes.css'
 import './Categorias.css'
@@ -18,18 +19,18 @@ export default function Categorias() {
     <section className="secao">
       <div className="secao__topo">
         <h2>Explore por categoria</h2>
-        <a href="#" className="secao__link">
+        <Link to="/categoria/casa" className="secao__link">
           Ver todas
           <Icone nome="home-seta-direita" tamanho={20} />
-        </a>
+        </Link>
       </div>
 
       <div className="categorias">
         {categorias.map((c) => (
-          <a key={c.nome} href="#" className="categoria">
+          <Link key={c.nome} to={`/categoria/${c.icone.replace('categoria-', '')}`} className="categoria">
             <Icone nome={`home-${c.icone}`} tamanho={36} />
             <span>{c.nome}</span>
-          </a>
+          </Link>
         ))}
       </div>
     </section>

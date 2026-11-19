@@ -27,6 +27,11 @@ export function horaAgora() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** '2026-11-16T12:00:00.000Z' → "16/11" */
+export function formatarData(iso) {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
 /** 312 → "312 anúncios" · 1 → "1 anúncio" · 1500 → "1.500 anúncios" */
 export function formatarQuantidade(qtd) {
   return `${qtd.toLocaleString('pt-BR')} ${qtd === 1 ? 'anúncio' : 'anúncios'}`;

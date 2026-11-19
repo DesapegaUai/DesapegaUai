@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import CaixaMensagem from '../components/CaixaMensagem.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
+import Toast from '../components/Toast.jsx';
+import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
+import { daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { CONVERSAS } from '../services/conversas.js';
 import { formatarPreco, formatarTamanho, horaAgora } from '../services/formatar.js';
 import '../styles/marketplace-conversas.css';
@@ -16,6 +19,7 @@ const FILTROS = [
 function previa(conversa) {
   const ultima = conversa.mensagens.at(-1);
   if (!ultima) return '';
+  if (ultima.sistema) return ultima.texto;
   const corpo = ultima.texto || (ultima.anexos?.length ? `📎 ${ultima.anexos.length > 1 ? `${ultima.anexos.length} anexos` : ultima.anexos[0].nome}` : '');
   return ultima.autor === 'eu' ? `Você: ${corpo}` : corpo;
 }
@@ -50,9 +54,13 @@ function Anexo({ anexo }) {
  * Rotas: /conversas (lista; no computador já mostra a 1ª conversa) · /conversas/:id
  */
 export default function Conversas() {
+  const [toast, setToast] = useState(null);
+  const emBreve = (titulo) => setToast({ tipo: 'info', titulo, texto: 'Por enquanto, combine tudo pelo chat.', chave: Date.now() });
   const { id } = useParams();
   const navegar = useNavigate();
   const [conversas, setConversas] = useState(CONVERSAS);
+  const avaliacoes = useAvaliacoes();
+  const podeAvaliar = (c) => c.anuncio.vendido && !c.vendendo;
   const [filtro, setFiltro] = useState('todas');
   const [busca, setBusca] = useState('');
   const msgsRef = useRef(null);
@@ -104,6 +112,7 @@ export default function Conversas() {
 
   return (
     <LayoutMarketplace comAbas={false} comFab={!id} classeConteudo="pag-conversas">
+      <Toast aviso={toast} onFechar={() => setToast(null)} />
       <div className="titulo-pagina">
         <h1 className="t-titulo-1">Conversas</h1>
         <span className="cont">{naoLidas} {naoLidas === 1 ? 'não lida' : 'não lidas'} · {conversas.length} no total</span>
@@ -163,6 +172,9 @@ export default function Conversas() {
                     <span className="item-anuncio">{c.anuncio.titulo}</span>
                     <span className="item-l3">
                       <span className="item-msg">{previa(c)}</span>
+                      {c.naoLidas === 0 && podeAvaliar(c) && !daConversa(avaliacoes, c.id) && (
+                        <span className="item-avaliar"><Icone nome="estrela" tamanho={12} cor="none" preenchimento="#3E8B22" espessura={0} />Avaliar</span>
+                      )}
                       {c.naoLidas > 0 && (
                         <span className="item-qtd" aria-label={`${c.naoLidas} não lidas`}>{c.naoLidas}</span>
                       )}
@@ -188,15 +200,14 @@ export default function Conversas() {
                 <span>{selecionada.online ? 'Online agora' : 'Offline'}</span>
               </div>
             </div>
-            {/* TODO: ações ainda sem tela no protótipo */}
             <div className="conv-acoes">
-              <button type="button" className="conv-acao" aria-label={`Ligar para ${selecionada.nome}`}>
+              <button type="button" className="conv-acao" aria-label={`Ligar para ${selecionada.nome}`} onClick={() => emBreve('Ligações chegam em breve')}>
                 <Icone nome="telefone" tamanho={22} cor="#3E8B22" />
               </button>
-              <button type="button" className="conv-acao" aria-label="Segurança e denúncia">
+              <button type="button" className="conv-acao" aria-label="Segurança e denúncia" onClick={() => navegar('/ajuda/dicas-de-seguranca')}>
                 <Icone nome="escudo-simples" tamanho={22} cor="#3E8B22" />
               </button>
-              <button type="button" className="conv-acao" aria-label="Mais opções">
+              <button type="button" className="conv-acao" aria-label="Mais opções" onClick={() => emBreve('Mais opções em breve')}>
                 <Icone nome="mais-vertical" tamanho={22} cor="#6B726C" />
               </button>
             </div>
@@ -206,7 +217,7 @@ export default function Conversas() {
             <span className="mini"><Icone nome="etiqueta" tamanho={24} cor="#4CA02B" /></span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="t">{selecionada.anuncio.titulo}</div>
-              <div className="p">{formatarPreco(selecionada.anuncio.preco)}</div>
+              <div className="p">{formatarPreco(selecionada.anuncio.preco)}{selecionada.anuncio.vendido && <span className="tag-vendido">Vendido</span>}</div>
             </div>
             <Link className="btn-ver" to={`/anuncio/${selecionada.anuncio.id}`}>Ver anúncio</Link>
           </div>
@@ -215,6 +226,9 @@ export default function Conversas() {
             {selecionada.mensagens.map((m, i) => (
               <Fragment key={m.id}>
                 {m.dia !== selecionada.mensagens[i - 1]?.dia && <div className="dia"><span>{m.dia}</span></div>}
+                {m.sistema ? (
+                  <div className="evento-sistema"><span><Icone nome="check" tamanho={15} cor="#3E8B22" espessura={2.2} />{m.texto} · {m.hora}</span></div>
+                ) : (
                 <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}`}>
                   <div className="bolha">
                     {m.anexos?.length > 0 && (
@@ -231,8 +245,16 @@ export default function Conversas() {
                     </div>
                   </div>
                 </div>
+                )}
               </Fragment>
             ))}
+            {podeAvaliar(selecionada) && (
+              <CartaoAvaliacao
+                key={selecionada.id}
+                conversa={selecionada}
+                onAvaliado={() => setToast({ tipo: 'sucesso', titulo: 'Avaliação enviada', texto: `Obrigado! A nota já aparece no perfil de ${selecionada.nome.split(' ')[0]}.`, chave: Date.now() })}
+              />
+            )}
           </div>
 
           <CaixaMensagem key={selecionada.id} nomeContato={selecionada.nome} onEnviar={enviar} />

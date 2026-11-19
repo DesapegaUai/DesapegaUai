@@ -42,11 +42,13 @@ export const CONVERSAS = [
     online: false,
     vendendo: false,
     naoLidas: 0,
-    anuncio: { id: 'liv-1', titulo: 'Cálculo A — Flemming', preco: 60 },
+    anuncio: { id: 'liv-1', titulo: 'Cálculo A — Flemming', preco: 60, vendido: true },
     mensagens: [
       { id: 1, autor: 'eu', dia: 'Ontem', hora: '17:10', texto: 'Oi Marcos, o livro ainda está disponível?' },
       { id: 2, autor: 'outro', dia: 'Ontem', hora: '17:24', texto: 'Está sim! Posso entregar na UFV amanhã.' },
       { id: 3, autor: 'eu', dia: 'Ontem', hora: '17:30', texto: 'Fechado então, te encontro na biblioteca às 18h.' },
+      { id: 4, autor: 'outro', dia: 'Hoje', hora: '09:10', texto: 'Valeu, Ana! Bons estudos 📚' },
+      { id: 5, sistema: true, dia: 'Hoje', hora: '09:12', texto: 'Marcos marcou o anúncio como vendido' },
     ],
   },
   {
@@ -93,6 +95,24 @@ export const CONVERSAS = [
 ];
 
 export const NAO_LIDAS_TOTAL = CONVERSAS.reduce((total, c) => total + c.naoLidas, 0);
+
+/** Abre a conversa do anúncio. Se ainda não existir, cria uma conversa vazia no topo da lista. */
+export function abrirConversaDoAnuncio(anuncio) {
+  const existente = CONVERSAS.find((c) => c.anuncio.id === anuncio.id);
+  if (existente) return existente.id;
+  const id = `anuncio-${anuncio.id}`;
+  CONVERSAS.unshift({
+    id,
+    nome: anuncio.vendedor.nome,
+    iniciais: anuncio.vendedor.iniciais,
+    online: false,
+    vendendo: false,
+    naoLidas: 0,
+    anuncio: { id: anuncio.id, titulo: anuncio.titulo, preco: anuncio.preco },
+    mensagens: [],
+  });
+  return id;
+}
 
 export const RESPOSTAS_RAPIDAS = [
   'Ainda está disponível?',

@@ -1,7 +1,9 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { useCallback, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { useRolagem } from '../hooks/useRolagem.js'
 import Icone from './Icone.jsx'
+import MenuCidade from './MenuCidade.jsx'
+import { posicaoDoMenu, useCidade } from '../services/cidade.js'
 import './Cabecalho.css'
 
 // No tablet e no celular o cabeçalho fica preso no topo. Depois deste tanto de rolagem (em px)
@@ -14,6 +16,16 @@ export default function Cabecalho({ busca, onBusca }) {
   const texto = busca ?? buscaLocal
   const aoDigitar = onBusca ?? setBuscaLocal
   const encolhido = useRolagem(ROLAGEM_PARA_ENCOLHER)
+  const navegar = useNavigate()
+  const cidade = useCidade()
+  const localRef = useRef(null)
+  const [menuCidade, setMenuCidade] = useState(null)
+  const fecharCidade = useCallback(() => setMenuCidade(null), [])
+
+  // Enter na busca abre a página de resultados
+  function buscarAoTeclar(e) {
+    if (e.key === 'Enter' && texto.trim()) navegar(`/busca?q=${encodeURIComponent(texto.trim())}`)
+  }
 
   return (
     <header className={encolhido ? 'cabecalho cabecalho--encolhido' : 'cabecalho'}>
@@ -31,26 +43,35 @@ export default function Cabecalho({ busca, onBusca }) {
             enterKeyHint="search"
             value={texto}
             onChange={(e) => aoDigitar(e.target.value)}
+            onKeyDown={buscarAoTeclar}
           />
         </label>
 
-        <button className="cabecalho__local" type="button">
+        <button
+          className="cabecalho__local"
+          type="button"
+          ref={localRef}
+          aria-haspopup="menu"
+          aria-expanded={Boolean(menuCidade)}
+          onClick={() => setMenuCidade(menuCidade ? null : posicaoDoMenu(localRef.current))}
+        >
           <Icone nome="home-localizacao" tamanho={20} />
-          <span>Viçosa, MG</span>
+          <span>{cidade}, MG</span>
           <Icone nome="home-seta-baixo" tamanho={18} />
         </button>
+        {menuCidade && <MenuCidade posicao={menuCidade} ancoraRef={localRef} onFechar={fecharCidade} />}
 
         <div className="cabecalho__acoes">
-          <button type="button" className="cabecalho__icone" aria-label="Favoritos">
+          <button type="button" className="cabecalho__icone" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
             <Icone nome="home-favorito" tamanho={27} />
           </button>
-          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Mensagens">
+          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Mensagens" onClick={() => navegar('/conversas')}>
             <Icone nome="home-mensagens" tamanho={27} />
           </button>
-          <button type="button" className="cabecalho__icone" aria-label="Minha conta">
+          <button type="button" className="cabecalho__icone" aria-label="Minha conta" onClick={() => navegar('/perfil')}>
             <Icone nome="home-perfil" tamanho={27} />
           </button>
-          <button type="button" className="botao-anunciar">
+          <button type="button" className="botao-anunciar" onClick={() => navegar('/anunciar')}>
             Anunciar
           </button>
         </div>
