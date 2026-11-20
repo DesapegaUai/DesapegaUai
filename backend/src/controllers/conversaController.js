@@ -3,6 +3,7 @@
 import { abrirConversa, listarConversas, contarConversasNaoLidas, } from '../models/conversaModel.js'
 import { lerId, lerOpcao } from '../utils/validacao.js'
 import { buscarMensagens, salvarMensagem } from '../models/mensagemModel.js'
+import { avisarUsuarios } from '../socket.js'
 
 // POST /api/conversas (A2)
 export async function abrir(req, res) {
@@ -70,6 +71,12 @@ export async function enviarMensagem(req, res) {
     conversaId,
     usuarioId,
     req.body?.texto,
+  )
+
+  avisarUsuarios(
+    resultado.participantes,
+    'nova_mensagem',
+    resultado.mensagem,
   )
 
   res.status(201).json({
