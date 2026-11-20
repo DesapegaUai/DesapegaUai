@@ -87,34 +87,45 @@ function lerCondicoes(valor) {
 }
 
 export async function pesquisar(req, res) {
+
+  const parametros = { ...req.query }
+
+  for (const nome in parametros) {
+    const valor = parametros [nome]
+
+    if (typeof valor === 'string' && valor.trim() === '') {
+      delete parametros[nome]
+    }
+  }
+
   let usuarioId = null
 
   if (req.usuario) {
     usuarioId = req.usuario.id
   }
 
-  const busca = lerTexto(req.query.busca, 'busca')
+  const busca = lerTexto(parametros.busca, 'busca')
 
   let categoriaId = null
 
-  if (req.query.categoria_id !== undefined) {
-    categoriaId = lerId(req.query.categoria_id, 'id da categoria')
+  if (parametros.categoria_id !== undefined) {
+    categoriaId = lerId(parametros.categoria_id, 'id da categoria')
   }
 
   const subcategorias = lerListaDeIds(
-    req.query.subcategoria_id,
+    parametros.subcategoria_id,
     'id da subcategoria',
   )
 
   const bairros = lerListaDeIds(
-    req.query.bairro_id,
+    parametros.bairro_id,
     'id do bairro',
   )
 
-  const condicoes = lerCondicoes(req.query.condicao)
+  const condicoes = lerCondicoes(parametros.condicao)
 
-  const precoMin = lerNumero(req.query.preco_min, 'preco_min')
-  const precoMax = lerNumero(req.query.preco_max, 'preco_max')
+  const precoMin = lerNumero(parametros.preco_min, 'preco_min')
+  const precoMax = lerNumero(parametros.preco_max, 'preco_max')
 
   if (precoMin !== null && precoMax !== null) {
     if (precoMin > precoMax) {
@@ -127,20 +138,20 @@ export async function pesquisar(req, res) {
 
   let cidadeId = 1
 
-  if (req.query.cidade_id !== undefined) {
-    cidadeId = lerId(req.query.cidade_id, 'id da cidade')
+  if (parametros.cidade_id !== undefined) {
+    cidadeId = lerId(parametros.cidade_id, 'id da cidade')
   }
 
   const distanciaMax = lerNumero(
-    req.query.distancia_max,
+    parametros.distancia_max,
     'distancia_max',
   )
 
   let ordenar = 'recentes'
 
-  if (req.query.ordenar !== undefined) {
+  if (parametros.ordenar !== undefined) {
     ordenar = lerOpcao(
-      req.query.ordenar,
+      parametros.ordenar,
       'ordenar',
       ['recentes', 'menor_preco', 'maior_preco', 'proximos'],
     )
@@ -148,14 +159,14 @@ export async function pesquisar(req, res) {
 
   let pagina = 1
 
-  if (req.query.pagina !== undefined) {
-    pagina = lerId(req.query.pagina, 'número da página')
+  if (parametros.pagina !== undefined) {
+    pagina = lerId(parametros.pagina, 'número da página')
   }
 
   let porPagina = 12
 
-  if (req.query.por_pagina !== undefined) {
-    porPagina = lerId(req.query.por_pagina, 'quantidade por página')
+  if (parametros.por_pagina !== undefined) {
+    porPagina = lerId(parametros.por_pagina, 'quantidade por página')
   }
 
   if (porPagina > 50) {

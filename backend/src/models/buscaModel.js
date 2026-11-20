@@ -38,12 +38,18 @@ export async function listarAnunciosAtivos(usuarioId, filtros) {
   valores.push('ativo')
 
   if (filtros.busca) {
-    consulta += ' AND (a.titulo LIKE ? OR a.descricao LIKE ?)'
+    let textoBusca = filtros.busca
 
-    const textoBusca = '%' + filtros.busca + '%'
+    // Escapa o próprio ! antes dos caracteres especiais do LIKE.
+    textoBusca = textoBusca.replaceAll('!', '!!')
+    textoBusca = textoBusca.replaceAll('%', '!%')
+    textoBusca = textoBusca.replaceAll('_', '!_')
 
-    valores.push(textoBusca)
-    valores.push(textoBusca)
+    consulta += " AND (a.titulo LIKE ? ESCAPE '!'"
+    consulta += " OR a.descricao LIKE ? ESCAPE '!')"
+
+    valores.push('%' + textoBusca + '%')
+    valores.push('%' + textoBusca + '%')
   }
 
   if (filtros.categoriaId !== null) {
@@ -122,6 +128,9 @@ export async function listarAnunciosAtivos(usuarioId, filtros) {
   for (const resultado of resultados) {
     const favoritado = Number(resultado.favoritado) === 1
     const anuncio = montarCard(resultado, favoritado)
+
+    // Arredonda só para exibir na resposta.
+    anuncio.distancia_km = Number(anuncio.distancia_km.toFixed(1))
 
     anuncios.push(anuncio)
   }
