@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import useGaveta from '../hooks/useGaveta.js';
-import { excluirMeuAnuncio, marcarComoVendido } from '../services/meusAnuncios.js';
+import { excluirAnuncio, mudarStatus } from '../services/mercadoApi.js';
 import '../styles/marketplace-acoes.css';
 
-const ALTURA_MENU = 210;
+const ALTURA_MENU = 260;
 
 function ConfirmarExclusao({ anuncio, onCancelar, onConfirmar }) {
   const cancelarRef = useRef(null);
@@ -33,7 +33,7 @@ function ConfirmarExclusao({ anuncio, onCancelar, onConfirmar }) {
 }
 
 /** Botão de três pontos com as opções do anúncio: editar, marcar como vendido e excluir. */
-export default function AcoesAnuncio({ anuncio, classeBotao = 'acoes-abrir', onAviso }) {
+export default function AcoesAnuncio({ anuncio, classeBotao = 'acoes-abrir', onAviso, onMudou }) {
   const [posicao, setPosicao] = useState(null);
   const [confirmando, setConfirmando] = useState(false);
   const botaoRef = useRef(null);
@@ -72,16 +72,31 @@ export default function AcoesAnuncio({ anuncio, classeBotao = 'acoes-abrir', onA
     };
   }, [posicao, fechar]);
 
-  function vender() {
-    marcarComoVendido(anuncio.id);
+  async function trocarStatus(status) {
     fechar();
-    onAviso?.({ tipo: 'sucesso', titulo: 'Anúncio marcado como vendido', texto: 'Ele saiu da busca e continua em Meus anúncios.' });
+    try {
+      await mudarStatus(anuncio.id, status);
+      onMudou?.();
+      const avisos = {
+        vendido: { titulo: 'Anúncio marcado como vendido', texto: 'Ele saiu da busca e continua em Meus anúncios.' },
+        reservado: { titulo: 'Anúncio reservado', texto: 'Ele continua na busca, com a etiqueta Reservado.' },
+        ativo: { titulo: 'Anúncio disponível de novo', texto: 'Ele aparece na busca como disponível.' },
+      };
+      onAviso?.({ tipo: 'sucesso', ...avisos[status] });
+    } catch (erro) {
+      onAviso?.({ tipo: 'erro', titulo: 'Não foi possível mudar o anúncio', texto: erro.message });
+    }
   }
 
-  function excluir() {
-    excluirMeuAnuncio(anuncio.id);
+  async function excluir() {
     setConfirmando(false);
-    onAviso?.({ tipo: 'sucesso', titulo: 'Anúncio excluído' });
+    try {
+      await excluirAnuncio(anuncio.id);
+      onMudou?.();
+      onAviso?.({ tipo: 'sucesso', titulo: 'Anúncio excluído' });
+    } catch (erro) {
+      onAviso?.({ tipo: 'erro', titulo: 'Não foi possível excluir', texto: erro.message });
+    }
   }
 
   const rascunho = anuncio.status === 'rascunho';
@@ -114,8 +129,23 @@ export default function AcoesAnuncio({ anuncio, classeBotao = 'acoes-abrir', onA
               </Link>
             )}
             {anuncio.status === 'ativo' && (
-              <button type="button" role="menuitem" onClick={vender}>
+              <button type="button" role="menuitem" onClick={() => trocarStatus('reservado')}>
+                <Icone nome="relogio" tamanho={19} cor="#3E8B22" />Marcar como reservado
+              </button>
+            )}
+            {anuncio.status === 'reservado' && (
+              <button type="button" role="menuitem" onClick={() => trocarStatus('ativo')}>
+                <Icone nome="etiqueta" tamanho={19} cor="#3E8B22" />Voltar para disponível
+              </button>
+            )}
+            {(anuncio.status === 'ativo' || anuncio.status === 'reservado') && (
+              <button type="button" role="menuitem" onClick={() => trocarStatus('vendido')}>
                 <Icone nome="check" tamanho={19} cor="#3E8B22" />Marcar como vendido
+              </button>
+            )}
+            {anuncio.status === 'vendido' && (
+              <button type="button" role="menuitem" onClick={() => trocarStatus('ativo')}>
+                <Icone nome="etiqueta" tamanho={19} cor="#3E8B22" />Reativar anúncio
               </button>
             )}
             <button type="button" role="menuitem" className="perigo" onClick={() => { fechar(); setConfirmando(true); }}>

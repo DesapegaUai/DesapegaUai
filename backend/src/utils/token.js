@@ -13,25 +13,31 @@ if (env.jwtSegredo.length < 32) {
   )
 }
 
-export function gerarToken(usuarioId) {
-  return jwt.sign({}, env.jwtSegredo, {
+// "v" é a versão das sessões da conta (usuario.versao_sessao) na hora do login
+export function gerarToken(usuarioId, versao = 0) {
+  return jwt.sign({ v: versao }, env.jwtSegredo, {
     subject: String(usuarioId),
     expiresIn: VALIDADE_EM_SEGUNDOS,
     algorithm: 'HS256',
   })
 }
 
-// devolve o id do usuário, ou null se o token faltar, for falso ou tiver vencido
-export function verificarToken(token) {
+// devolve { usuarioId, versao }, ou null se o token faltar, for falso ou tiver vencido
+export function lerToken(token) {
   if (typeof token !== 'string' || token === '') return null
   try {
-    const { sub } = jwt.verify(token, env.jwtSegredo, { algorithms: ['HS256'] }) // recusa token sem assinatura
+    const { sub, v } = jwt.verify(token, env.jwtSegredo, { algorithms: ['HS256'] }) // recusa token sem assinatura
     const id = Number(sub)
-    return Number.isSafeInteger(id) && id > 0 ? id : null
+    const versao = Number(v ?? 0) // token de antes da versão vale como versão 0
+    if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(versao) || versao < 0) return null
+    return { usuarioId: id, versao }
   } catch {
     return null
   }
 }
+
+// só o id do usuário (a assinatura e a validade); se a sessão ainda vale, quem confere é o autenticacao.js
+export const verificarToken = (token) => lerToken(token)?.usuarioId ?? null
 
 // no Socket.IO: lerTokenDoCookie(socket.handshake.headers.cookie)
 export function lerTokenDoCookie(cabecalhoCookie) {
@@ -52,8 +58,8 @@ const OPCOES_DO_COOKIE = {
   path: '/',
 }
 
-export function gravarCookieDeLogin(res, usuarioId) {
-  res.cookie(NOME_DO_COOKIE, gerarToken(usuarioId), {
+export function gravarCookieDeLogin(res, usuarioId, versao = 0) {
+  res.cookie(NOME_DO_COOKIE, gerarToken(usuarioId, versao), {
     ...OPCOES_DO_COOKIE,
     maxAge: VALIDADE_EM_SEGUNDOS * 1000,
   })

@@ -5,3 +5,4 @@ export const localRoutes = Router()
 
 localRoutes.get('/', local.listarCidades)
 localRoutes.get('/:id/bairros', local.listarBairros)
+localRoutes.get('/:id/ruas', local.listarRuas)

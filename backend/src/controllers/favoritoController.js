@@ -1,8 +1,9 @@
 import * as favoritoModel from '../models/favoritoModel.js'
 import * as anuncioModel from '../models/anuncioModel.js'
+import { avisarUsuarios } from '../socket.js'
 
 import { erroHttp } from '../utils/erroHttp.js'
-import { lerId } from '../utils/validacao.js'
+import { lerId, lerOpcao } from '../utils/validacao.js'
 
 const POR_PAGINA_PADRAO = 12
 const POR_PAGINA_MAXIMO = 50
@@ -16,9 +17,11 @@ function lerNumeroOpcional(valor, nome, padrao) {
   return lerId(valor, nome)
 }
 
-// GET /api/favoritos?categoria_id=&pagina=&por_pagina=
+// GET /api/favoritos?categoria_id=&ordenar=&pagina=&por_pagina=
 export async function listar(req, res) {
   const categoriaId = lerNumeroOpcional(req.query.categoria_id, 'categoria_id', null)
+  const ordenar =
+    lerOpcao(req.query.ordenar, 'ordenar', favoritoModel.ORDENS_DE_FAVORITOS, { obrigatorio: false }) ?? 'recentes'
   const pagina = lerNumeroOpcional(req.query.pagina, 'número da página', 1)
   const porPagina = Math.min(
     lerNumeroOpcional(req.query.por_pagina, 'tamanho da página', POR_PAGINA_PADRAO),
@@ -27,6 +30,7 @@ export async function listar(req, res) {
 
   const { itens, total } = await favoritoModel.listarCards(req.usuario.id, {
     categoriaId,
+    ordenar,
     pagina,
     porPagina,
   })
@@ -47,7 +51,7 @@ export async function favoritar(req, res) {
 
   const anuncio = await anuncioModel.buscarPorId(anuncioId)
 
-  if (!anuncio) {
+  if (!anuncio || anuncio.status === 'rascunho') {
     throw erroHttp(404, 'Anúncio não encontrado.')
   }
 
@@ -56,6 +60,8 @@ export async function favoritar(req, res) {
   }
 
   const adicionado = await favoritoModel.adicionar(usuarioId, anuncioId)
+
+  if (adicionado) avisarUsuarios([usuarioId], 'perfil_contadores_atualizados', {})
 
   res.status(adicionado ? 201 : 200).json({
     mensagem: adicionado
@@ -66,9 +72,11 @@ export async function favoritar(req, res) {
 
 // DELETE /api/favoritos/:anuncioId
 export async function desfavoritar(req, res) {
+  const usuarioId = req.usuario.id
   const anuncioId = lerId(req.params.anuncioId, 'id do anúncio')
 
-  await favoritoModel.excluir(req.usuario.id, anuncioId)
+  const removido = await favoritoModel.excluir(usuarioId, anuncioId)
+  if (removido) avisarUsuarios([usuarioId], 'perfil_contadores_atualizados', {})
 
   res.status(204).end()
 }

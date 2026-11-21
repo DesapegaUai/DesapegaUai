@@ -7,17 +7,21 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import sharp from 'sharp'
+import { io as conectarSocket } from 'socket.io-client'
 
 process.env.PERMITIR_LOGIN_TESTE = 'true'
 
 const { app } = await import('../src/app.js')
 const { db } = await import('../src/config/db.js')
 const { PASTA_UPLOADS } = await import('../src/utils/fotos.js')
+const { encerrarSocket, iniciarSocket } = await import('../src/socket.js')
 
 const servidor = await new Promise((pronto) => {
   const s = app.listen(0, '127.0.0.1', () => pronto(s))
 })
+iniciarSocket(servidor)
 const base = `http://127.0.0.1:${servidor.address().port}/api`
+const origemSocket = `http://127.0.0.1:${servidor.address().port}`
 
 const criados = new Set()
 let dono // Usuário Teste (3)
@@ -44,6 +48,20 @@ async function chamar(metodo, caminho, { cookie, json, form } = {}) {
   return { status: resposta.status, dados }
 }
 
+function naoReceberEvento(socket, evento, esperaMs = 250) {
+  return new Promise((resolver) => {
+    const aoReceber = () => {
+      clearTimeout(tempoLimite)
+      resolver(false)
+    }
+    const tempoLimite = setTimeout(() => {
+      socket.off(evento, aoReceber)
+      resolver(true)
+    }, esperaMs)
+    socket.once(evento, aoReceber)
+  })
+}
+
 async function entrarComo(usuarioId) {
   const resposta = await fetch(`${base}/auth/teste`, {
     method: 'POST',
@@ -52,6 +70,51 @@ async function entrarComo(usuarioId) {
   })
   assert.equal(resposta.status, 200, `O login de teste do usuário ${usuarioId} falhou. Rodou o npm run banco?`)
   return resposta.headers.get('set-cookie').split(';')[0]
+}
+
+async function abrirSocket(cookie) {
+  const socket = conectarSocket(origemSocket, {
+    path: '/api/socket.io',
+    transports: ['websocket'],
+    extraHeaders: { Cookie: cookie },
+    reconnection: false,
+  })
+
+  await new Promise((resolver, rejeitar) => {
+    const tempoLimite = setTimeout(() => rejeitar(new Error('Socket.IO não conectou a tempo.')), 5000)
+    socket.once('connect', () => {
+      clearTimeout(tempoLimite)
+      resolver()
+    })
+    socket.once('connect_error', (erro) => {
+      clearTimeout(tempoLimite)
+      rejeitar(erro)
+    })
+  })
+
+  return socket
+}
+
+function emitirComConfirmacao(socket, evento, dados) {
+  return new Promise((resolver, rejeitar) => {
+    const confirmar = (erro, resposta) => {
+      if (erro) return rejeitar(new Error(`O evento ${evento} não respondeu a tempo.`))
+      resolver(resposta)
+    }
+
+    if (dados === undefined) socket.timeout(5000).emit(evento, confirmar)
+    else socket.timeout(5000).emit(evento, dados, confirmar)
+  })
+}
+
+function esperarEvento(socket, evento) {
+  return new Promise((resolver, rejeitar) => {
+    const tempoLimite = setTimeout(() => rejeitar(new Error(`O evento ${evento} não chegou a tempo.`)), 5000)
+    socket.once(evento, (dados) => {
+      clearTimeout(tempoLimite)
+      resolver(dados)
+    })
+  })
 }
 
 const fotoPng = await sharp({ create: { width: 2000, height: 1000, channels: 3, background: '#2E9E4F' } })
@@ -82,6 +145,14 @@ async function publicar(campos = CAMPOS_VALIDOS, opcoes) {
   return resposta
 }
 
+async function salvarRascunho(campos = CAMPOS_VALIDOS) {
+  const form = formulario(campos)
+  form.append('status', 'rascunho')
+  const resposta = await chamar('POST', '/anuncios', { cookie: dono, form })
+  if (resposta.status === 201) criados.add(resposta.dados.id)
+  return resposta
+}
+
 async function arquivosNaPasta(anuncioId) {
   try {
     return (await fs.readdir(path.join(PASTA_UPLOADS, 'anuncios', String(anuncioId)))).length
@@ -101,7 +172,7 @@ after(async () => {
     await fs.rm(path.join(PASTA_UPLOADS, 'anuncios', String(id)), { recursive: true, force: true })
   }
   await db.query('DELETE FROM favorito WHERE usuario_id = 3')
-  servidor.close()
+  await encerrarSocket()
   servidor.closeAllConnections()
   await db.end()
 })
@@ -119,7 +190,7 @@ describe('M1. Publicar anúncio', () => {
     assert.equal(dados.bairro, 'Centro')
     assert.equal(dados.cidade, 'Viçosa')
     assert.equal(dados.uf, 'MG')
-    assert.deepEqual(Object.keys(dados.vendedor).sort(), ['criado_em', 'foto_url', 'id', 'nome'])
+    assert.deepEqual(Object.keys(dados.vendedor).sort(), ['criado_em', 'foto_url', 'id', 'nome', 'vinculo_academico'])
     assert.equal(dados.vendedor.id, 3)
     assert.equal(dados.eh_meu, true)
     assert.equal(dados.favoritado, false)
@@ -135,6 +206,129 @@ describe('M1. Publicar anúncio', () => {
     const grande = await fetch(base.replace('/api', '') + dados.fotos[0].grande)
     assert.equal(grande.status, 200)
     assert.equal((await sharp(Buffer.from(await grande.arrayBuffer())).metadata()).width, 1600)
+  })
+
+  describe('M9. Atualizações em tempo real', () => {
+    test('avisa só quem ativou os avisos, nunca o autor, e o feed público recebe o anúncio', async () => {
+      const larissa = await entrarComo(2)
+      const ativou = await chamar('PUT', '/notificacoes/preferencias', { cookie: outro, json: { anuncios: true } })
+      assert.equal(ativou.status, 200, JSON.stringify(ativou.dados))
+      assert.equal(ativou.dados.anuncios, true)
+
+      const inscrito = await abrirSocket(outro)
+      const naoInscrito = await abrirSocket(larissa)
+      const autor = await abrirSocket(dono)
+      const visitante = await abrirSocket('')
+      try {
+        const aviso = esperarEvento(inscrito, 'nova_notificacao')
+        const semAviso = naoReceberEvento(naoInscrito, 'nova_notificacao')
+        const autorSemAviso = naoReceberEvento(autor, 'nova_notificacao')
+        const noFeed = esperarEvento(visitante, 'anuncio_publicado')
+        const { status, dados } = await publicar()
+        assert.equal(status, 201, JSON.stringify(dados))
+
+        const recebido = await aviso
+        assert.equal(recebido.tipo, 'novo_anuncio')
+        assert.equal(recebido.anuncio_id, dados.id)
+        assert.equal(recebido.titulo, dados.titulo)
+        assert.equal(await semAviso, true)
+        assert.equal(await autorSemAviso, true)
+
+        const feed = await noFeed
+        assert.equal(feed.id, dados.id)
+        assert.equal(feed.latitude, dados.localizacao_anuncio.latitude)
+        assert.equal('rua' in feed || 'exata' in feed, false, 'o feed não leva a localização exata')
+
+        const sininho = await chamar('GET', '/notificacoes', { cookie: outro })
+        assert.equal(sininho.status, 200)
+        assert.ok(sininho.dados.itens.some((n) => n.anuncio_id === dados.id && n.lida === false))
+        assert.ok(sininho.dados.nao_lidas >= 1)
+        const lidas = await chamar('PATCH', '/notificacoes/lidas', { cookie: outro, json: {} })
+        assert.deepEqual(lidas.dados, { nao_lidas: 0 })
+      } finally {
+        await chamar('PUT', '/notificacoes/preferencias', { cookie: outro, json: { anuncios: false } })
+        for (const s of [inscrito, naoInscrito, autor, visitante]) s.disconnect()
+      }
+    })
+
+    test('avisa quando um rascunho é publicado', async () => {
+      const rascunho = await salvarRascunho()
+      assert.equal(rascunho.status, 201, JSON.stringify(rascunho.dados))
+      await chamar('PUT', '/notificacoes/preferencias', { cookie: outro, json: { anuncios: true } })
+      const socket = await abrirSocket(outro)
+      try {
+        const evento = esperarEvento(socket, 'nova_notificacao')
+        const resposta = await chamar('PATCH', `/anuncios/${rascunho.dados.id}/status`, {
+          cookie: dono,
+          json: { status: 'ativo' },
+        })
+        assert.equal(resposta.status, 200, JSON.stringify(resposta.dados))
+        const aviso = await evento
+        assert.equal(aviso.anuncio_id, rascunho.dados.id)
+        assert.equal(aviso.tipo, 'novo_anuncio')
+      } finally {
+        await chamar('PUT', '/notificacoes/preferencias', { cookie: outro, json: { anuncios: false } })
+        socket.disconnect()
+      }
+    })
+
+    test('entrega mensagem do comprador ao vendedor conectado', async () => {
+      const { status, dados: anuncio } = await publicar()
+      assert.equal(status, 201)
+
+      const vendedor = await abrirSocket(dono)
+      const comprador = await abrirSocket(outro)
+      try {
+        const [perfilCompradorAntes, perfilVendedorAntes] = await Promise.all([
+          chamar('GET', '/perfil', { cookie: outro }),
+          chamar('GET', '/perfil', { cookie: dono }),
+        ])
+        const compradorAtualizado = esperarEvento(comprador, 'perfil_contadores_atualizados')
+        const vendedorAtualizado = esperarEvento(vendedor, 'perfil_contadores_atualizados')
+        const aberta = await chamar('POST', '/conversas', {
+          cookie: outro,
+          json: { anuncio_id: anuncio.id },
+        })
+        assert.equal(aberta.status, 201, JSON.stringify(aberta.dados))
+        assert.deepEqual(await Promise.all([compradorAtualizado, vendedorAtualizado]), [{}, {}])
+        assert.equal(
+          (await chamar('GET', '/perfil', { cookie: outro })).dados.total_conversas,
+          perfilCompradorAntes.dados.total_conversas + 1,
+        )
+        assert.equal(
+          (await chamar('GET', '/perfil', { cookie: dono })).dados.total_conversas,
+          perfilVendedorAntes.dados.total_conversas + 1,
+        )
+
+        const recebida = esperarEvento(vendedor, 'nova_mensagem')
+        const confirmacao = await emitirComConfirmacao(comprador, 'enviar_mensagem', {
+          conversa_id: aberta.dados.conversa.id,
+          texto: 'Oi, ainda está disponível?',
+        })
+
+        assert.equal(confirmacao.ok, true)
+        assert.equal(confirmacao.mensagem.texto, 'Oi, ainda está disponível?')
+        const mensagem = await recebida
+        assert.equal(mensagem.conversa_id, aberta.dados.conversa.id)
+        assert.equal(mensagem.texto, confirmacao.mensagem.texto)
+      } finally {
+        vendedor.disconnect()
+        comprador.disconnect()
+      }
+    })
+
+    test('avisa outras sessões quando a conta entra novamente', async () => {
+      const socket = await abrirSocket(dono)
+      try {
+        const atualizado = esperarEvento(socket, 'ultimo_acesso_atualizado')
+        assert.ok(await entrarComo(3))
+        const evento = await atualizado
+        assert.equal(evento.usuario_id, 3)
+        assert.ok(Math.abs(new Date(evento.ultimo_acesso) - Date.now()) < 120000, 'último acesso com a hora de agora')
+      } finally {
+        socket.disconnect()
+      }
+    })
   })
 
   test('Serviços pode ficar sem condição', async () => {
@@ -154,7 +348,7 @@ describe('M1. Publicar anúncio', () => {
     const casos = {
       'sem foto': [CAMPOS_VALIDOS, { fotos: 0 }],
       'categoria que não existe': [{ ...CAMPOS_VALIDOS, categoria_id: '999', subcategoria_id: '' }],
-      'bairro que não existe': [{ ...CAMPOS_VALIDOS, bairro_id: '999' }],
+      'bairro que não existe': [{ ...CAMPOS_VALIDOS, bairro_id: '99999999' }],
       'subcategoria de outra categoria (Casa + Celulares)': [{ ...CAMPOS_VALIDOS, subcategoria_id: '5' }],
       'sem condição fora de Serviços': [{ ...CAMPOS_VALIDOS, condicao: '' }],
       'preço zero': [{ ...CAMPOS_VALIDOS, preco: '0' }],
@@ -214,7 +408,11 @@ describe('M3. Meus anúncios', () => {
 
     const card = dados.find((item) => item.id === anuncio.id)
     assert.deepEqual(Object.keys(card).sort(), [
+      'atualizado_em',
       'bairro',
+      'campos_faltando',
+      'categoria_id',
+      'categoria_slug',
       'cidade',
       'condicao',
       'data_publicacao',
@@ -225,6 +423,7 @@ describe('M3. Meus anúncios', () => {
       'status',
       'titulo',
       'total_favoritos',
+      'transporte',
       'uf',
       'visualizacoes',
     ])
@@ -333,43 +532,56 @@ describe('M7. Favoritos', () => {
     assert.equal((await chamar('POST', `/favoritos/${meu.id}`, { cookie: dono })).status, 400, 'o próprio anúncio')
     assert.equal((await chamar('POST', '/favoritos/999999', { cookie: dono })).status, 404)
 
-    assert.equal((await chamar('POST', '/favoritos/1', { cookie: dono })).status, 201) // Sofá, Casa
-    assert.equal((await chamar('POST', '/favoritos/1', { cookie: dono })).status, 200)
-    assert.equal((await chamar('POST', '/favoritos/7', { cookie: dono })).status, 201) // iPhone, Eletrônicos
+    const socket = await abrirSocket(dono)
+    try {
+      const favoritoAdicionado = esperarEvento(socket, 'perfil_contadores_atualizados')
+      assert.equal((await chamar('POST', '/favoritos/1', { cookie: dono })).status, 201) // Sofá, Casa
+      assert.deepEqual(await favoritoAdicionado, {})
+      assert.equal((await chamar('POST', '/favoritos/1', { cookie: dono })).status, 200)
+      const favoritoRemovido = esperarEvento(socket, 'perfil_contadores_atualizados')
+      assert.equal((await chamar('POST', '/favoritos/7', { cookie: dono })).status, 201) // iPhone, Eletrônicos
+      assert.deepEqual(await favoritoRemovido, {})
+      assert.equal((await chamar('GET', '/perfil', { cookie: dono })).dados.total_favoritos, 2)
 
-    const todos = await chamar('GET', '/favoritos', { cookie: dono })
-    assert.equal(todos.status, 200)
-    assert.deepEqual(Object.keys(todos.dados).sort(), ['itens', 'pagina', 'por_pagina', 'total', 'total_paginas'])
-    assert.equal(todos.dados.total, 2)
-    assert.deepEqual(
-      todos.dados.itens.map((card) => card.id),
-      [7, 1],
-      'salvos mais recentemente primeiro',
-    )
-    assert.equal(todos.dados.itens[0].favoritado, true)
-    assert.equal(todos.dados.itens[0].bairro, 'Centro')
+      const todos = await chamar('GET', '/favoritos', { cookie: dono })
+      assert.equal(todos.status, 200)
+      assert.deepEqual(Object.keys(todos.dados).sort(), ['itens', 'pagina', 'por_pagina', 'total', 'total_paginas'])
+      assert.equal(todos.dados.total, 2)
+      assert.deepEqual(
+        todos.dados.itens.map((card) => card.id),
+        [7, 1],
+        'salvos mais recentemente primeiro',
+      )
+      assert.equal(todos.dados.itens[0].favoritado, true)
+      assert.equal(todos.dados.itens[0].bairro, 'Centro')
 
-    const casa = await chamar('GET', '/favoritos?categoria_id=1', { cookie: dono })
-    assert.deepEqual(
-      casa.dados.itens.map((card) => card.id),
-      [1],
-    )
+      const casa = await chamar('GET', '/favoritos?categoria_id=1', { cookie: dono })
+      assert.deepEqual(
+        casa.dados.itens.map((card) => card.id),
+        [1],
+      )
 
-    const pagina2 = await chamar('GET', '/favoritos?pagina=2&por_pagina=1', { cookie: dono })
-    assert.deepEqual(
-      pagina2.dados.itens.map((card) => card.id),
-      [1],
-    )
-    assert.equal(pagina2.dados.total_paginas, 2)
+      const pagina2 = await chamar('GET', '/favoritos?pagina=2&por_pagina=1', { cookie: dono })
+      assert.deepEqual(
+        pagina2.dados.itens.map((card) => card.id),
+        [1],
+      )
+      assert.equal(pagina2.dados.total_paginas, 2)
 
-    assert.equal((await chamar('GET', '/favoritos?pagina=abc', { cookie: dono })).status, 400)
+      assert.equal((await chamar('GET', '/favoritos?pagina=abc', { cookie: dono })).status, 400)
 
-    const doDetalhe = await chamar('GET', '/anuncios/1', { cookie: dono })
-    assert.equal(doDetalhe.dados.favoritado, true)
-    await db.query('UPDATE anuncio SET visualizacoes = visualizacoes - 1 WHERE id = 1') // devolve a visualização do seed
+      const doDetalhe = await chamar('GET', '/anuncios/1', { cookie: dono })
+      assert.equal(doDetalhe.dados.favoritado, true)
+      await db.query('UPDATE anuncio SET visualizacoes = visualizacoes - 1 WHERE id = 1') // devolve a visualização do seed
 
-    assert.equal((await chamar('DELETE', '/favoritos/1', { cookie: dono })).status, 204)
-    assert.equal((await chamar('DELETE', '/favoritos/7', { cookie: dono })).status, 204)
-    assert.equal((await chamar('GET', '/favoritos', { cookie: dono })).dados.total, 0)
+      const atualizacaoRemocao = esperarEvento(socket, 'perfil_contadores_atualizados')
+      assert.equal((await chamar('DELETE', '/favoritos/1', { cookie: dono })).status, 204)
+      assert.deepEqual(await atualizacaoRemocao, {})
+      assert.equal((await chamar('DELETE', '/favoritos/7', { cookie: dono })).status, 204)
+      assert.equal((await chamar('GET', '/favoritos', { cookie: dono })).dados.total, 0)
+      assert.equal((await chamar('GET', '/perfil', { cookie: dono })).dados.total_favoritos, 0)
+    } finally {
+      socket.disconnect()
+    }
   })
 })

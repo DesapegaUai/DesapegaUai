@@ -1,12 +1,12 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
 import MenuLateral from './MenuLateral.jsx';
 import Rodape from './RodapeMarketplace.jsx';
 import Icone from './IconeMarketplace.jsx';
-import Toast from './Toast.jsx';
-import { NAO_LIDAS_TOTAL } from '../services/conversas.js';
-import { usePerfil } from '../services/perfil.js';
+import CaixaNotificacoes from './CaixaNotificacoes.jsx';
+import { carregarPerfil, usePerfil } from '../services/perfil.js';
 import useSair from '../hooks/useSair.js';
+import SeloMensagens from './SeloMensagens.jsx';
 import '../styles/marketplace-perfil.css';
 
 const logoPrincipal = '/img/logo-principal.svg';
@@ -15,7 +15,7 @@ const ABAS_INFERIORES = [
   { rotulo: 'Início', icone: 'inicio', para: '/', fim: true },
   { rotulo: 'Categorias', icone: 'grade', para: '/categoria/casa' },
   { rotulo: 'Favoritos', icone: 'favorito', para: '/favoritos' },
-  { rotulo: 'Mensagens', icone: 'mensagens', para: '/conversas', selo: NAO_LIDAS_TOTAL },
+  { rotulo: 'Mensagens', icone: 'mensagens', para: '/conversas' },
   { rotulo: 'Perfil', icone: 'perfil', para: '/perfil' },
 ];
 
@@ -30,9 +30,33 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
   const [menuAberto, setMenuAberto] = useState(false);
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [termo, setTermo] = useState('');
-  const [toast, setToast] = useState(null);
+  const [menuPerfilAberto, setMenuPerfilAberto] = useState(false);
   const buscaRef = useRef(null);
+  const menuPerfilRef = useRef(null);
   const fecharMenu = useCallback(() => setMenuAberto(false), []);
+  const fotoPerfil = foto ?? perfil.foto_url;
+
+  // abriu direto em Meus anúncios ou no cadastro: o perfil ainda não veio e o avatar do topo ficava vazio
+  useEffect(() => {
+    if (!perfil.id) carregarPerfil().catch(() => {});
+  }, [perfil.id]);
+
+  useEffect(() => {
+    if (!menuPerfilAberto) return undefined;
+    const aoClicarFora = (evento) => {
+      if (!menuPerfilRef.current?.contains(evento.target)) setMenuPerfilAberto(false);
+    };
+    const aoTeclar = (evento) => {
+      if (evento.key === 'Escape') setMenuPerfilAberto(false);
+    };
+    document.addEventListener('pointerdown', aoClicarFora);
+    document.addEventListener('keydown', aoTeclar);
+    return () => {
+      document.removeEventListener('pointerdown', aoClicarFora);
+      document.removeEventListener('keydown', aoTeclar);
+    };
+  }, [menuPerfilAberto]);
+
 
   function buscar(e) {
     e.preventDefault();
@@ -48,7 +72,6 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
 
   return (
     <div className="painel">
-      <Toast aviso={toast} onFechar={() => setToast(null)} />
       <header className={`painel-topo${buscaAberta ? ' buscando' : ''}`}>
         <button type="button" className="burger" aria-label="Abrir menu" aria-expanded={menuAberto} onClick={() => setMenuAberto(true)}>
           <Icone nome="menu" tamanho={22} cor="#3E8B22" espessura={1.7} />
@@ -72,40 +95,94 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
             id="busca-painel"
             ref={buscaRef}
             type="search"
-            placeholder="Buscar anúncios, categorias ou produtos..."
+            placeholder="O que você está procurando?"
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
             autoComplete="off"
           />
         </form>
         <div className="tacts">
-          <Link className="pub" to="/anunciar" aria-label="Publicar anúncio">
+          <Link className="pub" to="/anunciar" aria-label="Anunciar">
             <Icone nome="mais" tamanho={20} cor="#fff" espessura={2} />
-            <span className="rot">Publicar anúncio</span>
+            <span className="rot">Anunciar</span>
           </Link>
-          <button
-            type="button"
-            className="ic-topo"
-            aria-label="Notificações (há novidades)"
-            onClick={() => setToast({ tipo: 'info', titulo: 'Notificações em breve', texto: 'Por enquanto, as novidades aparecem em Mensagens.', chave: Date.now() })}
-          >
-            <Icone nome="sino" tamanho={24} cor="#3E8B22" espessura={1.7} />
-            <i />
-          </button>
-          <Link className="ic-topo" to="/conversas" aria-label="Mensagens">
+          <CaixaNotificacoes />
+          <Link className="ic-topo tem-selo" to="/conversas" aria-label="Mensagens">
             <Icone nome="mensagens" tamanho={24} cor="#3E8B22" espessura={1.7} />
+            <SeloMensagens />
           </Link>
-          <Link className="me" to="/perfil" aria-label="Meu perfil">
-            <span className="ph">{foto ? <img src={foto} alt="" /> : perfil.iniciais}</span>
-            <Icone nome="seta-baixo" tamanho={18} cor="#6B726C" espessura={1.7} />
-          </Link>
+          <div className="me-wrap" ref={menuPerfilRef}>
+            <button
+              type="button"
+              className="me"
+              aria-label="Abrir menu do perfil"
+              aria-expanded={menuPerfilAberto}
+              aria-controls="menu-perfil-cabecalho"
+              onClick={() => setMenuPerfilAberto((aberto) => !aberto)}
+            >
+              <span className="ph">{fotoPerfil ? <img src={fotoPerfil} alt="" /> : perfil.iniciais}</span>
+              <Icone nome="seta-baixo" tamanho={18} cor="#6B726C" espessura={1.7} />
+            </button>
+            {menuPerfilAberto && (
+              <div className="me-menu" id="menu-perfil-cabecalho" aria-label="Menu do perfil">
+                <div className="me-menu-conta">
+                  <span className="me-menu-avatar">
+                    {fotoPerfil ? <img src={fotoPerfil} alt="" /> : perfil.iniciais}
+                  </span>
+                  <span className="me-menu-identidade">
+                    <strong>{perfil.nome}</strong>
+                    <span>{perfil.email}</span>
+                  </span>
+                </div>
+                <p className="me-menu-titulo">Minha conta</p>
+                <nav className="me-menu-links" aria-label="Atalhos da conta">
+                  <Link className="me-menu-item" to="/" onClick={() => setMenuPerfilAberto(false)}>
+                    <span className="me-menu-item-icone"><Icone nome="inicio" tamanho={19} cor="#3E8B22" /></span>
+                    <span><strong>Início</strong><small>Voltar para a página inicial</small></span>
+                  </Link>
+                  <Link className="me-menu-item" to="/perfil" onClick={() => setMenuPerfilAberto(false)}>
+                    <span className="me-menu-item-icone"><Icone nome="perfil" tamanho={19} cor="#3E8B22" /></span>
+                    <span><strong>Meu perfil</strong><small>Suas informações e avaliações</small></span>
+                  </Link>
+                  <Link className="me-menu-item" to="/meus-anuncios" onClick={() => setMenuPerfilAberto(false)}>
+                    <span className="me-menu-item-icone"><Icone nome="etiqueta" tamanho={19} cor="#3E8B22" /></span>
+                    <span><strong>Meus anúncios</strong><small>Gerencie suas publicações</small></span>
+                  </Link>
+                  <Link className="me-menu-item" to="/ajuda/perguntas-frequentes" onClick={() => setMenuPerfilAberto(false)}>
+                    <span className="me-menu-item-icone"><Icone nome="ajuda" tamanho={19} cor="#3E8B22" /></span>
+                    <span><strong>Ajuda e suporte</strong><small>Dúvidas frequentes</small></span>
+                  </Link>
+                </nav>
+                <div className="me-menu-div" role="separator" />
+                <button
+                  type="button"
+                  className="me-menu-sair"
+                  onClick={() => {
+                    setMenuPerfilAberto(false);
+                    sair();
+                  }}
+                >
+                  <span className="me-menu-item-icone"><Icone nome="sair" tamanho={19} cor="#B42318" /></span>
+                  <span><strong>Sair da conta</strong><small>Encerrar sua sessão</small></span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <MenuLateral modo="gaveta" aberto={menuAberto} onFechar={fecharMenu} onSair={sair} />
+      <MenuLateral
+        modo="gaveta"
+        aberto={menuAberto}
+        onFechar={fecharMenu}
+        onSair={sair}
+      />
 
       <div className="painel-corpo">
-        <MenuLateral modo="fixo" onSair={sair} />
+        <MenuLateral
+          modo="fixo"
+          onSair={sair}
+        />
         <main className={`painel-main ${classeMain}`.trim()}>{children}</main>
       </div>
 
@@ -118,7 +195,6 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
               <>
                 <Icone nome={t.icone} tamanho={23} cor={isActive ? '#3E8B22' : '#8C918B'} espessura={1.7} />
                 <span>{t.rotulo}</span>
-                {t.selo > 0 && <i className="tb-selo" aria-label={`${t.selo} não lidas`}>{t.selo}</i>}
               </>
             )}
           </NavLink>

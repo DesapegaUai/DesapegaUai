@@ -6,3 +6,57 @@
 .cidade-menu button span { flex: 1; }
 .cidade-menu button:hover { background: var(--sup-3); }
 .cidade-menu button.on { background: var(--marca-suave); color: var(--marca); }
+
+/* Menu de localização (GPS, raio, cidade e bairro)
+   Só a lista de cidades rola, com uma barrinha fina; o resto do menu fica parado e nada rola para o lado.
+   --topo vem do componente (distância do menu até o alto da tela), para ele nunca passar do fim da tela. */
+.local-menu { width: 328px; max-height: min(680px, calc(100vh - var(--topo, 96px) - 12px)); max-height: min(680px, calc(100dvh - var(--topo, 96px) - 12px)); display: flex; flex-direction: column; gap: 18px; padding: 18px; overflow-x: hidden; overflow-y: auto; border: 0; border-radius: 20px; box-shadow: 0 18px 48px rgba(20, 51, 31, .16), 0 0 0 1px rgba(20, 51, 31, .06); scrollbar-width: thin; scrollbar-color: #D5DAD3 transparent; }
+.local-menu, .local-menu * { box-sizing: border-box; }
+.local-bloco { flex: none; min-width: 0; }
+.local-bloco:last-of-type { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.local-menu .cidade-titulo { margin: 0 0 10px; padding: 0; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-3, #8C918B); }
+
+.cidade-menu .local-acao { justify-content: center; min-height: 46px; margin: 0; border-radius: 14px; font-size: 15px; }
+.cidade-menu .local-acao span { flex: none; }
+.cidade-menu .local-acao.destaque { background: var(--marca); color: #fff; box-shadow: 0 6px 16px rgba(62, 139, 34, .22); }
+.cidade-menu .local-acao.destaque:hover { background: var(--marca-escura); }
+.cidade-menu .local-acao.destaque:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.cidade-menu .local-acao.discreta { min-height: 38px; margin-top: 4px; color: var(--texto-2); font-weight: 500; font-size: 14px; }
+.cidade-menu .local-gps-acoes .local-acao:first-child { background: var(--marca-suave); color: var(--marca); }
+.local-status, .local-ajuda, .local-precisao { margin: 10px 2px 0; font-size: 13px; line-height: 1.45; color: var(--texto-2); }
+.local-status.ativa { color: var(--marca); font-weight: 600; }
+.local-status.negada, .local-status.indisponivel, .local-status.fora_da_area, .local-status.inseguro, .local-status.sem_suporte { color: #9A3412; }
+
+.local-raios { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; }
+.cidade-menu .local-raio { width: auto; min-height: 36px; padding: 0 14px; border: 1px solid var(--linha); border-radius: 999px; background: var(--sup); font-size: 13.5px; font-weight: 600; transition: border-color .15s, background-color .15s; }
+.cidade-menu .local-raio:hover { border-color: #C9CFC7; background: var(--sup); }
+.cidade-menu .local-raio.on { border-color: var(--marca); background: var(--marca-suave); color: var(--marca); }
+.local-raio-livre { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
+.local-raio-livre label { flex: 1 0 100%; font-size: 12.5px; color: var(--texto-2); }
+.local-raio-livre input, .local-busca, .local-bairro select { height: 42px; padding: 0 14px; border: 1px solid var(--linha); border-radius: 12px; background: var(--sup-2, #FAFAF8); font: inherit; font-size: 15px; color: var(--tinta); transition: border-color .15s, box-shadow .15s, background-color .15s; }
+.local-raio-livre input:focus, .local-busca:focus, .local-bairro select:focus { outline: 0; border-color: var(--marca); background: var(--sup); box-shadow: 0 0 0 3px rgba(62, 139, 34, .14); }
+.local-raio-livre input { flex: 1; min-width: 0; appearance: textfield; -moz-appearance: textfield; }
+/* sem as setinhas do campo de número */
+.local-raio-livre input::-webkit-outer-spin-button, .local-raio-livre input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.cidade-menu .local-raio-livre button { flex: none; width: auto; min-height: 42px; padding: 0 18px; border-radius: 12px; background: var(--marca-suave); color: var(--marca); font-size: 14.5px; }
+.cidade-menu .local-raio-livre button:hover { background: #E2EFDB; }
+
+.local-busca { flex: none; width: 100%; margin: 0 0 8px; }
+.local-busca::-webkit-search-cancel-button { appearance: none; }
+.local-cidades { flex: 1 1 auto; min-height: 132px; max-height: 232px; margin-right: -8px; padding-right: 4px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #D5DAD3 transparent; }
+.cidade-menu .local-cidades button { min-height: 42px; padding: 0 10px; border-radius: 12px; font-size: 14.5px; font-weight: 500; }
+.cidade-menu .local-cidades button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cidade-menu .local-cidades button.on { font-weight: 700; }
+.local-bairro { flex: none; display: grid; gap: 6px; margin: 12px 0 0; font-size: 12.5px; color: var(--texto-2); }
+.local-bairro select { width: 100%; }
+
+/* barrinha de rolagem fina e arredondada (Chrome, Edge e Safari; o Firefox usa o scrollbar-width acima) */
+.local-menu::-webkit-scrollbar, .local-cidades::-webkit-scrollbar { width: 6px; height: 0; }
+.local-menu::-webkit-scrollbar-track, .local-cidades::-webkit-scrollbar-track { background: transparent; }
+.local-menu::-webkit-scrollbar-thumb, .local-cidades::-webkit-scrollbar-thumb { border-radius: 999px; background: #D5DAD3; }
+.local-menu::-webkit-scrollbar-thumb:hover, .local-cidades::-webkit-scrollbar-thumb:hover { background: #B9C0B7; }
+.local-menu::-webkit-scrollbar-button, .local-cidades::-webkit-scrollbar-button { display: none; }
+
+@media (max-width: 380px) {
+  .local-menu { width: calc(100vw - 16px); padding: 14px; }
+}

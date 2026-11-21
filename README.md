@@ -37,6 +37,8 @@ desapegauai/
 │       ├── middlewares/   funções que rodam antes das rotas (login, erros)
 │       ├── config/        leitura do .env e conexão com o banco
 │       └── utils/         funções de apoio
+├── docs/relatorio/        figuras e capturas de tela usadas no RELATORIO.md
+├── docs/seguranca/        auditoria de segurança e testes da versão final
 ├── RELATORIO.md
 └── README.md
 ```

@@ -64,6 +64,13 @@
 
 .cad-entrega { min-width: 0; margin: 18px 0 0; padding: 0; border: 0; }
 .cad-opcoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
+.cad-opcoes.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* sugestões de ponto de encontro, logo abaixo do ponto de referência */
+.cad-pontos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.cad-pontos span { font-size: 14px; color: var(--texto-2); }
+.cad-pontos button { min-height: 34px; padding: 0 14px; border: 1px solid var(--linha); border-radius: 17px; background: var(--sup); color: var(--tinta); font-family: inherit; font-weight: 500; font-size: 14px; }
+.cad-pontos button:hover { border-color: var(--linha-forte); }
+.cad-pontos button.on { border-color: #9CCC85; background: #F7FBF4; box-shadow: inset 0 0 0 1px #9CCC85; color: var(--marca); font-weight: 600; }
 .cad-opcao { position: relative; display: flex; align-items: center; gap: 14px; min-width: 0; padding: 14px 16px; border: 1px solid var(--linha); border-radius: 12px; background: var(--sup); cursor: pointer; }
 .cad-opcao.on { border-color: #9CCC85; background: #F7FBF4; box-shadow: inset 0 0 0 1px #9CCC85; }
 .cad-opcao input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -129,7 +136,7 @@
 
 @media (max-width: 1024px) {
   .cad-slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cad-grade, .cad-opcoes { grid-template-columns: minmax(0, 1fr); }
+  .cad-grade, .cad-opcoes, .cad-opcoes.tres { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 600px) {
@@ -149,3 +156,10 @@
   .cad-foto { height: 180px; }
   .cad-opcao { padding: 14px 12px; gap: 12px; }
 }
+
+/* Localização do anúncio */
+.cad-gps { display: grid; gap: 6px; margin-bottom: 14px; }
+.cad-gps .cad-btn { justify-self: start; }
+.cad-ajuda { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; color: #6B726C; }
+.cad-mapa { margin: 14px 0 10px; }
+.cad-privado { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; padding: 10px 12px; border-radius: 12px; background: #EFF6EB; font-size: 13px; line-height: 1.45; color: #2E6A19; }

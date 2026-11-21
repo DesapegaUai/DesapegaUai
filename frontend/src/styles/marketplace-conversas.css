@@ -19,7 +19,7 @@
 .busca-conv:focus-within { border-color: var(--marca); background: var(--sup); box-shadow: 0 0 0 3px var(--marca-suave); }
 .busca-conv input { flex: 1; min-width: 0; height: 44px; border: 0; padding: 0; background: transparent; font-family: inherit; font-weight: 400; font-size: 16px; color: var(--tinta); outline: none; }
 .busca-conv input::placeholder { color: var(--texto-3); opacity: 1; }
-.chips-conv { display: flex; gap: var(--e2); margin-top: 14px; overflow-x: auto; scrollbar-width: none; }
+.chips-conv { display: flex; flex-wrap: wrap; gap: var(--e2); margin-top: 14px; } /* quebra de linha: nenhuma aba fica cortada */
 .chips-conv::-webkit-scrollbar { display: none; }
 .chip-s { white-space: nowrap; flex: none; min-height: 38px; border-radius: var(--r-pill); border: 1px solid var(--linha); background: var(--sup); padding: 0 var(--e4); font-family: inherit; font-weight: 600; font-size: 14.5px; line-height: 36px; color: var(--texto-2); transition: border-color .15s ease; }
 .chip-s.on { border-color: var(--marca); background: #F1F7ED; color: var(--marca); }
@@ -27,6 +27,12 @@
 .itens-conv { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .item-conv { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 18px var(--e5); border: 0; border-bottom: 1px solid #F1F1EE; border-left: 3px solid transparent; background: var(--sup); font-family: inherit; text-align: left; color: inherit; transition: background-color .15s ease; }
 .item-conv:hover { color: inherit; }
+/* três pontinhos ao lado da conversa (o botão fica por cima do link, na linha do nome) */
+.item-conv-caixa { position: relative; }
+.item-conv-caixa .item-l1 { padding-right: 24px; }
+.item-conv-mais { position: absolute; top: 12px; right: 6px; isolation: isolate; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-pill); background: none; padding: 0; }
+.item-conv-mais::before { content: ''; position: absolute; z-index: -1; inset: -6px; border-radius: var(--r-pill); } /* área de toque de 44 px */
+.item-conv-mais[aria-expanded="true"] { background: var(--sup-3); }
 .item-conv.on { border-left-color: var(--marca); background: #F1F7ED; }
 .item-conv:focus-visible { outline-offset: -2px; }
 .avatar { flex: none; position: relative; width: 52px; height: 52px; border-radius: 26px; background: var(--sup-foto); display: flex; align-items: center; justify-content: center; font-family: inherit; font-weight: 700; font-size: 18px; line-height: 1; color: var(--marca); }
@@ -88,6 +94,7 @@
 .rapidas::-webkit-scrollbar { display: none; }
 .rapida { flex: none; min-height: 38px; border-radius: 19px; border: 1px solid var(--linha); background: var(--sup); padding: 0 var(--e4); font-family: inherit; font-weight: 500; font-size: 14.5px; line-height: 36px; color: #4A524B; white-space: nowrap; transition: border-color .15s ease; }
 .rapidas .rapida:focus-visible { outline-offset: -2px; }
+.rapida-menu { display: inline-flex; align-items: center; gap: 7px; color: var(--marca); font-weight: 600; }
 .linha-envio { display: flex; align-items: flex-end; gap: var(--e3); }
 .circ { flex: none; width: 50px; height: 50px; border-radius: 25px; border: 1px solid var(--linha); background: var(--sup); display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color .15s ease, border-color .15s ease, opacity .15s ease; }
 .circ.on { background: var(--marca-suave); border-color: var(--marca-clara); }
@@ -154,7 +161,7 @@
   .camera-disparo:not(:disabled):hover, .camera-btn.primario:hover { background: var(--marca-clara); }
   .item-conv:not(.on):hover { background: var(--sup-2); }
   .chip-s:not(.on):hover, .rapida:hover { border-color: var(--linha-forte); }
-  .conv-acao:hover, .btn-emoji:hover { background: var(--sup-3); }
+  .conv-acao:hover, .btn-emoji:hover, .item-conv-mais:hover { background: var(--sup-3); }
   .circ:not(.enviar):hover { border-color: var(--linha-forte); }
   .circ.enviar:not(:disabled):hover { background: var(--marca-clara); }
   .btn-ver:hover { border-color: var(--marca-clara); color: var(--marca); }
@@ -194,7 +201,19 @@
   .camera-janela { width: 100%; height: 100%; max-height: none; border-radius: 0; }
   .camera-visor { aspect-ratio: auto; }
   .conv-topo, .conv-anuncio { padding: var(--e3) var(--e4); }
-  .conv-acoes { display: none; }
   .emoji-painel { left: 8px; right: 8px; width: auto; max-width: none; }
   .bolha-img img { max-width: 200px; }
+}
+
+.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.conv-anuncio .mini img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.digitando { margin: 4px 12px; font-size: 13px; font-style: italic; color: var(--texto-2); }
+
+/* Fechar a negociação pelo chat: quem vende marca como vendido e libera a avaliação de quem comprou */
+.btn-vendido { border-color: transparent; background: var(--marca); color: #fff; cursor: pointer; }
+.btn-vendido:hover { filter: brightness(1.07); color: #fff; }
+.btn-vendido:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 600px) {
+  .conv-anuncio { flex-wrap: wrap; }
+  .conv-anuncio .btn-ver { min-height: 38px; padding: 0 14px; font-size: 13.5px; }
 }

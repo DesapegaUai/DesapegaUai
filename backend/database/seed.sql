@@ -28,14 +28,15 @@ INSERT INTO subcategoria (id, categoria_id, nome) VALUES
   (25, 7, 'Reparos'), (26, 7, 'Aulas'), (27, 7, 'Frete'), (28, 7, 'Limpeza'),
   (29, 8, 'Instrumentos'), (30, 8, 'Esportes'), (31, 8, 'Pets'), (32, 8, 'Bebê');
 
--- Cidades (coordenada do centro, Google Places)
-INSERT INTO cidade (id, nome, uf, latitude, longitude) VALUES
-  (1, 'Viçosa',     'MG', -20.752736, -42.881906),
-  (2, 'Teixeiras',  'MG', -20.652995, -42.857124),
-  (3, 'Ponte Nova', 'MG', -20.419632, -42.917060),
-  (4, 'Ubá',        'MG', -21.120156, -42.942018);
+-- Cidades (coordenada do centro, Google Places). As outras 138 cidades da Zona da Mata, os
+-- bairros e as ruas vêm de database/dados/zona-da-mata.json.gz (o npm run banco importa).
+INSERT INTO cidade (id, codigo_ibge, nome, uf, latitude, longitude) VALUES
+  (1, 3171303, 'Viçosa',     'MG', -20.752736, -42.881906),
+  (2, 3168507, 'Teixeiras',  'MG', -20.652995, -42.857124),
+  (3, 3152105, 'Ponte Nova', 'MG', -20.419632, -42.917060),
+  (4, 3169901, 'Ubá',        'MG', -21.120156, -42.942018);
 
--- Bairros (Google Places)
+-- Bairros (Google Places), com o nome oficial do IBGE
 INSERT INTO bairro (id, cidade_id, nome, latitude, longitude) VALUES
   (1,  1, 'Centro',           -20.752736, -42.881906),
   (2,  1, 'Ramos',            -20.754992, -42.883220),
@@ -54,11 +55,11 @@ INSERT INTO bairro (id, cidade_id, nome, latitude, longitude) VALUES
   (15, 1, 'Barrinha',         -20.736829, -42.892409),
   (16, 1, 'Júlia Mollá',      -20.734435, -42.871097),
   (17, 1, 'Inconfidência',    -20.732945, -42.864620),
-  (18, 1, 'João Braz',        -20.732658, -42.861351),
+  (18, 1, 'João Braz da Costa Val', -20.732658, -42.861351),
   (19, 1, 'Silvestre',        -20.718339, -42.861351),
   (20, 1, 'Novo Silvestre',   -20.709612, -42.862569),
   (21, 2, 'Centro',           -20.652995, -42.857124),
-  (22, 3, 'Centro',           -20.419632, -42.917060),
+  (22, 3, 'Centro Histórico', -20.419632, -42.917060),
   (23, 3, 'Palmeiras',        -20.411375, -42.894235),
   (24, 4, 'Centro',           -21.120156, -42.942018),
   (25, 4, 'São Domingos',     -21.112413, -42.942131);
@@ -68,7 +69,7 @@ INSERT INTO bairro (id, cidade_id, nome, latitude, longitude) VALUES
 
 -- O login de teste só aceita google_id que começa com "teste-"
 INSERT INTO usuario (id, google_id, nome, email, telefone, bio, criado_em, ultimo_acesso) VALUES
-  (1, 'teste-diego',   'Diego Martins',   'diego.teste@example.com',   '31999990001',
+  (1, 'teste-diego',   'Diego Martins',   'diego.teste@ufv.br',   '31999990001',
       'Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento.', NOW() - INTERVAL 400 DAY, NOW() - INTERVAL 1 HOUR),
   (2, 'teste-larissa', 'Larissa Andrade', 'larissa.teste@example.com', NULL,
       'Caloura, montando o quarto na república do Ramos.', NOW() - INTERVAL 20 DAY, NOW() - INTERVAL 2 HOUR),
@@ -77,30 +78,41 @@ INSERT INTO usuario (id, google_id, nome, email, telefone, bio, criado_em, ultim
 
 -- Anúncios do Diego (sem foto)
 INSERT INTO anuncio (id, usuario_id, categoria_id, subcategoria_id, bairro_id, titulo, descricao,
-                     preco, condicao, forma_entrega, localizacao, status, data_publicacao) VALUES
+                     preco, condicao, forma_entrega, transporte, localizacao, status, data_publicacao) VALUES
   (1,  1, 1, 1,  1,  'Sofá 3 lugares', 'Sofá cinza de 3 lugares, tecido sem rasgos. Preciso vender rápido.',
-       780.00,  'usado',    'retirada', NULL, 'ativo', NOW() - INTERVAL 2 HOUR),
+       780.00,  'usado',    'retirada', 'carreto', NULL, 'ativo', NOW() - INTERVAL 2 HOUR),
   (2,  1, 1, 1,  19, 'Guarda-roupa 6 portas', 'Guarda-roupa de MDF com 6 portas e 2 gavetas. Já está desmontado.',
-       650.00,  'usado',    'combinar', NULL, 'ativo', NOW() - INTERVAL 5 HOUR),
+       650.00,  'usado',    'combinar', 'carreto', NULL, 'ativo', NOW() - INTERVAL 5 HOUR),
   (3,  1, 1, 2,  1,  'Geladeira Brastemp', 'Geladeira frost free de 375 litros, funcionando perfeitamente.',
-       1200.00, 'usado',    'combinar', NULL, 'ativo', NOW() - INTERVAL 1 DAY),
+       1200.00, 'usado',    'combinar', 'carreto', NULL, 'ativo', NOW() - INTERVAL 1 DAY),
   (4,  1, 1, 1,  12, 'Mesa de jantar', 'Mesa de madeira com 4 cadeiras.',
-       480.00,  'seminovo', 'retirada', NULL, 'ativo', NOW() - INTERVAL 27 HOUR),
+       480.00,  'seminovo', 'retirada', 'carreto', NULL, 'ativo', NOW() - INTERVAL 27 HOUR),
   (5,  1, 1, 2,  10, 'Air fryer 4L', 'Air fryer Mondial de 4 litros, usei por uns 8 meses. Acompanha a caixa.',
-       260.00,  'seminovo', 'retirada', NULL, 'ativo', NOW() - INTERVAL 2 DAY),
+       260.00,  'seminovo', 'retirada', 'carro', NULL, 'ativo', NOW() - INTERVAL 2 DAY),
   (6,  1, 1, 2,  7,  'Ventilador de teto', 'Ventilador de teto com 3 pás e controle de velocidade.',
-       120.00,  'usado',    'retirada', NULL, 'ativo', NOW() - INTERVAL 3 DAY),
+       120.00,  'usado',    'retirada', 'carro', NULL, 'ativo', NOW() - INTERVAL 3 DAY),
   (7,  1, 2, 5,  1,  'iPhone 13 128GB', 'iPhone 13 de 128 GB, bateria em 86%, com capinha e película.',
-       2450.00, 'seminovo', 'combinar', 'Entrego perto da UFV', 'ativo', NOW() - INTERVAL 4 DAY),
+       2450.00, 'seminovo', 'combinar', 'mochila', 'Entrego perto da UFV', 'ativo', NOW() - INTERVAL 4 DAY),
   (8,  1, 4, 15, 23, 'Bicicleta aro 29', 'Mountain bike aro 29 com 21 marchas e freio a disco.',
-       850.00,  'usado',    'retirada', NULL, 'ativo', NOW() - INTERVAL 5 DAY),
+       850.00,  'usado',    'retirada', 'carreto', NULL, 'ativo', NOW() - INTERVAL 5 DAY),
   (9,  1, 1, 1,  25, 'Sofá 2 lugares', 'Sofá retrátil de 2 lugares.',
-       600.00,  'usado',    'combinar', NULL, 'ativo', NOW() - INTERVAL 6 DAY),
+       600.00,  'usado',    'combinar', 'carreto', NULL, 'ativo', NOW() - INTERVAL 6 DAY),
   (10, 1, 1, 1,  21, 'Mesa de escritório', 'Mesa de escritório com gaveteiro, ótima para estudar.',
-       250.00,  'usado',    'retirada', NULL, 'ativo', NOW() - INTERVAL 7 DAY),
+       250.00,  'usado',    'retirada', 'carro', NULL, 'ativo', NOW() - INTERVAL 7 DAY),
   -- vendido: não aparece na busca, só em Meus anúncios
   (11, 1, 1, 1,  2,  'Escrivaninha branca', 'Escrivaninha com uma gaveta.',
-       150.00,  'usado',    'retirada', NULL, 'vendido', NOW() - INTERVAL 10 DAY);
+       150.00,  'usado',    'retirada', 'carro', NULL, 'vendido', NOW() - INTERVAL 10 DAY),
+  -- rascunho: só o Diego vê, em Meus anúncios
+  (12, 1, 1, NULL, NULL, 'Cadeira de escritório', NULL,
+       NULL,    NULL,       NULL,       NULL, NULL, 'rascunho', NULL);
+
+-- Os anúncios de teste não têm GPS: a localização é a aproximada, do centro do bairro
+INSERT INTO localizacao_anuncio (anuncio_id, latitude, longitude, latitude_publica, longitude_publica, origem,
+                                 cidade_id, bairro_id, cidade, bairro)
+SELECT a.id, b.latitude, b.longitude, b.latitude, b.longitude, 'bairro', c.id, b.id, c.nome, b.nome
+  FROM anuncio a
+  JOIN bairro b ON b.id = a.bairro_id
+  JOIN cidade c ON c.id = b.cidade_id;
 
 -- Favoritos da Larissa
 INSERT INTO favorito (usuario_id, anuncio_id, criado_em) VALUES

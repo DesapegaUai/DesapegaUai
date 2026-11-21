@@ -22,6 +22,8 @@
 .det-dados dd { margin: 4px 0 0; font-weight: 600; font-size: 16px; color: var(--tinta); }
 
 .det-resumo h1 { margin: 0; font-weight: 800; font-size: 28px; line-height: 1.15; color: var(--tinta); overflow-wrap: anywhere; }
+.det-vendido.reservado { background: #FBF3DC; color: #7A5A00; }
+.det-vendedor .selo-vinculo { margin-top: 6px; }
 .det-vendido { display: inline-flex; align-items: center; min-height: 26px; margin-bottom: 10px; padding: 0 10px; border-radius: 8px; background: var(--sup-3); font-weight: 700; font-size: 13px; color: var(--texto-2); }
 .det-preco { margin-top: 12px; font-weight: 800; font-size: 30px; line-height: 1.1; color: var(--marca); }
 .det-local { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 16px; color: var(--texto-2); }

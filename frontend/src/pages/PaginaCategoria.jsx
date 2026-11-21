@@ -1,105 +1,95 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import BarraChips from '../components/BarraChips.jsx';
+import BarraDeRaio from '../components/BarraDeRaio.jsx';
 import PainelFiltros from '../components/PainelFiltros.jsx';
 import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
 import Paginacao from '../components/Paginacao.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
-import { buscarCategoria } from '../services/categorias.js';
-import { escolherCidade, useCidade } from '../services/cidade.js';
-import {
-  DISTANCIA, PAGINAS_CATEGORIA, filtrosIniciais, filtrosLimpos, listarAnuncios,
-} from '../services/anuncios.js';
-import { formatarQuantidade } from '../services/formatar.js';
+import Toast from '../components/Toast.jsx';
+import useFavoritar from '../hooks/useFavoritar.js';
+import useFeedProximo from '../hooks/useFeedProximo.js';
 import useMediaQuery, { TABLET } from '../hooks/useMediaQuery.js';
+import { CONDICOES, POR_PAGINA, filtrosParaApi, filtrosVazios } from '../services/anuncios.js';
+import { buscarCategoria } from '../services/categorias.js';
+import { definirRaio } from '../services/localizacao.js';
+import { obterCategorias } from '../services/mercadoApi.js';
 
-const alternarNaLista = (lista, item) =>
-  lista.includes(item) ? lista.filter((i) => i !== item) : [...lista, item];
+const alternarNaLista = (lista, item) => (lista.includes(item) ? lista.filter((i) => i !== item) : [...lista, item]);
 
 /**
- * Tela de categoria (estrutura idêntica nas 8 categorias):
- * cabeçalho · abas · trilha + título · chips/ordenar · filtros + grade · paginação · rodapé.
+ * Tela de categoria (igual nas 8 categorias): anúncios da API perto da sua referência, dentro do
+ * raio, com subcategoria, condição, preço e ordenação. Atualiza sozinha quando sai anúncio novo.
  */
 export default function PaginaCategoria({ slug }) {
   const categoria = buscarCategoria(slug);
-  const pagina = PAGINAS_CATEGORIA[slug];
-  const grupoChips = pagina.gruposFiltro.find((g) => g.ligadoAosChips).id;
   const idPainel = `filtros-${slug}`;
-
   const ehGaveta = useMediaQuery(TABLET);
-  const cidade = useCidade();
-  const [filtros, setFiltros] = useState(() => filtrosIniciais(slug));
-  const [ordem, setOrdem] = useState('recentes');
-  const [numPagina, setNumPagina] = useState(1);
+  const [dadosCategoria, setDadosCategoria] = useState(null);
+  const [filtros, setFiltros] = useState(filtrosVazios);
+  const [aplicados, setAplicados] = useState(filtrosVazios);
+  const [ordem, setOrdem] = useState('proximos');
+  const [pagina, setPagina] = useState(1);
   const [painelAberto, setPainelAberto] = useState(false);
-  const [favoritos, setFavoritos] = useState(() => new Set());
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     document.title = `DesapegaUai — ${categoria.nome}`;
-  }, [categoria.nome]);
+    obterCategorias().then((lista) => setDadosCategoria(lista.find((c) => c.slug === slug) ?? null)).catch(() => {});
+  }, [categoria.nome, slug]);
 
-  // Saiu do tablet/celular com a gaveta aberta → fecha
+  const feed = useFeedProximo(dadosCategoria
+    ? { categoria_id: dadosCategoria.id, ...filtrosParaApi(aplicados), ordenar: ordem, pagina, por_pagina: POR_PAGINA }
+    : null);
+  const favoritarAnuncio = useFavoritar({
+    aoMudar: feed.marcarFavorito,
+    aoErrar: (erro) => setToast({ tipo: 'erro', titulo: 'Não foi possível salvar o favorito', texto: erro.message, chave: Date.now() }),
+  });
+
   if (!ehGaveta && painelAberto) setPainelAberto(false);
 
-  // Filtros aplicados de fato (a busca só roda ao clicar nos chips ou em "Aplicar filtros").
-  // Antes da primeira escolha, a tela mostra a lista completa do protótipo.
-  const [filtrosAplicados, setFiltrosAplicados] = useState(null);
-  const resultado = useMemo(
-    () => listarAnuncios(slug, { pagina: numPagina, ordem, filtros: filtrosAplicados, cidade }),
-    [slug, numPagina, ordem, filtrosAplicados, cidade],
-  );
-
   const mudarFiltros = useCallback((parcial) => setFiltros((f) => ({ ...f, ...parcial })), []);
-
-  const alternarOpcao = useCallback((grupo, opcao) => {
-    setFiltros((f) => ({ ...f, opcoes: { ...f.opcoes, [grupo]: alternarNaLista(f.opcoes[grupo], opcao) } }));
+  const alternarOpcao = useCallback((grupo, valor) => {
+    setFiltros((f) => ({ ...f, opcoes: { ...f.opcoes, [grupo]: alternarNaLista(f.opcoes[grupo], valor) } }));
   }, []);
 
-  // Chip = atalho do 1º grupo de filtros: aplica na hora
-  function alternarChip(sub) {
-    const novos = { ...filtros, opcoes: { ...filtros.opcoes, [grupoChips]: alternarNaLista(filtros.opcoes[grupoChips], sub) } };
+  function alternarChip(subId) {
+    const novos = { ...filtros, opcoes: { ...filtros.opcoes, subcategoria: alternarNaLista(filtros.opcoes.subcategoria, subId) } };
     setFiltros(novos);
-    setFiltrosAplicados(novos);
-    setNumPagina(1);
+    setAplicados(novos);
+    setPagina(1);
   }
 
   function aplicar() {
-    setFiltrosAplicados(filtros);
-    setNumPagina(1);
+    setAplicados(filtros);
+    setPagina(1);
     setPainelAberto(false);
   }
 
   function limpar() {
-    const zerados = filtrosLimpos(slug);
-    setFiltros(zerados);
-    setFiltrosAplicados(zerados);
-    setNumPagina(1);
+    setFiltros(filtrosVazios());
+    setAplicados(filtrosVazios());
+    setPagina(1);
   }
 
   function mudarPagina(n) {
-    setNumPagina(n);
+    setPagina(n);
     document.getElementById('topo-grade')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   const fecharPainel = useCallback(() => setPainelAberto(false), []);
-
-  const alternarFavorito = useCallback((id) => {
-    // TODO: visitante → Login (03-arquitetura · Permissões). Logado → salvar na API.
-    setFavoritos((atual) => {
-      const novo = new Set(atual);
-      if (novo.has(id)) novo.delete(id); else novo.add(id);
-      return novo;
-    });
-  }, []);
-
-  // Número no botão "Filtros" (tablet/celular): conta o que não aparece nos chips
-  const qtdFiltros = (filtros.precoMin ? 1 : 0) + (filtros.precoMax ? 1 : 0)
-    + Object.entries(filtros.opcoes).reduce((t, [g, l]) => (g === grupoChips ? t : t + l.length), 0)
-    + (filtros.distancia !== DISTANCIA.padrao ? 1 : 0);
+  const subcategorias = dadosCategoria?.subcategorias ?? [];
+  const grupos = [
+    { id: 'subcategoria', titulo: dadosCategoria?.rotulo_filtro ?? 'Tipo', opcoes: subcategorias.map((s) => ({ valor: s.id, rotulo: s.nome })) },
+    ...(slug === 'servicos' ? [] : [{ id: 'condicao', titulo: 'Condição', opcoes: CONDICOES }]),
+  ];
+  const qtdFiltros = (filtros.precoMin ? 1 : 0) + (filtros.precoMax ? 1 : 0) + filtros.opcoes.condicao.length;
+  const dados = feed.dados;
 
   return (
     <LayoutMarketplace>
+      <Toast aviso={toast} onFechar={() => setToast(null)} />
       <nav aria-label="Você está em">
         <ol className="trilha">
           <li><Link to="/">Início</Link></li>
@@ -110,15 +100,17 @@ export default function PaginaCategoria({ slug }) {
 
       <div className="titulo-pagina">
         <h1 className="t-titulo-1">{categoria.nome}</h1>
-        <span className="cont">{formatarQuantidade(resultado.total)} em {cidade} e região</span>
+        <Link className="titulo-acao" to={`/mapa?categoria=${slug}`}><Icone nome="local" tamanho={17} cor="currentColor" espessura={1.8} />Ver no mapa</Link>
       </div>
 
+      <BarraDeRaio total={dados?.total} carregando={feed.carregando} semConexao={feed.semConexao} />
+
       <BarraChips
-        subcategorias={pagina.subcategorias}
-        ativas={filtros.opcoes[grupoChips]}
+        subcategorias={subcategorias}
+        ativas={filtros.opcoes.subcategoria}
         onAlternar={alternarChip}
         ordem={ordem}
-        onOrdenar={(o) => { setOrdem(o); setNumPagina(1); }}
+        onOrdenar={(o) => { setOrdem(o); setPagina(1); }}
         idPainel={idPainel}
         painelAberto={painelAberto}
         qtdFiltros={qtdFiltros}
@@ -128,7 +120,7 @@ export default function PaginaCategoria({ slug }) {
       <div className="corpo" id="topo-grade">
         <PainelFiltros
           id={idPainel}
-          pagina={pagina}
+          grupos={grupos}
           filtros={filtros}
           onMudar={mudarFiltros}
           onAlternarOpcao={alternarOpcao}
@@ -141,28 +133,31 @@ export default function PaginaCategoria({ slug }) {
 
         <div className="col-grade">
           <h2 className="oculto">Anúncios de {categoria.nome}</h2>
-          {resultado.anuncios.length === 0 ? (
+          {feed.erro && !dados && (
+            <div className="cat-vazio" role="alert">
+              <b>Não foi possível carregar os anúncios.</b>
+              <p>{feed.erro.message}</p>
+              <button type="button" onClick={feed.recarregar}>Tentar de novo</button>
+            </div>
+          )}
+          {!dados && !feed.erro && <p className="cat-vazio" role="status">Carregando anúncios…</p>}
+          {dados && dados.itens.length === 0 && (
             <div className="cat-vazio" role="status">
               <Icone nome="busca" tamanho={36} cor="#4CA02B" />
-              <b>{cidade === 'Viçosa' ? 'Nenhum anúncio com esses filtros' : `Ainda não há anúncios de ${categoria.nome} em ${cidade}`}</b>
-              <p>{cidade === 'Viçosa' ? 'Tire alguns filtros ou aumente a distância.' : 'Por enquanto, os anúncios são de Viçosa.'}</p>
-              {cidade === 'Viçosa'
-                ? <button type="button" onClick={limpar}>Limpar filtros</button>
-                : <button type="button" onClick={() => escolherCidade('Viçosa')}>Ver anúncios de Viçosa</button>}
+              <b>{dados.mensagem ?? `Nenhum anúncio de ${categoria.nome} por perto`}</b>
+              {dados.ampliar
+                ? <button type="button" className="ampliar-raio" onClick={() => definirRaio(dados.ampliar.raio_km)}>Ampliar para {dados.ampliar.raio_km} km</button>
+                : <button type="button" onClick={limpar}>Limpar filtros</button>}
             </div>
-          ) : (
+          )}
+          {dados && dados.itens.length > 0 && (
             <div className="grade">
-              {resultado.anuncios.map((anuncio) => (
-                <CardAnuncio
-                  key={anuncio.id}
-                  anuncio={anuncio}
-                  favorito={favoritos.has(anuncio.id)}
-                  onFavoritar={alternarFavorito}
-                />
+              {dados.itens.map((anuncio) => (
+                <CardAnuncio key={anuncio.id} anuncio={anuncio} favorito={anuncio.favoritado} onFavoritar={favoritarAnuncio} />
               ))}
             </div>
           )}
-          <Paginacao pagina={numPagina} totalPaginas={resultado.totalPaginas} onMudar={mudarPagina} />
+          {dados && <Paginacao pagina={pagina} totalPaginas={Math.max(1, dados.total_paginas)} onMudar={mudarPagina} />}
         </div>
       </div>
     </LayoutMarketplace>

@@ -1,64 +1,90 @@
-// Perfil de exemplo (protótipo 11-perfil). Trocar pelos dados do usuário logado (API).
+// Perfil da conta logada, mantido em cache local e sincronizado com a API.
 
 import { useSyncExternalStore } from 'react';
-import { FAVORITOS } from './favoritos.js';
-import { CONVERSAS, NAO_LIDAS_TOTAL } from './conversas.js';
+import { api } from './api.js';
 
 export const USUARIO = {
-  nome: 'Ana Beatriz Moreira',
-  email: 'ana.beatriz@exemplo.com',
+  nome: '',
+  email: '',
+  foto_url: null,
   telefone: '',
-  usuario: '@anabeatriz',
-  iniciais: 'AB',
+  usuario: '',
+  iniciais: '',
   bio: '', // vazio → mostra o convite "Adicione uma bio"
-  membroDesde: 'mai/2023',
-  membroDesdeExtenso: 'Maio de 2023',
-  ultimoAcesso: 'Hoje, 09:41',
-  anunciosAtivos: 12,
+  membroDesde: 'Não disponível',
+  membroDesdeExtenso: 'Não disponível',
+  ultimoAcesso: 'Não disponível',
+  total_favoritos: null,
+  total_conversas: null,
 };
 
 export const NUMEROS = [
-  { icone: 'sacola', valor: USUARIO.anunciosAtivos, rotulo: 'Anúncios ativos' },
-  { icone: 'favorito', valor: FAVORITOS.length, rotulo: 'Favoritos' },
-  { icone: 'mensagens', valor: CONVERSAS.length, rotulo: 'Conversas' },
-  { icone: 'estrela', valor: '—', rotulo: 'Avaliação' }, // o Perfil troca pela média de services/avaliacoes.js
+  { icone: 'sacola', rotulo: 'Anúncios ativos', para: '/meus-anuncios' },
+  { icone: 'favorito', rotulo: 'Favoritos', para: '/favoritos' },
+  { icone: 'mensagens', rotulo: 'Conversas', para: '/conversas' },
+  { icone: 'estrela', rotulo: 'Avaliação', para: '#avaliacoes' },
 ];
 
 export const LINKS_CONTA = [
   { icone: 'perfil', titulo: 'Informações pessoais', descricao: 'Nome, e-mail, telefone e mais', para: '/perfil/editar' },
-  { icone: 'cadeado', titulo: 'Privacidade', descricao: 'Quem pode ver seu perfil e anúncios' },
+  { icone: 'cadeado', titulo: 'Privacidade', descricao: 'Seus dados e exclusão da conta' },
   { icone: 'sino', titulo: 'Notificações', descricao: 'Preferências de alertas' },
-  { icone: 'verificado', titulo: 'Verificação de conta', descricao: 'CPF/CNPJ e segurança' },
+  { icone: 'verificado', titulo: 'Verificação de conta', descricao: 'Selo de vínculo acadêmico' },
   { icone: 'local', titulo: 'Endereços', descricao: 'Gerencie seus endereços' },
   { icone: 'ajuda', titulo: 'Ajuda e suporte', descricao: 'Dúvidas frequentes', para: '/ajuda/perguntas-frequentes' },
 ];
 
-export const ACOES_RAPIDAS = [
-  { icone: 'mais', rotulo: 'Publicar um novo anúncio', para: '/anunciar' },
-  { icone: 'etiqueta', rotulo: 'Ver meus anúncios', para: '/meus-anuncios' },
-  { icone: 'favorito', rotulo: 'Ver favoritos', para: '/favoritos' },
-  { icone: 'mensagens', rotulo: 'Mensagens', para: '/conversas', contador: NAO_LIDAS_TOTAL },
-  { icone: 'engrenagem', rotulo: 'Configurações', para: '/perfil/editar' },
-];
-
-// Dados que a pessoa pode alterar em "Editar perfil". Ficam no navegador até as telas serem ligadas na API.
-const CHAVE_PERFIL = 'desapegauai.perfil.v1';
+// Perfil em memória (não fica guardado no navegador: tem e-mail e telefone).
+try {
+  localStorage.removeItem('desapegauai.perfil.v1');
+} catch {
+  // sem armazenamento: nada para limpar
+}
 const ouvintes = new Set();
 let perfilAtual = null;
 
 const comIniciais = (dados) => ({
   ...USUARIO,
   ...dados,
-  iniciais: (dados.nome ?? USUARIO.nome).split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase(),
+  iniciais: (dados.nome || USUARIO.nome).split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase(),
 });
 
+function formatarData(valor, opcoes, padrao) {
+  if (!valor) return padrao;
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime()) ? padrao : new Intl.DateTimeFormat('pt-BR', opcoes).format(data);
+}
+
+function mapearPerfil(dados) {
+  const fotoUrl = dados.foto_url?.startsWith('/api/')
+    ? `${import.meta.env.VITE_API_URL ?? ''}${dados.foto_url}`
+    : dados.foto_url;
+
+  return comIniciais({
+    ...dados,
+    foto_url: fotoUrl,
+    usuario: dados.email ? `@${dados.email.split('@')[0]}` : USUARIO.usuario,
+    membroDesde: formatarData(dados.criado_em, { month: 'short', year: 'numeric' }, 'Não disponível'),
+    membroDesdeExtenso: formatarData(dados.criado_em, { month: 'long', year: 'numeric' }, 'Não disponível'),
+    ultimoAcesso: formatarData(dados.ultimo_acesso, { dateStyle: 'short', timeStyle: 'short' }, 'Não disponível'),
+    total_favoritos: contar(dados.total_favoritos),
+    total_conversas: contar(dados.total_conversas),
+  });
+}
+
+function contar(valor) {
+  if (valor === undefined || valor === null || !Number.isFinite(Number(valor))) return null;
+  return Number(valor);
+}
+
+function guardarPerfil(dados) {
+  perfilAtual = mapearPerfil(dados);
+  ouvintes.forEach((avisar) => avisar());
+  return perfilAtual;
+}
+
 function lerPerfil() {
-  if (perfilAtual) return perfilAtual;
-  try {
-    perfilAtual = comIniciais(JSON.parse(localStorage.getItem(CHAVE_PERFIL)) ?? {});
-  } catch {
-    perfilAtual = comIniciais({});
-  }
+  perfilAtual ??= comIniciais({});
   return perfilAtual;
 }
 
@@ -69,12 +95,31 @@ function assinarPerfil(avisar) {
 
 export const usePerfil = () => useSyncExternalStore(assinarPerfil, lerPerfil);
 
-export function salvarPerfil(dados) {
-  try {
-    localStorage.setItem(CHAVE_PERFIL, JSON.stringify(dados));
-  } catch {
-    // sem acesso ao armazenamento: mantém os dados só nesta visita
-  }
-  perfilAtual = comIniciais(dados);
-  ouvintes.forEach((avisar) => avisar());
+// dois pedidos ao mesmo tempo (a moldura e a tela de Perfil) viram um só
+let pedidoDoPerfil = null;
+export function carregarPerfil() {
+  pedidoDoPerfil ??= api.get('/perfil').then(guardarPerfil).finally(() => { pedidoDoPerfil = null; });
+  return pedidoDoPerfil;
 }
+
+export async function salvarPerfil(dados) {
+  return guardarPerfil(await api.put('/perfil', dados));
+}
+
+export async function atualizarFotoPerfil(arquivo) {
+  const formulario = new FormData();
+  formulario.append('foto', arquivo);
+  return guardarPerfil(await api.put('/perfil/foto', formulario));
+}
+
+// exclui a conta, os anúncios, as conversas e as fotos; a API apaga o cookie de login
+export const excluirConta = () => api.delete('/perfil', { confirmar: 'EXCLUIR' });
+
+export async function removerFotoPerfil() {
+  return guardarPerfil(await api.delete('/perfil/foto'));
+}
+
+window.addEventListener('desapegauai:logout', () => {
+  perfilAtual = comIniciais({});
+  ouvintes.forEach((avisar) => avisar());
+});

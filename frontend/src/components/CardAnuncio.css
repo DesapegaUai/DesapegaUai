@@ -147,3 +147,4 @@
 .card-anuncio__fav {
   z-index: 2;
 }
+.card-anuncio__sem-foto { display: block; width: 100%; aspect-ratio: 262 / 235; background: #EEF2EC; }

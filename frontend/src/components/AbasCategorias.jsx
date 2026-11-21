@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import { CATEGORIAS, caminhoCategoria } from '../services/categorias.js';
 
-/** Abas das 8 categorias. No celular rolam na horizontal; a aba ativa entra na tela sozinha. */
+/** Abas das 8 categorias e do Procura-se. No celular rolam na horizontal; a aba ativa entra na tela sozinha. */
 export default function AbasCategorias() {
   const navRef = useRef(null);
   const { pathname } = useLocation();
@@ -35,6 +35,14 @@ export default function AbasCategorias() {
           )}
         </NavLink>
       ))}
+      <NavLink to="/procura-se" className={({ isActive }) => (isActive ? 'aba on' : 'aba')}>
+        {({ isActive }) => (
+          <>
+            <Icone nome="busca" tamanho={21} cor={isActive ? '#3E8B22' : '#4CA02B'} />
+            <span>Procura-se</span>
+          </>
+        )}
+      </NavLink>
     </nav>
   );
 }

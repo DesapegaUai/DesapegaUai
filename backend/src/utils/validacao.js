@@ -2,12 +2,15 @@
 import { erroHttp } from './erroHttp.js'
 
 const MAIOR_ID = 4_294_967_295 // maior INT UNSIGNED do MySQL
+// espaços e caracteres invisíveis: um texto só com eles conta como vazio
+const INVISIVEIS = /[\p{Z}\p{Cc}\p{Cf}\uFE00-\uFE0F]/gu
 
 // lerId(req.params.id, 'id do anúncio'): devolve o número ou dá 400
 export function lerId(valor, nome = 'id') {
   const texto = typeof valor === 'number' ? String(valor) : valor
-  const numero = Number(texto)
-  if (typeof texto !== 'string' || !/^\d{1,10}$/.test(texto) || numero < 1 || numero > MAIOR_ID) {
+  // o tipo vem primeiro: um objeto no lugar do número (JSON malicioso) quebrava a conversão e virava erro 500
+  const numero = typeof texto === 'string' && /^\d{1,10}$/.test(texto) ? Number(texto) : NaN
+  if (!(numero >= 1 && numero <= MAIOR_ID)) {
     throw erroHttp(400, `O ${nome} precisa ser um número inteiro positivo.`)
   }
   return numero
@@ -16,7 +19,7 @@ export function lerId(valor, nome = 'id') {
 // lerTexto(corpo.titulo, 'titulo', { obrigatorio: true, min: 3, max: 80 })
 // Tira os espaços das pontas; vazio vira null (ou 400 se for obrigatório).
 export function lerTexto(valor, nome, { obrigatorio = false, min = 0, max = Infinity } = {}) {
-  if (valor === undefined || valor === null || (typeof valor === 'string' && valor.trim() === '')) {
+  if (valor === undefined || valor === null || (typeof valor === 'string' && valor.replace(INVISIVEIS, '') === '')) {
     if (obrigatorio) throw erroHttp(400, `O campo ${nome} é obrigatório.`)
     return null
   }

@@ -6,6 +6,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { after, describe, test } from 'node:test'
 import jwt from 'jsonwebtoken'
+import sharp from 'sharp'
 
 // só neste teste: liga o login de teste e usa um ID do Google falso (o .env não muda)
 process.env.PERMITIR_LOGIN_TESTE = 'true'
@@ -28,7 +29,7 @@ after(async () => {
   await db.end()
 })
 
-async function chamar(metodo, caminho, { corpo, cookie, origem } = {}) {
+async function chamar(metodo, caminho, { corpo, cookie, origem, form } = {}) {
   const headers = {}
   if (corpo !== undefined) headers['Content-Type'] = 'application/json'
   if (cookie) headers.Cookie = cookie
@@ -36,7 +37,7 @@ async function chamar(metodo, caminho, { corpo, cookie, origem } = {}) {
   const resposta = await fetch(base + caminho, {
     method: metodo,
     headers,
-    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+    body: corpo !== undefined ? JSON.stringify(corpo) : form,
   })
   const texto = await resposta.text()
   let dados = texto
@@ -104,8 +105,11 @@ describe('Banco e configuração', () => {
   })
 
   test('CORS: só o front-end do .env pode chamar a API', async () => {
-    const { headers } = await chamar('GET', '/saude', { origem: 'https://site-malicioso.example' })
-    assert.equal(headers.get('access-control-allow-origin'), env.frontendUrl)
+    // outro site não recebe a permissão do CORS; o front-end do .env recebe
+    const deFora = await chamar('GET', '/saude', { origem: 'https://site-malicioso.example' })
+    assert.equal(deFora.headers.get('access-control-allow-origin'), null)
+    const doFront = await chamar('GET', '/saude', { origem: env.frontendUrl })
+    assert.equal(doFront.headers.get('access-control-allow-origin'), env.frontendUrl)
   })
 })
 
@@ -126,29 +130,45 @@ describe('Categorias e cidades (sem login)', () => {
     )
   })
 
-  test('GET /api/cidades: 4 cidades em ordem alfabética, só id, nome e uf', async () => {
+  test('GET /api/cidades: os 142 municípios da Zona da Mata mineira, em ordem alfabética', async () => {
     const { status, dados } = await chamar('GET', '/cidades')
     assert.equal(status, 200)
-    assert.deepEqual(
-      dados.map((c) => c.nome),
-      ['Ponte Nova', 'Teixeiras', 'Ubá', 'Viçosa'],
-    )
-    assert.deepEqual(Object.keys(dados[0]).sort(), ['id', 'nome', 'uf'])
+    assert.equal(dados.length, 142)
+    const nomes = dados.map((c) => c.nome)
+    for (const cidade of ['Viçosa', 'Teixeiras', 'Ponte Nova', 'Ubá', 'Juiz de Fora', 'Muriaé', 'Além Paraíba']) {
+      assert.ok(nomes.includes(cidade), `faltou a cidade ${cidade}`)
+    }
+    assert.ok(!nomes.includes('Belo Horizonte'), 'só cidades da Zona da Mata')
+    assert.ok(dados.every((c) => c.uf === 'MG' && Number.isInteger(c.codigo_ibge)))
+    assert.deepEqual(Object.keys(dados[0]).sort(), ['cep_geral', 'codigo_ibge', 'id', 'latitude', 'longitude', 'nome', 'uf'])
+    assert.equal(dados.find((c) => c.nome === 'Viçosa').id, 1, 'as cidades do seed mantêm o id')
   })
 
-  test('GET /api/cidades/1/bairros: os 20 bairros de Viçosa em ordem alfabética', async () => {
+  test('GET /api/cidades/1/bairros: bairros e localidades de Viçosa, com os do seed, em ordem alfabética', async () => {
     const { status, dados } = await chamar('GET', '/cidades/1/bairros')
     assert.equal(status, 200)
-    assert.equal(dados.length, 20)
+    assert.ok(dados.length > 100, `só vieram ${dados.length} bairros`)
     const nomes = dados.map((b) => b.nome)
-    for (const bairro of ['Centro', 'Silvestre', 'Santo Antônio', 'Nova Viçosa', 'Bom Jesus']) {
+    for (const bairro of ['Centro', 'Silvestre', 'Santo Antônio', 'Nova Viçosa', 'Bom Jesus', 'Clélia Bernardes', 'João Braz da Costa Val', 'Campus UFV']) {
       assert.ok(nomes.includes(bairro), `faltou o bairro ${bairro}`)
     }
-    assert.deepEqual(nomes, [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')))
+    assert.equal(nomes.filter((n) => n === 'Centro').length, 1, 'sem bairro repetido')
+    assert.ok(dados.find((b) => b.nome === 'Silvestre').distrito, 'Silvestre é distrito de Viçosa')
+    const soLetras = nomes.filter((n) => /^[p{L} ]+$/u.test(n))
+    assert.deepEqual(soLetras, [...soLetras].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })))
+  })
+
+  test('GET /api/cidades/1/ruas: busca rua com CEP', async () => {
+    const { status, dados } = await chamar('GET', '/cidades/1/ruas?busca=Peter%20Henry')
+    assert.equal(status, 200)
+    assert.ok(dados.length > 0)
+    assert.equal(dados[0].nome, 'Avenida Peter Henry Rolfs')
+    assert.match(dados[0].cep, /^365[0-9]{5}$/)
+    assert.equal((await chamar('GET', '/cidades/1/ruas?busca=a')).status, 400)
   })
 
   test('cidade que não existe: 404; id inválido: 400', async () => {
-    assert.equal((await chamar('GET', '/cidades/999/bairros')).status, 404)
+    assert.equal((await chamar('GET', '/cidades/99999/bairros')).status, 404)
     assert.equal((await chamar('GET', '/cidades/abc/bairros')).status, 400)
   })
 })
@@ -231,12 +251,20 @@ describe('Login e sessão', () => {
 
 describe('Perfil', () => {
   test('GET /api/perfil: dados do próprio usuário e os totais', async () => {
-    const diego = (await chamar('GET', '/perfil', { cookie: await entrarComo(1) })).dados
+    const inicioDoAcesso = Date.now()
+    const cookieDiego = await entrarComo(1)
+    const diego = (await chamar('GET', '/perfil', { cookie: cookieDiego })).dados
     assert.equal(diego.nome, 'Diego Martins')
     assert.equal(diego.telefone, '31999990001')
     assert.equal(diego.total_anuncios_ativos, 10)
     assert.equal(diego.total_favoritos, 0)
     assert.equal(diego.total_conversas, 1)
+    assert.ok(Number.isFinite(Date.parse(diego.criado_em)), 'o perfil deve retornar a data real de cadastro')
+    assert.ok(Number.isFinite(Date.parse(diego.ultimo_acesso)), 'o perfil deve retornar o último acesso')
+    assert.ok(
+      Date.parse(diego.ultimo_acesso) >= inicioDoAcesso - 5000,
+      'o último acesso deve refletir o login realizado para o teste',
+    )
 
     const larissa = (await chamar('GET', '/perfil', { cookie: await entrarComo(2) })).dados
     assert.equal(larissa.total_anuncios_ativos, 0)
@@ -265,6 +293,50 @@ describe('Perfil', () => {
       assert.equal(apagado.dados.bio, null)
     } finally {
       await db.query(`UPDATE usuario SET nome = 'Usuário Teste', telefone = NULL, bio = NULL WHERE id = 3`)
+    }
+  })
+
+  test('PUT /api/perfil/foto: salva imagem própria sem alterar o e-mail Google', async () => {
+    const cookie = await entrarComo(3)
+    const [[anterior]] = await db.query('SELECT foto_url, email FROM usuario WHERE id = 3')
+    const imagem = await sharp({ create: { width: 800, height: 600, channels: 3, background: '#2E9E4F' } })
+      .jpeg()
+      .toBuffer()
+    const form = new FormData()
+    form.append('foto', new Blob([imagem], { type: 'image/jpeg' }), 'perfil.jpg')
+
+    let fotoUrl
+    try {
+      const resposta = await chamar('PUT', '/perfil/foto', { cookie, form })
+      assert.equal(resposta.status, 200, JSON.stringify(resposta.dados))
+      assert.equal(resposta.dados.email, anterior.email)
+      assert.match(resposta.dados.foto_url, /^\/api\/uploads\/perfis\/3\/[a-f0-9]{32}\.webp$/)
+      fotoUrl = resposta.dados.foto_url
+
+      const foto = await fetch(base.replace('/api', '') + fotoUrl)
+      assert.equal(foto.status, 200)
+      const metadados = await sharp(Buffer.from(await foto.arrayBuffer())).metadata()
+      assert.equal(metadados.format, 'webp')
+      assert.equal(metadados.width, 512)
+      assert.equal(metadados.height, 512)
+
+      const removida = await chamar('DELETE', '/perfil/foto', { cookie })
+      assert.equal(removida.status, 200, JSON.stringify(removida.dados))
+      assert.equal(removida.dados.foto_url, null)
+      assert.equal(removida.dados.email, anterior.email)
+      assert.equal((await fetch(base.replace('/api', '') + fotoUrl)).status, 404)
+      assert.equal((await chamar('DELETE', '/perfil/foto')).status, 401)
+
+      const invalida = new FormData()
+      invalida.append('foto', new Blob(['não é imagem'], { type: 'image/jpeg' }), 'falsa.jpg')
+      assert.equal((await chamar('PUT', '/perfil/foto', { cookie, form: invalida })).status, 400)
+      assert.equal((await chamar('PUT', '/perfil/foto', { form })).status, 401)
+    } finally {
+      await db.query('UPDATE usuario SET foto_url = ? WHERE id = 3', [anterior.foto_url])
+      if (fotoUrl) {
+        const arquivo = path.basename(fotoUrl)
+        await fs.rm(path.join(PASTA_UPLOADS, 'perfis', '3', arquivo), { force: true })
+      }
     }
   })
 })

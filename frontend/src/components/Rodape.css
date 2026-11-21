@@ -21,11 +21,11 @@
   color: var(--rd-texto);
 }
 
-/* O fundo vai de ponta a ponta; o conteúdo para em 1440 e fica centralizado */
+/* O fundo vai de ponta a ponta; o conteúdo segue a mesma largura e o mesmo respiro lateral da página */
 .rodape-in {
-  max-width: 1440px;
+  max-width: 1548px;
   margin: 0 auto;
-  padding: 64px 40px 44px;
+  padding: 56px 24px 40px;
 }
 
 .rodape-cols {
@@ -188,9 +188,9 @@
 }
 
 .rodape-base-in {
-  max-width: 1440px;
+  max-width: 1548px;
   margin: 0 auto;
-  padding: 18px 40px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;

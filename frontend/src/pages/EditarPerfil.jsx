@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
-import { salvarPerfil, usePerfil } from '../services/perfil.js';
+import Toast from '../components/Toast.jsx';
+import { atualizarFotoPerfil, carregarPerfil, salvarPerfil, usePerfil } from '../services/perfil.js';
 import '../styles/marketplace-cadastro.css';
 import '../styles/marketplace-editar-perfil.css';
 
@@ -10,7 +11,7 @@ const LIMITE_NOME = 120;
 const LIMITE_BIO = 300;
 
 function formatarTelefone(texto) {
-  const n = texto.replace(/\D/g, '').slice(0, 11);
+  const n = String(texto ?? '').replace(/\D/g, '').slice(0, 11);
   if (n.length <= 2) return n;
   const meio = n.length === 11 ? 7 : 6;
   if (n.length <= meio) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
@@ -27,21 +28,39 @@ function validar({ nome, telefone, bio }) {
   return erros;
 }
 
-/** Editar perfil. E-mail e foto vêm da conta Google. */
+/** Editar perfil. O e-mail vem da conta Google; a foto é definida na plataforma. */
 export default function EditarPerfil() {
   const navegar = useNavigate();
   const perfil = usePerfil();
-  const [form, setForm] = useState({ nome: perfil.nome, telefone: formatarTelefone(perfil.telefone), bio: perfil.bio });
+  const [form, setForm] = useState({
+    nome: perfil.nome ?? '',
+    telefone: formatarTelefone(perfil.telefone),
+    bio: perfil.bio ?? '',
+  });
   const [erros, setErros] = useState({});
+  const [toast, setToast] = useState(null);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const fotoRef = useRef(null);
 
-  useEffect(() => { document.title = 'DesapegaUai — Editar perfil'; }, []);
+  useEffect(() => {
+    document.title = 'DesapegaUai — Editar perfil';
+    let ativo = true;
+    carregarPerfil()
+      .then((atual) => {
+        if (ativo) setForm({ nome: atual.nome, telefone: formatarTelefone(atual.telefone), bio: atual.bio ?? '' });
+      })
+      .catch((erro) => {
+        if (ativo) setToast({ tipo: 'erro', titulo: 'Não foi possível carregar o perfil', texto: erro.message, chave: Date.now() });
+      });
+    return () => { ativo = false; };
+  }, []);
 
   function mudar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }));
     setErros((e) => Object.fromEntries(Object.entries(e).filter(([c]) => c !== campo)));
   }
 
-  function salvar(e) {
+  async function salvar(e) {
     e.preventDefault();
     const encontrados = validar(form);
     setErros(encontrados);
@@ -50,8 +69,36 @@ export default function EditarPerfil() {
       document.getElementById(`ep-${primeiro}`)?.focus();
       return;
     }
-    salvarPerfil({ nome: form.nome.trim(), telefone: form.telefone.replace(/\D/g, ''), bio: form.bio.trim() });
-    navegar('/perfil', { state: { aviso: { tipo: 'sucesso', titulo: 'Perfil atualizado', chave: Date.now() } } });
+    try {
+      await salvarPerfil({ nome: form.nome.trim(), telefone: form.telefone.replace(/\D/g, ''), bio: form.bio.trim() });
+      navegar('/perfil', { state: { aviso: { tipo: 'sucesso', titulo: 'Perfil atualizado', chave: Date.now() } } });
+    } catch (erro) {
+      setToast({ tipo: 'erro', titulo: 'Não foi possível salvar o perfil', texto: erro.message, chave: Date.now() });
+    }
+  }
+
+  async function trocarFoto(e) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!arquivo) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(arquivo.type)) {
+      setToast({ tipo: 'erro', titulo: 'Formato de foto inválido', texto: 'Escolha uma imagem JPG, PNG ou WebP.', chave: Date.now() });
+      return;
+    }
+    if (arquivo.size > 5 * 1024 * 1024) {
+      setToast({ tipo: 'erro', titulo: 'Foto muito grande', texto: 'A foto de perfil pode ter no máximo 5 MB.', chave: Date.now() });
+      return;
+    }
+
+    setEnviandoFoto(true);
+    try {
+      await atualizarFotoPerfil(arquivo);
+      setToast({ tipo: 'sucesso', titulo: 'Foto de perfil atualizada', chave: Date.now() });
+    } catch (erro) {
+      setToast({ tipo: 'erro', titulo: 'Não foi possível atualizar a foto', texto: erro.message, chave: Date.now() });
+    } finally {
+      setEnviandoFoto(false);
+    }
   }
 
   const propsDoCampo = (campo) => ({
@@ -62,20 +109,26 @@ export default function EditarPerfil() {
 
   return (
     <LayoutPainel classeMain="ep-main">
+      <Toast aviso={toast} onFechar={() => setToast(null)} />
       <nav aria-label="Você está em">
         <Link className="ep-voltar" to="/perfil">
           <Icone nome="seta-esquerda" tamanho={18} cor="#3E8B22" />Voltar para o perfil
         </Link>
       </nav>
       <h1 className="ep-titulo">Editar perfil</h1>
-      <p className="ep-lead">Mantenha os seus dados atualizados.</p>
 
       <form className="cad-card ep-form" onSubmit={salvar} noValidate>
         <div className="ep-conta">
-          <span className="ep-avatar" aria-hidden="true">{perfil.iniciais}</span>
+          <span className="ep-avatar" aria-hidden="true">
+            {perfil.foto_url ? <img src={perfil.foto_url} alt="" /> : perfil.iniciais}
+          </span>
           <div>
-            <b>Foto e e-mail da conta Google</b>
-            <p>Esses dados vêm da sua conta Google e não podem ser alterados aqui.</p>
+            <b>Foto de perfil</b>
+            <p>Escolha uma foto para usar na plataforma. O e-mail da sua conta Google não pode ser alterado.</p>
+            <button type="button" className="ep-foto-botao" onClick={() => fotoRef.current?.click()} disabled={enviandoFoto}>
+              {enviandoFoto ? 'Enviando foto...' : 'Escolher foto'}
+            </button>
+            <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="oculto" tabIndex={-1} aria-hidden="true" disabled={enviandoFoto} onChange={trocarFoto} />
           </div>
         </div>
 

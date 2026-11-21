@@ -10,6 +10,10 @@ export const db = mysql.createPool({
   password: env.db.senha,
   database: env.db.nome,
   decimalNumbers: true, // preço volta como número (780, e não "780.00")
+  timezone: 'Z', // datas sempre em UTC, em qualquer servidor
   waitForConnections: true,
   connectionLimit: 10,
 })
+
+// o NOW() do banco também em UTC, para bater com o timezone acima
+db.pool.on('connection', (conexao) => conexao.query("SET time_zone = '+00:00'"))

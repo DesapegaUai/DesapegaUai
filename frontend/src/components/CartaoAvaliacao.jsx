@@ -2,20 +2,24 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import { EscolherNota, Estrelas } from './Estrelas.jsx';
-import { ROTULOS_NOTA, avaliar, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
+import { QUALIDADES, ROTULOS_NOTA, avaliar, daConversa, rotuloDaQualidade, useAvaliacoes } from '../services/avaliacoes.js';
 
 const MAX_COMENTARIO = 300;
 
 /**
  * Aparece na conversa depois que o vendedor marca o anúncio como vendido.
  * Só quem estava comprando vê. Uma avaliação por conversa.
+ * A pessoa dá de 1 a 5 estrelas, marca os pontos fortes (respondeu rápido, pontual…) e pode comentar.
  */
 export default function CartaoAvaliacao({ conversa, onAvaliado }) {
   const lista = useAvaliacoes();
   const feita = daConversa(lista, conversa.id);
   const [nota, setNota] = useState(0);
+  const [qualidades, setQualidades] = useState([]);
   const [comentario, setComentario] = useState('');
   const [depois, setDepois] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState('');
   const primeiroNome = conversa.nome.split(' ')[0];
   const formRef = useRef(null);
 
@@ -36,6 +40,11 @@ export default function CartaoAvaliacao({ conversa, onAvaliado }) {
             <p className="aval-nota-linha"><Estrelas nota={feita.nota} tamanho={18} /> <b>{ROTULOS_NOTA[feita.nota]}</b></p>
           </div>
         </div>
+        {feita.qualidades.length > 0 && (
+          <ul className="aval-marcadas" aria-label="Pontos fortes que você marcou">
+            {feita.qualidades.map((q) => <li key={q}>{rotuloDaQualidade(q)}</li>)}
+          </ul>
+        )}
         {feita.comentario && <p className="aval-coment">“{feita.comentario}”</p>}
         <p className="aval-aviso">Sua avaliação já aparece no anúncio e no perfil de {primeiroNome}.</p>
         <Link className="aval-link" to={`/anuncio/${conversa.anuncio.id}`}>Ver como ficou no anúncio <Icone nome="seta-direita" tamanho={16} cor="currentColor" espessura={2} /></Link>
@@ -52,11 +61,20 @@ export default function CartaoAvaliacao({ conversa, onAvaliado }) {
     );
   }
 
-  function enviar(e) {
+  async function enviar(e) {
     e.preventDefault();
-    if (!nota) return;
-    avaliar({ conversa: conversa.id, avaliado: conversa.nome, anuncio: conversa.anuncio.titulo, nota, comentario });
-    onAvaliado?.(nota);
+    if (!nota || enviando) return;
+
+    setEnviando(true);
+    setErro('');
+    try {
+      await avaliar({ conversa: conversa.id, nota, qualidades, comentario });
+      onAvaliado?.(nota);
+    } catch (falha) {
+      setErro(falha.message);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -71,6 +89,25 @@ export default function CartaoAvaliacao({ conversa, onAvaliado }) {
 
       <EscolherNota valor={nota} onMudar={setNota} nome={`nota-${conversa.id}`} />
 
+      <fieldset className="aval-qualidades">
+        <legend>O que foi bom? <i>(opcional)</i></legend>
+        <div>
+          {QUALIDADES.map((q) => {
+            const marcada = qualidades.includes(q.valor);
+            return (
+              <label key={q.valor} className={`aval-qualidade${marcada ? ' on' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={marcada}
+                  onChange={() => setQualidades((atuais) => (marcada ? atuais.filter((v) => v !== q.valor) : [...atuais, q.valor]))}
+                />
+                {q.rotulo}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <label className="aval-campo">
         <span>Conte como foi <i>(opcional)</i></span>
         <textarea
@@ -84,9 +121,12 @@ export default function CartaoAvaliacao({ conversa, onAvaliado }) {
       </label>
 
       <div className="aval-botoes">
-        <button type="button" className="aval-btn" onClick={() => setDepois(true)}>Agora não</button>
-        <button type="submit" className="aval-btn solido" disabled={!nota}>Enviar avaliação</button>
+        <button type="button" className="aval-btn" disabled={enviando} onClick={() => setDepois(true)}>Agora não</button>
+        <button type="submit" className="aval-btn solido" disabled={!nota || enviando}>
+          {enviando ? 'Enviando…' : 'Enviar avaliação'}
+        </button>
       </div>
+      {erro && <p className="aval-erro" role="alert">{erro}</p>}
       <p className="aval-aviso">A avaliação é pública e aparece com o seu nome. Não dá para avaliar duas vezes a mesma negociação.</p>
     </form>
   );

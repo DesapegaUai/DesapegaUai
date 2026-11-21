@@ -3,6 +3,7 @@
 import { listarAnunciosAtivos } from '../models/buscaModel.js'
 import { lerTexto, lerId, lerOpcao } from '../utils/validacao.js'
 import { erroHttp } from '../utils/erroHttp.js'
+import { lerCoordenadas } from '../validations/localizacaoValidation.js'
 
 // Lê números como preço e distância.
 function lerNumero(valor, nome) {
@@ -104,7 +105,10 @@ export async function pesquisar(req, res) {
     usuarioId = req.usuario.id
   }
 
-  const busca = lerTexto(parametros.busca, 'busca')
+  const busca = lerTexto(parametros.busca, 'busca', { max: 100 })
+
+  // origem da distância: o GPS do aparelho (latitude e longitude) ou a cidade escolhida
+  const coordenadas = lerCoordenadas(parametros.latitude, parametros.longitude)
 
   let categoriaId = null
 
@@ -182,6 +186,7 @@ export async function pesquisar(req, res) {
     precoMin: precoMin,
     precoMax: precoMax,
     cidadeId: cidadeId,
+    origem: coordenadas ? { latitude: coordenadas.latitude, longitude: coordenadas.longitude } : null,
     distanciaMax: distanciaMax,
     ordenar: ordenar,
     pagina: pagina,
