@@ -1,72 +1,139 @@
-// Avaliações de vendedor (nota de 1 a 5 + comentário opcional, uma por conversa).
-// Por enquanto ficam no navegador. Trocar pela API depois: POST /api/avaliacoes e
-// GET /api/usuarios/:id/avaliacoes, com o aviso em tempo real pelo Socket.IO.
+import { useEffect, useSyncExternalStore } from 'react';
+import { api } from './api.js';
+import { ouvir, quandoReconectar } from './tempoReal.js';
 
-import { useSyncExternalStore } from 'react';
+const CHAVE_ANTIGA = 'desapegauai.avaliacoes.v1';
 
-const CHAVE = 'desapegauai.avaliacoes.v1';
-
-// 'eu' = Ana Beatriz (usuária logada). Os outros são os vendedores pelo nome.
-const INICIAIS = [
-  { id: 'a1', avaliado: 'eu', autor: 'Rafael Lima', anuncio: 'Liquidificador Arno', nota: 5, comentario: 'Produto igual às fotos e chegou no horário combinado.', quando: '12/11/2026' },
-  { id: 'a2', avaliado: 'eu', autor: 'Juliana Prado', anuncio: 'Luminária de mesa', nota: 5, comentario: 'Super atenciosa, recomendo!', quando: '03/11/2026' },
-  { id: 'a3', avaliado: 'eu', autor: 'Lorena Castro', anuncio: 'Fone JBL Tune 510', nota: 4, comentario: 'Tudo certo, só demorou um pouco para responder.', quando: '28/10/2026' },
-  { id: 'a4', avaliado: 'eu', autor: 'Diego Rocha', anuncio: 'Cadeira de escritório', nota: 5, comentario: '', quando: '15/10/2026' },
-  { id: 'a5', avaliado: 'eu', autor: 'Carla Bittencourt', anuncio: 'Tapete 2x1,5 m', nota: 5, comentario: 'Negociação tranquila e rápida.', quando: '02/10/2026' },
-  { id: 'm1', avaliado: 'Marcos Vinícius', autor: 'Carla Bittencourt', anuncio: 'Química Geral — Russell', nota: 5, comentario: 'Livro bem conservado, entregou na UFV.', quando: '09/11/2026' },
-  { id: 'm2', avaliado: 'Marcos Vinícius', autor: 'Diego Rocha', anuncio: 'Calculadora HP 12c', nota: 4, comentario: '', quando: '21/10/2026' },
-  { id: 'r1', avaliado: 'Rafael Lima', autor: 'Lorena Castro', anuncio: 'Mochila Samsonite', nota: 5, comentario: 'Muito educado e pontual.', quando: '05/11/2026' },
-  { id: 'j1', avaliado: 'Juliana Prado', autor: 'Marcos Vinícius', anuncio: 'Vestido midi floral', nota: 4, comentario: 'Peça bonita, igual ao anúncio.', quando: '30/10/2026' },
-];
+try {
+  localStorage.removeItem(CHAVE_ANTIGA);
+} catch {
+  // Avaliações agora vêm da API; o armazenamento antigo era apenas local.
+}
 
 export const ROTULOS_NOTA = ['', 'Ruim', 'Regular', 'Boa', 'Muito boa', 'Excelente'];
 
-const ouvintes = new Set();
-let cache = null;
+// Pontos fortes que quem comprou pode marcar junto com as estrelas (os mesmos valores do servidor)
+export const QUALIDADES = [
+  { valor: 'respondeu_rapido', rotulo: 'Respondeu rápido' },
+  { valor: 'como_anunciado', rotulo: 'Produto como anunciado' },
+  { valor: 'pontual', rotulo: 'Pontual no encontro' },
+  { valor: 'educado', rotulo: 'Educado e atencioso' },
+  { valor: 'negociacao_facil', rotulo: 'Negociação fácil' },
+];
+export const rotuloDaQualidade = (valor) => QUALIDADES.find((q) => q.valor === valor)?.rotulo ?? valor;
 
-function lerNovas() {
-  try {
-    return JSON.parse(localStorage.getItem(CHAVE)) ?? [];
-  } catch {
-    return [];
-  }
+const ouvintes = new Set();
+const usuariosSolicitados = new Set();
+let cache = [];
+let minhasSolicitadas = false;
+let usuarioAtualId = null;
+
+function avisar() {
+  ouvintes.forEach((ouvinte) => ouvinte());
+}
+
+function normalizar(avaliacao) {
+  const data = avaliacao.criado_em ? new Date(avaliacao.criado_em) : null;
+  return {
+    id: Number(avaliacao.id),
+    conversa: avaliacao.conversa_id == null ? null : Number(avaliacao.conversa_id),
+    avaliado_id: Number(avaliacao.avaliado_id),
+    autor: avaliacao.avaliador_nome,
+    anuncio: avaliacao.anuncio_titulo,
+    nota: Number(avaliacao.nota),
+    qualidades: Array.isArray(avaliacao.qualidades) ? avaliacao.qualidades : [],
+    comentario: avaliacao.comentario ?? '',
+    minha: Boolean(avaliacao.minha),
+    quando: data && !Number.isNaN(data.getTime())
+      ? new Intl.DateTimeFormat('pt-BR').format(data)
+      : '',
+  };
+}
+
+function adicionar(avaliacoes) {
+  const porId = new Map(cache.map((avaliacao) => [avaliacao.id, avaliacao]));
+  avaliacoes.forEach((avaliacao) => {
+    const normalizada = normalizar(avaliacao);
+    const anterior = porId.get(normalizada.id);
+    porId.set(normalizada.id, {
+      ...anterior,
+      ...normalizada,
+      minha: normalizada.minha || anterior?.minha || false,
+    });
+  });
+  cache = [...porId.values()].sort((a, b) => b.id - a.id);
+  avisar();
+}
+
+function recarregarDepoisDeReconectar() {
+  if (minhasSolicitadas) carregarMinhasAvaliacoes().catch(() => {});
+  usuariosSolicitados.forEach((usuarioId) => carregarAvaliacoesUsuario(usuarioId).catch(() => {}));
+}
+
+function assinar(ouvinte) {
+  ouvintes.add(ouvinte);
+  return () => ouvintes.delete(ouvinte);
 }
 
 function ler() {
-  if (!cache) cache = [...lerNovas(), ...INICIAIS];
   return cache;
 }
 
-function gravar(novas) {
-  try {
-    localStorage.setItem(CHAVE, JSON.stringify(novas));
-  } catch {
-    // sem acesso ao armazenamento: vale só nesta visita
+// avaliações em tempo real pela conexão única do site (services/tempoReal.js)
+export function useAvaliacoes() {
+  const avaliacoes = useSyncExternalStore(assinar, ler);
+  useEffect(() => {
+    const pararNova = ouvir('nova_avaliacao', (avaliacao) => adicionar([avaliacao]));
+    const pararReconexao = quandoReconectar(recarregarDepoisDeReconectar);
+    return () => { pararNova(); pararReconexao(); };
+  }, []);
+  return avaliacoes;
+}
+
+export async function carregarMinhasAvaliacoes() {
+  minhasSolicitadas = true;
+  const resultado = await api.get('/avaliacoes/minhas');
+  const usuarioId = Number(resultado.usuario_id);
+  if (usuarioAtualId !== null && usuarioAtualId !== usuarioId) {
+    cache = [];
+    avisar();
   }
-  cache = [...novas, ...INICIAIS];
-  ouvintes.forEach((avisar) => avisar());
+  usuarioAtualId = usuarioId;
+  adicionar([
+    ...(resultado.recebidas ?? []).map((avaliacao) => ({ ...avaliacao, minha: false })),
+    ...(resultado.feitas ?? []).map((avaliacao) => ({ ...avaliacao, minha: true })),
+  ]);
+  return resultado;
 }
 
-function assinar(avisar) {
-  ouvintes.add(avisar);
-  return () => ouvintes.delete(avisar);
+export async function carregarAvaliacoesUsuario(usuarioId) {
+  const id = Number(usuarioId);
+  if (!Number.isSafeInteger(id) || id < 1) return { avaliacoes: [] };
+  usuariosSolicitados.add(id);
+  const resultado = await api.get(`/avaliacoes/usuarios/${id}`);
+  adicionar(resultado.avaliacoes ?? []);
+  return resultado;
 }
 
-export const useAvaliacoes = () => useSyncExternalStore(assinar, ler);
-
-export function avaliar({ conversa, avaliado, anuncio, nota, comentario }) {
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  const nova = { id: `c-${conversa}`, conversa, avaliado, autor: 'Ana Beatriz Moreira', anuncio, nota, comentario: comentario.trim(), quando: hoje };
-  gravar([nova, ...lerNovas().filter((a) => a.conversa !== conversa)]);
+export async function avaliar({ conversa, nota, qualidades = [], comentario }) {
+  const resultado = await api.post(`/avaliacoes/conversas/${conversa}`, { nota, qualidades, comentario });
+  adicionar([resultado.avaliacao]);
+  minhasSolicitadas = true;
+  return resultado.avaliacao;
 }
 
-export const daConversa = (lista, conversa) => lista.find((a) => a.conversa === conversa) ?? null;
+export const daConversa = (lista, conversa) => (
+  lista.find((avaliacao) => avaliacao.minha && String(avaliacao.conversa) === String(conversa)) ?? null
+);
 
-export function resumoDe(lista, avaliado) {
-  const delas = lista.filter((a) => a.avaliado === avaliado);
-  const qtd = delas.length;
-  const media = qtd ? Math.round((delas.reduce((t, a) => t + a.nota, 0) / qtd) * 10) / 10 : 0;
-  return { media, qtd, lista: delas };
+export function resumoDe(lista, avaliadoId) {
+  const id = Number(avaliadoId);
+  const recebidas = Number.isSafeInteger(id)
+    ? lista.filter((avaliacao) => Number(avaliacao.avaliado_id) === id)
+    : [];
+  const qtd = recebidas.length;
+  const media = qtd ? Math.round((recebidas.reduce((total, avaliacao) => total + avaliacao.nota, 0) / qtd) * 10) / 10 : 0;
+  return { media, qtd, lista: recebidas };
 }
 
 export function reputacao({ media, qtd }) {

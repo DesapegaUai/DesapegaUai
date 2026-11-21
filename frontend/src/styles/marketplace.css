@@ -19,10 +19,14 @@
 .busca input { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; font-family: inherit; font-weight: 400; font-size: 18px; line-height: 1; color: var(--tinta); text-overflow: ellipsis; outline: none; }
 .busca input::placeholder { color: var(--texto-3); opacity: 1; }
 .busca input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-.local { flex: none; height: 52px; border-radius: var(--r-pill); border: 1px solid var(--linha); background: var(--sup); display: flex; align-items: center; gap: 10px; padding: 0 var(--e5); margin-left: auto; font-family: inherit; }
-.local span { font-family: inherit; font-weight: 600; font-size: 18px; line-height: 1; color: var(--tinta); white-space: nowrap; }
-.local .seta { display: flex; }
+/* Botão de localização: só o pino, redondo e do tamanho dos outros atalhos do topo (ocupa pouco espaço).
+   O lugar e a distância aparecem ao passar o mouse e dentro do menu que ele abre. */
+/* fica colado na barra de pesquisa, redondo e no mesmo cinza dela; os atalhos vão para a direita */
+.local { flex: none; width: 50px; height: 50px; margin-left: -6px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--sup-3); cursor: pointer; transition: background-color .15s ease; }
+.local[aria-expanded="true"] { background: var(--marca-suave); }
+.local + .cab-icones, .local ~ .cab-icones { margin-left: auto; }
 .cab-icones { display: flex; align-items: center; gap: 28px; flex: none; }
+.cab-categorias { border: 0; background: none; padding: 0; }
 .cab-icone { position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--r-pill); }
 .selo { position: absolute; top: 2px; right: 1px; min-width: 20px; height: 20px; border-radius: var(--r-pill); background: var(--marca); color: #fff; font-family: inherit; font-weight: 700; font-size: 12px; line-height: 16px; text-align: center; border: 2px solid #fff; padding: 0 4px; }
 .btn-anunciar { flex: none; height: 52px; border-radius: var(--r-pill); background: var(--marca); box-shadow: var(--elev-3); color: #fff; font-family: inherit; font-weight: 700; font-size: 18px; line-height: 52px; padding: 0 38px; border: 0; white-space: nowrap; transition: background-color .15s ease; }
@@ -142,7 +146,8 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
 /* ---------- Hover (só em dispositivos com mouse — 07-interacoes) ---------- */
 @media (hover: hover) {
   .btn-anunciar:hover, .btn-primario:hover, .fab:hover { background: var(--marca-clara); color: #fff; }
-  .local:hover, .cab-burger:hover, .cab-lupa:hover, .ordenar:hover, .abre-filtros:hover, .filtros-fecha:hover, .pag:not(.on):not(:disabled):hover { border-color: var(--linha-forte); }
+  .local:hover { background: #E8E9E5; }
+  .cab-burger:hover, .cab-lupa:hover, .ordenar:hover, .abre-filtros:hover, .filtros-fecha:hover, .pag:not(.on):not(:disabled):hover { border-color: var(--linha-forte); }
   .cab-icone:hover { background: var(--sup-3); }
   .aba:not(.on):hover span { color: var(--tinta); }
   .chip:not(.on):hover { border-color: var(--linha-forte); }
@@ -156,8 +161,7 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
 @media (max-width: 1024px) {
   .cab { padding: var(--e5) var(--e6); gap: var(--e4); }
   .busca { max-width: 300px; margin-left: var(--e2); }
-  .local { padding: 0 var(--e4); }
-  .local span, .local .seta { display: none; }
+
   .cab-icones { gap: var(--e5); }
   .btn-anunciar { padding: 0 var(--e6); }
   .abas { padding: 0 var(--e6); }
@@ -217,7 +221,7 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
   .cab-logo { height: 36px; }
   .busca { height: 46px; margin-left: 0; padding: 0 14px; }
   .busca input { font-size: 16px; }
-  .local { height: 46px; padding: 0 12px; }
+
   .cab-icones { gap: 2px; }
   .btn-anunciar { height: 46px; padding: 0 16px; font-size: 16px; line-height: 46px; }
 }
@@ -234,3 +238,11 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
 .cat-vazio b { font-size: 19px; color: var(--tinta); }
 .cat-vazio p { color: var(--texto-2); }
 .cat-vazio button { min-height: 46px; margin-top: 6px; padding: 0 20px; border: 1px solid var(--marca-clara); border-radius: var(--r-pill); background: var(--marca-suave); color: var(--marca); font-family: inherit; font-weight: 700; font-size: 15.5px; }
+
+/* Ao lado do título da página: quantidade numa etiqueta e ação num botãozinho (em vez de texto solto) */
+.titulo-pagina { align-items: center; }
+.titulo-selo { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 12px; border-radius: var(--r-pill); background: var(--sup-3); font-family: inherit; font-weight: 600; font-size: 13.5px; line-height: 1; color: var(--texto-2); white-space: nowrap; }
+.titulo-selo.destaque { background: var(--marca-suave); color: var(--marca); }
+.titulo-selo.alerta { background: #FEF3E2; color: #9A3412; }
+.titulo-acao { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--linha); border-radius: var(--r-pill); background: var(--sup); font-family: inherit; font-weight: 600; font-size: 14.5px; line-height: 1; color: var(--marca); white-space: nowrap; transition: border-color .15s ease, background-color .15s ease; }
+.titulo-acao:hover { border-color: var(--marca); background: var(--marca-suave); color: var(--marca); }

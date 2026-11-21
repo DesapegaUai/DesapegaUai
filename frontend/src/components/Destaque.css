@@ -1,27 +1,26 @@
 /*
   Destaque do topo da página inicial: título, botões e a ilustração da caixa.
-  Acima de 1280 são duas colunas (texto | imagem). De 901 a 1280 fica empilhado (texto em cima,
+  Acima de 1280 são duas colunas iguais (texto | imagem), com o título em duas linhas. De 901 a 1280 fica empilhado (texto em cima,
   ilustração embaixo) e até 900 vira o layout de tablet e celular, como no protótipo 13-home.
 */
 .destaque {
   max-width: 1548px;
   margin: 0 auto;
-  padding: 34px 24px 26px;
+  padding: 20px 24px 12px;
   display: grid;
-  grid-template-columns: 1fr 1.22fr;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 24px;
 }
 
 .destaque__texto {
   min-width: 0;
-  padding-right: 20px;
 }
 
+/* O tamanho acompanha a largura da tela para cada frase caber numa linha só */
 .destaque__texto h1 {
-  max-width: 505px;
   margin: 0;
-  font: 800 58px/1.14 var(--fonte);
+  font: 800 clamp(38px, 3.05vw, 48px) / 1.16 var(--fonte);
   letter-spacing: -0.022em;
   color: var(--cor-titulo);
   text-wrap: pretty;
@@ -32,33 +31,32 @@
 }
 
 .destaque__texto > p {
-  max-width: 345px;
-  margin: 24px 0 0;
-  font: 400 19.5px/1.55 var(--fonte);
+  margin: 18px 0 0;
+  font: 400 18px/1.55 var(--fonte);
   color: var(--cor-texto-corpo);
 }
 
 .destaque__botoes {
-  margin-top: 36px;
+  margin-top: 30px;
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 18px;
 }
 
 .destaque__botoes .btn-verde,
 .destaque__botoes .btn-contorno {
-  height: 58px;
+  height: 50px;
   border-radius: 31px;
-  font: 700 18px var(--fonte);
+  font: 700 16.5px var(--fonte);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .destaque__botoes .btn-verde {
-  padding: 0 32px;
+  padding: 0 28px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   border: 0;
   background: var(--degrade-destaque);
   box-shadow: 0 8px 20px rgba(53, 110, 10, 0.25);
@@ -70,7 +68,7 @@
 }
 
 .destaque__botoes .btn-contorno {
-  padding: 0 38px;
+  padding: 0 32px;
   border: 1.6px solid var(--cor-texto);
   background: var(--cor-fundo);
   color: var(--cor-texto);
@@ -84,38 +82,9 @@
 .destaque__imagem {
   width: 100%;
   height: auto;
-  max-height: 530px;
+  max-height: 430px;
   object-fit: contain;
-  object-position: right center;
-}
-
-/* Computador comum (referência 1440) */
-@media (min-width: 1281px) and (max-width: 1560px) {
-  .destaque {
-    padding: 40px 24px 32px;
-    gap: 20px;
-  }
-
-  .destaque__texto h1 {
-    max-width: 470px;
-    font-size: 54px;
-  }
-
-  .destaque__texto > p {
-    margin-top: 22px;
-    font-size: 19px;
-  }
-
-  .destaque__botoes {
-    margin-top: 34px;
-    gap: 22px;
-  }
-
-  .destaque__botoes .btn-verde,
-  .destaque__botoes .btn-contorno {
-    height: 56px;
-    font-size: 17px;
-  }
+  object-position: center;
 }
 
 /* Computador estreito (901 a 1280): uma coluna, com a ilustração centralizada embaixo do texto */
@@ -126,13 +95,45 @@
     gap: 24px;
   }
 
+  .destaque__texto {
+    padding-right: 20px;
+  }
+
   .destaque__texto h1 {
     max-width: 640px;
     font-size: 52px;
+    line-height: 1.14;
+  }
+
+  .destaque__texto > p {
+    max-width: 345px;
+    margin-top: 24px;
+    font-size: 19.5px;
+  }
+
+  .destaque__botoes {
+    margin-top: 36px;
+    gap: 26px;
+  }
+
+  .destaque__botoes .btn-verde,
+  .destaque__botoes .btn-contorno {
+    height: 58px;
+    font-size: 18px;
+  }
+
+  .destaque__botoes .btn-verde {
+    padding: 0 32px;
+    gap: 16px;
+  }
+
+  .destaque__botoes .btn-contorno {
+    padding: 0 38px;
   }
 
   .destaque__imagem {
     max-width: 760px;
+    max-height: 530px;
     margin: 0 auto;
   }
 }

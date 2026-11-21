@@ -23,8 +23,16 @@ export async function existe(usuarioId, anuncioId) {
   return linhas.length > 0
 }
 
-// cards, salvos mais recentemente primeiro; categoriaId null traz todas
-export async function listarCards(usuarioId, { categoriaId, pagina, porPagina }) {
+const ORDENS = {
+  recentes: 'fav.criado_em DESC, a.id DESC',
+  menor_preco: 'a.preco ASC, a.id DESC',
+  maior_preco: 'a.preco DESC, a.id DESC',
+}
+
+export const ORDENS_DE_FAVORITOS = Object.keys(ORDENS)
+
+// cards na ordem pedida; categoriaId null traz todas
+export async function listarCards(usuarioId, { categoriaId, ordenar, pagina, porPagina }) {
   const filtro = categoriaId ? 'AND a.categoria_id = ?' : ''
   const valores = categoriaId ? [usuarioId, categoriaId] : [usuarioId]
 
@@ -40,7 +48,7 @@ export async function listarCards(usuarioId, { categoriaId, pagina, porPagina })
     `${sqlDoCard()}
        JOIN favorito fav ON fav.anuncio_id = a.id
       WHERE fav.usuario_id = ? ${filtro}
-      ORDER BY fav.criado_em DESC, a.id DESC
+      ORDER BY ${ORDENS[ordenar]}
       LIMIT ? OFFSET ?`,
     [...valores, porPagina, (pagina - 1) * porPagina],
   )

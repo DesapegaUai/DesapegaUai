@@ -1,0 +1,25 @@
+/* Barra de referência e raio da busca */
+
+.raio-barra { display: grid; gap: 10px; margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--linha); border-radius: 16px; background: var(--sup); }
+.raio-ref { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.raio-ref > span { display: grid; flex: 1; min-width: 180px; }
+.raio-ref b { font-size: 15px; font-weight: 700; color: var(--tinta); }
+.raio-ref i { font-style: normal; font-size: 13px; color: var(--texto-2); }
+.raio-gps { min-height: 36px; padding: 0 14px; border: 1px solid var(--marca); border-radius: 999px; background: var(--sup); color: var(--marca); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.raio-gps:hover { background: var(--marca-suave); }
+.raio-opcoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.raio-opcoes > button { min-height: 34px; padding: 0 12px; border: 1px solid var(--linha); border-radius: 999px; background: var(--sup); color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.raio-opcoes > button.on { border-color: var(--marca); background: var(--marca-suave); color: var(--marca); }
+.raio-outro { position: relative; flex: none; display: flex; gap: 4px; } /* relative: prende o rótulo invisível aqui dentro */
+.raio-outro input { width: 78px; height: 34px; padding: 0 8px; border: 1px solid var(--linha); border-radius: 999px; font: inherit; font-size: 13.5px; }
+.raio-outro button { height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--marca-suave); color: var(--marca); font: inherit; font-weight: 700; cursor: pointer; }
+.raio-aviso { margin: 0; font-size: 13px; line-height: 1.4; color: #9A3412; }
+.card-distancia { font-weight: 600; color: var(--marca); }
+.carregando-tela { padding: 48px 16px; text-align: center; color: var(--texto-2); }
+.ampliar-raio { margin-top: 10px; min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--marca); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+@media (max-width: 600px) {
+  .raio-barra { padding: 12px; }
+  .raio-opcoes { position: relative; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .raio-opcoes::-webkit-scrollbar { display: none; }
+  .raio-opcoes > button { flex: 0 0 auto; }
+}

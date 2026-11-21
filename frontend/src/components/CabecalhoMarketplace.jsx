@@ -2,8 +2,12 @@ import { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import MenuLateral from './MenuLateral.jsx';
+import AtalhoCategorias from './AtalhoCategorias.jsx';
 import MenuCidade from './MenuCidade.jsx';
-import { posicaoDoMenu, useCidade } from '../services/cidade.js';
+import CaixaNotificacoes from './CaixaNotificacoes.jsx';
+import SeloMensagens from './SeloMensagens.jsx';
+import { posicaoDoMenu } from '../services/cidade.js';
+import { nomeDaReferencia, useLocalizacao } from '../services/localizacao.js';
 
 const logoPrincipal = '/img/logo-principal.svg';
 
@@ -14,10 +18,11 @@ const logoPrincipal = '/img/logo-principal.svg';
  * Celular: ☰ · logo · lupa (o "Anunciar" vira o botão flutuante)
  *
  * ☰ abre o menu lateral (gaveta). A lupa, no celular, abre a busca numa linha abaixo.
- * O botão de localização abre a lista das cidades atendidas.
+ * O botão de localização abre o menu de localização (GPS, raio, cidade e bairro).
  */
-export default function CabecalhoMarketplace() {
-  const cidade = `${useCidade()}, MG`;
+export default function CabecalhoMarketplace({ comCategorias = false }) {
+  const local = useLocalizacao();
+  const cidade = `${nomeDaReferencia(local)} · ${local.raioKm} km`;
   const localRef = useRef(null);
   const [menuCidade, setMenuCidade] = useState(null);
   const fecharCidade = useCallback(() => setMenuCidade(null), []);
@@ -88,21 +93,28 @@ export default function CabecalhoMarketplace() {
           aria-label={`Localização: ${cidade}. Trocar`}
           aria-haspopup="menu"
           aria-expanded={Boolean(menuCidade)}
+          title={cidade}
           ref={localRef}
           onClick={() => setMenuCidade(menuCidade ? null : posicaoDoMenu(localRef.current))}
         >
-          <Icone nome="local" tamanho={20} cor="#3E8B22" />
-          <span>{cidade}</span>
-          <span className="seta"><Icone nome="seta-baixo" tamanho={18} cor="#4CA02B" /></span>
+          {/* só o pino, do tamanho dos outros atalhos; o lugar e a distância aparecem ao passar o mouse e no menu */}
+          <Icone nome="local" tamanho={24} cor="#3E8B22" espessura={1.7} />
         </button>
         {menuCidade && <MenuCidade posicao={menuCidade} ancoraRef={localRef} onFechar={fecharCidade} />}
 
         <nav className="cab-icones" aria-label="Atalhos">
+          <Link className="cab-icone" to="/" aria-label="Início" title="Início">
+            <Icone nome="inicio" tamanho={25} cor="#3E8B22" />
+          </Link>
+          {/* nas telas sem a barra de abas, as categorias ficam a um clique daqui */}
+          {comCategorias && <AtalhoCategorias />}
+          <CaixaNotificacoes />
           <Link className="cab-icone" to="/favoritos" aria-label="Favoritos">
             <Icone nome="favorito" tamanho={25} cor="#3E8B22" />
           </Link>
-          <Link className="cab-icone" to="/conversas" aria-label="Mensagens">
+          <Link className="cab-icone tem-selo" to="/conversas" aria-label="Mensagens">
             <Icone nome="mensagens" tamanho={25} cor="#3E8B22" />
+            <SeloMensagens />
           </Link>
           <Link className="cab-icone" to="/perfil" aria-label="Perfil">
             <Icone nome="perfil" tamanho={25} cor="#3E8B22" />

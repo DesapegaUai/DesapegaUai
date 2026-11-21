@@ -1,9 +1,12 @@
 /* Fonte da marca. Os arquivos ficam em public/fonts (são os do pacote de design, pasta 09.7),
-   então o site não depende de nenhum endereço de fora. Cada arquivo cobre os pesos de 200 a 800. */
+   então o site não depende de nenhum endereço de fora. Cada arquivo cobre os pesos de 200 a 800,
+   mas aqui o limite declarado é 650: assim nenhum texto do site fica muito grosso. Onde o CSS pede
+   700 ou 800 (títulos, botões, preços), o navegador usa 650. Para voltar ao peso cheio, troque
+   "200 650" por "200 800" nos dois blocos abaixo. */
 @font-face {
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
-  font-weight: 200 800;
+  font-weight: 200 650;
   font-display: swap;
   src: url('/fonts/plus-jakarta-sans-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
@@ -13,7 +16,7 @@
 @font-face {
   font-family: 'Plus Jakarta Sans';
   font-style: normal;
-  font-weight: 200 800;
+  font-weight: 200 650;
   font-display: swap;
   src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,

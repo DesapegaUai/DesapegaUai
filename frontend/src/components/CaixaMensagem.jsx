@@ -2,8 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import Icone from './IconeMarketplace.jsx';
 import SeletorEmoji from './SeletorEmoji.jsx';
 import CameraFoto from './CameraFoto.jsx';
-import { ANEXOS, RESPOSTAS_RAPIDAS } from '../services/conversas.js';
-import { formatarTamanho } from '../services/formatar.js';
+import MenuRapido from './MenuRapido.jsx';
+import { ANEXOS, PONTOS_DE_ENCONTRO, RESPOSTAS_RAPIDAS } from '../services/conversas.js';
+import { formatarPreco, formatarTamanho } from '../services/formatar.js';
 import useMediaQuery, { CELULAR } from '../hooks/useMediaQuery.js';
 
 let proximoId = 1;
@@ -11,16 +12,17 @@ let proximoId = 1;
 /**
  * Caixa de mensagem do chat:
  * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar] · aviso de segurança.
- * - Anexos: fotos, vídeos e documentos (até 5, 10 MB cada), com prévia antes de enviar.
+ * - Anexos: fotos JPG, PNG ou WebP (até 5, 8 MB cada), com prévia antes de enviar.
  * - Câmera: tira uma foto na hora e ela entra nos anexos (mesmos limites).
  *   Computador: janela com a webcam ao vivo · celular/tablet: câmera do próprio aparelho.
  * - Emoji: painel com 4 grupos; insere onde o cursor está.
  * - Enter envia · Shift+Enter quebra linha.
  */
-export default function CaixaMensagem({ onEnviar, nomeContato }) {
+export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco = null, podeOfertar = false }) {
   const [texto, setTexto] = useState('');
   const [anexos, setAnexos] = useState([]);
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [cameraAberta, setCameraAberta] = useState(false);
   const ehCelular = useMediaQuery(CELULAR);
@@ -46,14 +48,22 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
 
   const podeEnviar = texto.trim().length > 0 || anexos.length > 0;
 
-  function enviar() {
+  async function enviar() {
     if (!podeEnviar) return;
-    onEnviar({ texto: texto.trim(), anexos });
-    setTexto('');
-    setAnexos([]);
-    setErro('');
-    setEmojiAberto(false);
-    campoRef.current?.focus();
+    setEnviando(true);
+    try {
+      const resultado = await onEnviar({ texto: texto.trim(), anexos });
+      if (resultado === false) return;
+      setTexto('');
+      setAnexos([]);
+      setErro('');
+      setEmojiAberto(false);
+      campoRef.current?.focus();
+    } catch (falha) {
+      setErro(falha.message);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   function aoTeclar(e) {
@@ -82,6 +92,13 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
     campoRef.current?.focus();
   }
 
+  // oferta com o valor já calculado: quem compra não precisa fazer conta nem esconder o preço
+  const ofertas = [10, 15].map((desconto) => {
+    const valor = Math.round(Number(preco) * (100 - desconto)) / 100;
+    return { rotulo: `${desconto}% a menos: ${formatarPreco(valor)}`, frase: `Faço uma oferta de ${formatarPreco(valor)}. Você aceita?` };
+  });
+  ofertas.push({ rotulo: 'Outro valor', frase: 'Faço uma oferta de R$ ' });
+
   function escolherArquivos(e) {
     const escolhidos = Array.from(e.target.files ?? []);
     e.target.value = ''; // permite escolher o mesmo arquivo de novo
@@ -91,7 +108,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
   function abrirCamera() {
     setEmojiAberto(false);
     if (anexos.length >= ANEXOS.maxArquivos) {
-      setErro(`Não deu para anexar: no máximo ${ANEXOS.maxArquivos} arquivos por mensagem.`);
+      setErro(`Não deu para anexar: no máximo ${ANEXOS.maxArquivos} fotos por mensagem.`);
       return;
     }
     // Celular/tablet: a câmera do próprio aparelho é melhor (foco, flash, qualidade)
@@ -116,7 +133,11 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
     const novos = [];
     escolhidos.forEach((arquivo) => {
       if (anexos.length + novos.length >= ANEXOS.maxArquivos) {
-        problemas.push(`no máximo ${ANEXOS.maxArquivos} arquivos por mensagem`);
+        problemas.push(`no máximo ${ANEXOS.maxArquivos} fotos por mensagem`);
+        return;
+      }
+      if (!ANEXOS.tipos.includes(arquivo.type)) {
+        problemas.push('só dá para mandar fotos JPG, PNG ou WebP');
         return;
       }
       if (arquivo.size > ANEXOS.maxBytes) {
@@ -157,6 +178,15 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
             {frase}
           </button>
         ))}
+        <MenuRapido
+          rotulo="Ponto de encontro"
+          icone="local"
+          itens={PONTOS_DE_ENCONTRO.map((ponto) => ({ rotulo: ponto, frase: `Podemos nos encontrar em: ${ponto}?` }))}
+          onEscolher={(item) => usarRespostaRapida(item.frase)}
+        />
+        {podeOfertar && Number(preco) > 0 && (
+          <MenuRapido rotulo="Fazer oferta" icone="etiqueta" itens={ofertas} onEscolher={(item) => usarRespostaRapida(item.frase)} />
+        )}
       </div>
 
       {erro && <p className="erro-anexo" role="alert">{erro}</p>}
@@ -196,8 +226,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
         <button
           type="button"
           className="circ"
-          aria-label="Anexar foto, vídeo ou documento"
-          title="Anexar arquivo"
+          aria-label="Anexar foto"
+          title="Anexar foto"
           onClick={() => arquivoRef.current?.click()}
         >
           <Icone nome="clipe" tamanho={22} cor="#3E8B22" espessura={1.7} />
@@ -228,7 +258,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
           type="file"
           className="oculto"
           tabIndex={-1}
-          accept="image/*"
+          accept={ANEXOS.aceitos}
           capture="environment"
           onChange={escolherArquivos}
           aria-hidden="true"
@@ -245,7 +275,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
             rows={1}
             placeholder={ehCelular ? 'Mensagem…' : 'Escreva uma mensagem…'} // celular: 3 botões redondos deixam pouco espaço
             value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            onChange={(e) => { setTexto(e.target.value); onDigitar?.(); }}
             onKeyDown={aoTeclar}
             enterKeyHint="send"
           />
@@ -275,7 +305,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato }) {
           type="button"
           className="circ enviar"
           aria-label="Enviar mensagem"
-          disabled={!podeEnviar}
+          disabled={!podeEnviar || enviando}
           onClick={enviar}
         >
           <Icone nome="enviar" tamanho={22} cor="#fff" />

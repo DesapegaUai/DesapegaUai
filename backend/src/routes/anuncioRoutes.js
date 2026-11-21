@@ -4,17 +4,19 @@ import { Router } from 'express'
 import * as anuncio from '../controllers/anuncioController.js'
 import * as busca from '../controllers/buscaController.js'
 import { exigirLogin, identificarUsuario } from '../middlewares/autenticacao.js'
+import { limiteBuscaGeografica, limitePublicar } from '../middlewares/limites.js'
 import { receberFotos } from '../middlewares/upload.js'
 
 export const anuncioRoutes = Router()
 
-anuncioRoutes.get('/', identificarUsuario, busca.pesquisar)
+anuncioRoutes.get('/', identificarUsuario, limiteBuscaGeografica, busca.pesquisar)
 anuncioRoutes.get('/:id', identificarUsuario, anuncio.verAnuncio)
-anuncioRoutes.post('/', exigirLogin, receberFotos, anuncio.publicar)
+anuncioRoutes.post('/', exigirLogin, limitePublicar, receberFotos, anuncio.publicar)
 anuncioRoutes.put('/:id', exigirLogin, anuncio.editar)
 anuncioRoutes.patch('/:id/status', exigirLogin, anuncio.mudarStatus)
 anuncioRoutes.delete('/:id', exigirLogin, anuncio.excluir)
 anuncioRoutes.post('/:id/fotos', exigirLogin, receberFotos, anuncio.adicionarFotos)
+anuncioRoutes.patch('/:id/fotos/:fotoId/capa', exigirLogin, anuncio.definirCapa)
 anuncioRoutes.delete('/:id/fotos/:fotoId', exigirLogin, anuncio.removerFoto)
 
 export const meusAnunciosRoutes = Router()

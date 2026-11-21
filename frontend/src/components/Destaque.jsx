@@ -28,7 +28,7 @@ export default function Destaque() {
 
       <img
         className="destaque__imagem"
-        src="/img/caixa-desapegauai.webp"
+        src="/img/caixa-desapegauai.webp?v=3"
         alt="Caixa DesapegaUai com objetos"
         width="1152"
         height="932"

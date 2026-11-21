@@ -11,17 +11,26 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "banco": "node database/recriar-banco.js",
-    "test": "node --test"
+    "atualizar": "node database/atualizar-banco.js",
+    "locais": "node database/importar-locais.js",
+    "fotos": "node database/conferir-fotos.js",
+    "test": "node --test --test-concurrency=1"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
     "google-auth-library": "^11.3.3",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
     "sharp": "^0.35.5",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "swagger-ui-express": "^5.0.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
   }
 }

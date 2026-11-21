@@ -14,7 +14,8 @@ export async function abrirConversa(anuncioId, compradorId) {
       [anuncioId],
     )
 
-    if (anuncios.length === 0) {
+    // rascunho só existe para o dono: para os outros, nem existe
+    if (anuncios.length === 0 || anuncios[0].status === 'rascunho') {
       throw erroHttp(404, 'Anúncio não encontrado.')
     }
 
@@ -36,11 +37,17 @@ export async function abrirConversa(anuncioId, compradorId) {
     )
 
     if (conversas.length > 0) {
+      // se quem está comprando tinha excluído essa conversa, ela volta para a lista dele (sem o histórico antigo)
+      await conexao.query(
+        'UPDATE conversa SET atualizada_em = NOW() WHERE id = ? AND oculta_comprador_em IS NOT NULL AND atualizada_em <= oculta_comprador_em',
+        [conversas[0].id],
+      )
       await conexao.commit()
 
       return {
         conversa: conversas[0],
         criada: false,
+        participantes: [compradorId, anuncio.usuario_id],
       }
     }
 
@@ -61,6 +68,7 @@ export async function abrirConversa(anuncioId, compradorId) {
     return {
       conversa: novaConversa[0],
       criada: true,
+      participantes: [compradorId, anuncio.usuario_id],
     }
   } catch (erro) {
     await conexao.rollback()
@@ -76,6 +84,8 @@ export async function listarConversas(usuarioId, filtro) {
        c.id,
        c.atualizada_em,
        c.comprador_id,
+       c.oculta_comprador_em,
+       c.oculta_vendedor_em,
        a.id AS anuncio_id,
        a.usuario_id AS vendedor_id,
        a.titulo,
@@ -83,13 +93,16 @@ export async function listarConversas(usuarioId, filtro) {
        a.status,
        comprador.nome AS comprador_nome,
        comprador.foto_url AS comprador_foto,
+       comprador.ultimo_acesso AS comprador_acesso,
        vendedor.nome AS vendedor_nome,
        vendedor.foto_url AS vendedor_foto,
+       vendedor.ultimo_acesso AS vendedor_acesso,
        capa.id AS capa_id,
        capa.ordem AS capa_ordem,
        capa.arquivo AS capa_arquivo,
        ultima.id AS mensagem_id,
        ultima.texto AS mensagem_texto,
+       ultima.foto AS mensagem_foto,
        ultima.remetente_id AS mensagem_remetente_id,
        ultima.enviada_em AS mensagem_enviada_em,
        (
@@ -124,14 +137,21 @@ export async function listarConversas(usuarioId, filtro) {
 
   const conversas = []
   let totalNaoLidas = 0
+  let totalVisiveis = 0
 
   for (const resultado of resultados) {
+    // conversa que esta pessoa excluiu: só volta a aparecer se houve movimento depois (mensagem nova ou reabertura)
+    const excluidaEm = resultado.vendedor_id === usuarioId ? resultado.oculta_vendedor_em : resultado.oculta_comprador_em
+    if (excluidaEm && new Date(resultado.atualizada_em) <= new Date(excluidaEm)) continue
+    totalVisiveis += 1
+
     let papel = 'comprando'
 
     let outroUsuario = {
       id: resultado.vendedor_id,
       nome: resultado.vendedor_nome,
       foto_url: resultado.vendedor_foto,
+      ultimo_acesso: resultado.vendedor_acesso,
     }
 
     if (resultado.vendedor_id === usuarioId) {
@@ -141,6 +161,7 @@ export async function listarConversas(usuarioId, filtro) {
         id: resultado.comprador_id,
         nome: resultado.comprador_nome,
         foto_url: resultado.comprador_foto,
+        ultimo_acesso: resultado.comprador_acesso,
       }
     }
 
@@ -153,12 +174,17 @@ export async function listarConversas(usuarioId, filtro) {
 
     let ultimaMensagem = null
 
-    if (resultado.mensagem_id !== null) {
+    // a última mensagem só aparece na prévia se for de depois da exclusão
+    const ultimaVisivel = resultado.mensagem_id !== null
+      && (!excluidaEm || new Date(resultado.mensagem_enviada_em) > new Date(excluidaEm))
+    if (ultimaVisivel) {
       ultimaMensagem = {
         id: resultado.mensagem_id,
         texto: resultado.mensagem_texto,
+        tem_foto: resultado.mensagem_foto !== null,
         remetente_id: resultado.mensagem_remetente_id,
         enviada_em: resultado.mensagem_enviada_em,
+        minha: resultado.mensagem_remetente_id === usuarioId,
       }
     }
 
@@ -202,7 +228,7 @@ export async function listarConversas(usuarioId, filtro) {
   return {
     itens: conversas,
     nao_lidas: totalNaoLidas,
-    total: resultados.length,
+    total: totalVisiveis,
   }
 }
 
@@ -223,4 +249,27 @@ export async function contarConversasNaoLidas(usuarioId) {
   )
 
   return Number(resultado[0].total)
+}
+
+
+// "Excluir conversa": some só para quem pediu. As mensagens recebidas ficam como lidas (não sobra
+// contador), a outra pessoa continua com a conversa dela, e avaliações e denúncias não são afetadas.
+export async function ocultarConversa(conversaId, usuarioId) {
+  const [linhas] = await db.query(
+    `SELECT c.comprador_id, a.usuario_id AS vendedor_id
+       FROM conversa c JOIN anuncio a ON a.id = c.anuncio_id
+      WHERE c.id = ?`,
+    [conversaId],
+  )
+  if (linhas.length === 0) throw erroHttp(404, 'Conversa não encontrada.')
+
+  const { comprador_id: compradorId, vendedor_id: vendedorId } = linhas[0]
+  if (usuarioId !== compradorId && usuarioId !== vendedorId) {
+    throw erroHttp(403, 'Você não participa desta conversa.')
+  }
+
+  const coluna = usuarioId === vendedorId ? 'oculta_vendedor_em' : 'oculta_comprador_em'
+  // a hora da exclusão nunca fica antes da última mensagem (relógio do servidor x hora gravada na mensagem)
+  await db.query(`UPDATE conversa SET ${coluna} = GREATEST(NOW(), atualizada_em) WHERE id = ?`, [conversaId])
+  await db.query('UPDATE mensagem SET lida = TRUE WHERE conversa_id = ? AND remetente_id <> ? AND lida = FALSE', [conversaId, usuarioId])
 }

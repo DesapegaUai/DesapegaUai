@@ -54,3 +54,7 @@
   .lista { min-width: 0; }
   .aviso-flutuante { bottom: 84px; }
 }
+
+/* título com a quantidade numa etiqueta ao lado */
+.fav-cabeca { margin-top: 0; margin-bottom: 18px; }
+.fav-cabeca .fav-titulo { margin: 0; }

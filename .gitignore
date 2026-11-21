@@ -9,6 +9,9 @@ node_modules/
 # Fotos dos anúncios
 backend/uploads/
 
+# Fotos mandadas no chat (privadas)
+backend/uploads-privados/
+
 # Configuração local do Postman de cada um
 /.postman/
 /postman/
@@ -27,3 +30,7 @@ backend/.vscode/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Relatórios dos testes de navegador
+frontend/e2e-relatorio/
+frontend/test-results/

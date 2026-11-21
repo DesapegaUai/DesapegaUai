@@ -1,8 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useRolagem } from '../hooks/useRolagem.js'
+import CaixaNotificacoes from './CaixaNotificacoes.jsx'
 import Icone from './Icone.jsx'
+import IconeAtalho from './IconeMarketplace.jsx'
 import MenuCidade from './MenuCidade.jsx'
+import SeloMensagens from './SeloMensagens.jsx'
 import { posicaoDoMenu, useCidade } from '../services/cidade.js'
 import './Cabecalho.css'
 
@@ -62,14 +65,17 @@ export default function Cabecalho({ busca, onBusca }) {
         {menuCidade && <MenuCidade posicao={menuCidade} ancoraRef={localRef} onFechar={fecharCidade} />}
 
         <div className="cabecalho__acoes">
+          {/* os mesmos atalhos, ícones e cores do cabeçalho das outras telas */}
+          <span className="cabecalho__so-desktop"><CaixaNotificacoes /></span>
           <button type="button" className="cabecalho__icone" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
-            <Icone nome="home-favorito" tamanho={27} />
+            <IconeAtalho nome="favorito" tamanho={25} cor="#3E8B22" />
           </button>
           <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Mensagens" onClick={() => navegar('/conversas')}>
-            <Icone nome="home-mensagens" tamanho={27} />
+            <IconeAtalho nome="mensagens" tamanho={25} cor="#3E8B22" />
+            <SeloMensagens />
           </button>
           <button type="button" className="cabecalho__icone" aria-label="Minha conta" onClick={() => navegar('/perfil')}>
-            <Icone nome="home-perfil" tamanho={27} />
+            <IconeAtalho nome="perfil" tamanho={25} cor="#3E8B22" />
           </button>
           <button type="button" className="botao-anunciar" onClick={() => navegar('/anunciar')}>
             Anunciar

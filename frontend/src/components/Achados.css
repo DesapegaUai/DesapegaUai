@@ -3,11 +3,11 @@
   até 900 (tablet e celular), carrossel que rola para o lado.
 */
 .secao.achados {
-  padding-top: 58px;
+  padding-top: 44px;
 }
 
 .achados .secao__topo {
-  margin-bottom: 36px;
+  margin-bottom: 22px;
 }
 
 .achados__titulos {
@@ -34,9 +34,12 @@
 
 .achados__vazio {
   margin: 0;
-  padding: 24px 0;
+  padding: 22px 16px;
+  border: 1px dashed var(--cor-linha);
+  border-radius: 18px;
   font: 400 16px/1.5 var(--fonte);
   color: var(--cor-texto-2);
+  text-align: center;
 }
 
 /* Computador comum (referência 1440) */

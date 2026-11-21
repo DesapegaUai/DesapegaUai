@@ -12,7 +12,7 @@ import '../styles/marketplace.css';
 export default function LayoutMarketplace({ comAbas = true, comFab = true, classeConteudo = '', children }) {
   return (
     <div className="shell">
-      <Cabecalho />
+      <Cabecalho comCategorias={!comAbas} />
       {comAbas && <AbasCategorias />}
       <main className={`conteudo ${classeConteudo}`.trim()}>{children}</main>
       <Rodape />

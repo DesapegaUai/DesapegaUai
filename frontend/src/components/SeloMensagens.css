@@ -1,0 +1,43 @@
+/* Selo com a quantidade de conversas não lidas, igual ao do sininho de avisos */
+.tem-selo {
+  position: relative;
+}
+
+.selo-msg {
+  position: absolute;
+  top: -6px;
+  right: -9px;
+  z-index: 1;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #c2410c;
+  color: #fff;
+  font: 700 11px/18px var(--fonte, inherit);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ícones de 44 px do cabeçalho das outras telas: o selo fica dentro da área do botão */
+.cab-icone > .selo-msg,
+.ic-topo > .selo-msg {
+  top: 2px;
+  right: 0;
+}
+
+/* no menu lateral o selo vai no fim da linha, depois do nome */
+.selo-msg--linha {
+  position: static;
+  margin-left: auto;
+}
+
+/* texto só para o leitor de tela */
+.selo-msg-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

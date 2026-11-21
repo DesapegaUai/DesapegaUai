@@ -1,8 +1,9 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import LogoAnimado from '../components/LogoAnimado.jsx'
 import Toast from '../components/Toast.jsx'
 import { api } from '../services/api.js'
+import { entrou, sair as sairDaConta } from '../services/sessao.js'
 import './Login.css'
 
 // Tela de login. O visual segue o protótipo 00-login.html da pasta de design.
@@ -80,6 +81,9 @@ function iniciarGoogle() {
 
 export default function Login() {
   const location = useLocation()
+  // para onde voltar depois de entrar (a tela de onde a pessoa veio)
+  const [voltar] = useState(() => location.state?.voltar ?? '/')
+  const navegar = useNavigate()
   const [usuario, setUsuario] = useState(null)
   const [verificando, setVerificando] = useState(true)
   const [email, setEmail] = useState('')
@@ -118,6 +122,21 @@ export default function Login() {
     if (erro?.campo === campo) setErro(null)
   }
 
+  async function entrarComoTeste(usuarioId) {
+    setErro(null)
+    setCarregando(true)
+    try {
+      const dados = await api.post('/auth/teste', { usuario_id: usuarioId })
+      setUsuario(dados.usuario)
+      entrou(dados.usuario)
+      navegar(voltar, { replace: true })
+    } catch (e) {
+      mostrarErro(e.message)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
   async function entrarComGoogle(credential) {
     setErro(null)
     setCarregando(true)
@@ -125,6 +144,8 @@ export default function Login() {
       const dados = await api.post('/auth/google', { credential })
       if (!dados?.usuario) throw new Error('Não foi possível entrar. Tente novamente.')
       setUsuario(dados.usuario)
+      entrou(dados.usuario)
+      navegar(voltar, { replace: true })
     } catch (e) {
       mostrarErro(e.message)
     } finally {
@@ -140,6 +161,15 @@ export default function Login() {
     entrarComGoogle(resposta.credential)
   })
 
+  // Atalho de teste sem nada na tela. Só existe no npm run celular (ou com VITE_LOGIN_TESTE=1 no .env):
+  // abrir /entrar?teste=1 entra como Diego, ?teste=2 como Larissa e ?teste=3 como Usuário Teste.
+  // No celular o login do Google não funciona pelo endereço da rede, então é por aqui que se entra.
+  const entrarPeloEndereco = useEffectEvent(() => {
+    if (!import.meta.env.DEV || import.meta.env.VITE_LOGIN_TESTE !== '1') return
+    const id = Number(new URLSearchParams(location.search).get('teste'))
+    if ([1, 2, 3].includes(id)) entrarComoTeste(id)
+  })
+
   // Quando a tela abre, pergunta para a API se a pessoa já está logada.
   // Não precisa mandar o token: o navegador manda o cookie "token" sozinho.
   useEffect(() => {
@@ -147,7 +177,14 @@ export default function Login() {
     api
       .get('/auth/sessao')
       .then((dados) => {
-        if (ativo) setUsuario(dados?.usuario ?? null)
+        if (!ativo) return
+        if (dados?.usuario) {
+          entrou(dados.usuario)
+          navegar(voltar, { replace: true })
+          return
+        }
+        setUsuario(null)
+        entrarPeloEndereco() // atalho de teste do npm run celular (não faz nada fora dele)
       })
       .catch(() => {}) // se não tem sessão ou a API está fora do ar, só mostra o login
       .finally(() => {
@@ -156,7 +193,7 @@ export default function Login() {
     return () => {
       ativo = false
     }
-  }, [])
+  }, [navegar, voltar])
 
   // Desenha o botão do Google. Ele tem que ser o botão do próprio Google,
   // porque só ele devolve o "credential" que a API usa para conferir o login.
@@ -231,7 +268,7 @@ export default function Login() {
   async function sair() {
     setCarregando(true)
     try {
-      await api.post('/auth/logout')
+      await sairDaConta()
       window.google?.accounts?.id?.disableAutoSelect()
       setUsuario(null)
       avisar(AVISO.saiu)
@@ -266,8 +303,8 @@ export default function Login() {
 
       <div className="login-coluna">
         <h1 className="login-logo">
-          {/* Logo com a animação da bolinha que vira o pingo do i */}
-          <LogoAnimado />
+          {/* Logo com a animação da bolinha que vira o pingo do i. Ela já vem verde desde o primeiro pulo. */}
+          <LogoAnimado bolinha="verde" />
           {!usuario && <span className="login-sr"> Entrar</span>}
         </h1>
 
@@ -287,7 +324,6 @@ export default function Login() {
             <p>
               Você entrou como <strong>{usuario.email}</strong>.
             </p>
-            {/* Quando a Home ficar pronta, dá para ir direto para ela depois do login */}
             <Link className="login-entrar" to="/">
               Ir para o início
             </Link>
@@ -431,6 +467,7 @@ export default function Login() {
                   Apple
                 </button>
               </div>
+
             </div>
 
             <p className="login-criar">

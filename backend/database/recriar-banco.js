@@ -1,9 +1,11 @@
-// npm run banco: recria as tabelas e os dados de teste no banco do .env.
+// npm run banco: recria as tabelas, os dados de teste e importa os locais da Zona da Mata no banco do .env.
 // Apaga tudo o que estiver no banco, então é só para desenvolvimento.
+// Para atualizar a estrutura sem perder os dados, use npm run atualizar.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import mysql from 'mysql2/promise'
 import { env } from '../src/config/env.js'
+import { importarLocais } from './importar-locais.js'
 
 if (env.producao) {
   console.error('O npm run banco apaga todos os dados: ele não roda com NODE_ENV=production.')
@@ -15,8 +17,6 @@ if (!/^\w+$/.test(env.db.nome)) {
   console.error(`Nome de banco inválido no .env (DB_NAME): "${env.db.nome}"`)
   process.exit(1)
 }
-
-const arquivos = ['schema.sql', 'seed.sql']
 
 let conexao
 let etapa = 'conectar no MySQL'
@@ -36,13 +36,17 @@ try {
   )
   await conexao.query(`USE \`${env.db.nome}\``)
 
-  for (const arquivo of arquivos) {
+  for (const arquivo of ['schema.sql', 'seed.sql']) {
     etapa = `rodar o ${arquivo}`
     const sql = await fs.readFile(path.join(import.meta.dirname, arquivo), 'utf8')
     // tira o USE dos arquivos: aqui vale o banco do .env
     await conexao.query(sql.replace(/^\s*USE\s+\S+\s*;\s*$/gim, ''))
     console.log(`OK: ${arquivo}`)
   }
+
+  etapa = 'importar os locais da Zona da Mata'
+  const total = await importarLocais(conexao)
+  console.log(`OK: ${total.cidades} cidades, ${total.bairros} bairros e localidades, ${total.ruas} ruas`)
 
   console.log(`Banco "${env.db.nome}" pronto.`)
 } catch (erro) {

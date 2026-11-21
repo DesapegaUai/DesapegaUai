@@ -1,91 +1,157 @@
+// Tempo real (Socket.IO em /api/socket.io).
+// - Visitante: conecta sem login e só recebe o feed público (anúncio publicado, alterado, removido).
+// - Logado: entra na sala usuario:<id> e recebe mensagens, leituras, "digitando", avisos do
+//   sininho, avaliações e atualizações do perfil. A localização das pessoas nunca passa por aqui.
 import { Server } from 'socket.io'
 import { env } from './config/env.js'
-import { lerTokenDoCookie, verificarToken } from './utils/token.js'
-import { salvarMensagem } from './models/mensagemModel.js'
+import { listarParceirosDeConversa, marcarComoLidas, participantesDaConversa, salvarMensagem } from './models/mensagemModel.js'
+import * as usuarioModel from './models/usuarioModel.js'
+import { registrar } from './utils/log.js'
+import { usuarioDoCookie } from './middlewares/autenticacao.js'
+import { lerId } from './utils/validacao.js'
 
 let io = null
+const conexoesPorUsuario = new Map() // id -> quantas abas/aparelhos conectados
+const ultimoRegistroDeAcesso = new Map() // id -> ms do último UPDATE de ultimo_acesso
+const REGISTRO_DE_ACESSO_MS = 60 * 1000
+
+export const estaOnline = (usuarioId) => (conexoesPorUsuario.get(Number(usuarioId)) ?? 0) > 0
+
+// limite simples por conexão: no máximo `maximo` eventos a cada `janelaMs`
+function criarLimitador(maximo, janelaMs) {
+  let inicio = Date.now()
+  let contagem = 0
+  return () => {
+    const agora = Date.now()
+    if (agora - inicio > janelaMs) { inicio = agora; contagem = 0 }
+    contagem++
+    return contagem <= maximo
+  }
+}
+
+const erroDoSocket = (erro, padrao) => (erro.status >= 400 && erro.status < 500 ? erro.message : padrao)
+
+// grava o último acesso (no máximo 1 vez por minuto por pessoa) e avisa as abas dela
+export async function registrarAcessoAgora(usuarioId) {
+  const agora = Date.now()
+  if (agora - (ultimoRegistroDeAcesso.get(usuarioId) ?? 0) < REGISTRO_DE_ACESSO_MS) return
+  ultimoRegistroDeAcesso.set(usuarioId, agora)
+  await usuarioModel.registrarAcesso(usuarioId)
+  const perfil = await usuarioModel.buscarUltimoAcesso(usuarioId)
+  avisarUsuarios([usuarioId], 'ultimo_acesso_atualizado', perfil)
+}
+
+async function avisarPresenca(usuarioId, online) {
+  const parceiros = await listarParceirosDeConversa(usuarioId)
+  if (!parceiros.length) return
+  const perfil = await usuarioModel.buscarUltimoAcesso(usuarioId)
+  avisarUsuarios(parceiros, 'presenca', { usuario_id: usuarioId, online, ultimo_acesso: perfil?.ultimo_acesso ?? null })
+}
 
 export function iniciarSocket(servidor) {
   io = new Server(servidor, {
     path: '/api/socket.io',
-    cors: {
-      origin: env.frontendUrl,
-      credentials: true,
+    cors: { origin: env.origensDoFront, credentials: true },
+    maxHttpBufferSize: 64 * 1024,
+    // WebSocket não passa pelo CORS: confere a origem aqui (sem Origin = ferramenta ou teste)
+    allowRequest: (req, aceitar) => {
+      const origem = req.headers.origin
+      aceitar(null, !origem || env.origensDoFront.includes(origem))
     },
   })
 
-  // Confere o login antes de aceitar a conexão.
-  io.use((socket, next) => {
-    const cookie = socket.handshake.headers.cookie
-    const token = lerTokenDoCookie(cookie)
-    const usuarioId = verificarToken(token)
-
-    if (!usuarioId) {
-      return next(new Error('Faça login para continuar.'))
+  // identifica quem conectou; sem login também entra (só ouve o feed público)
+  io.use(async (socket, next) => {
+    try {
+      socket.data.usuarioId = await usuarioDoCookie(socket.handshake.headers.cookie)
+      next()
+    } catch (erro) {
+      next(new Error('Não foi possível conectar ao tempo real.'))
     }
-
-    socket.data.usuarioId = usuarioId
-    next()
   })
 
   io.on('connection', (socket) => {
     const usuarioId = socket.data.usuarioId
+    socket.join('publico')
+    if (!usuarioId) return
 
-    // Cada usuário tem sua própria sala.
-    socket.join('usuario:' + usuarioId)
+    socket.join(`usuario:${usuarioId}`)
+    const antes = conexoesPorUsuario.get(usuarioId) ?? 0
+    conexoesPorUsuario.set(usuarioId, antes + 1)
+    registrarAcessoAgora(usuarioId).catch((erro) => console.error('Erro ao registrar acesso:', erro.message))
+    if (antes === 0) avisarPresenca(usuarioId, true).catch(() => {})
+
+    socket.on('disconnect', () => {
+      const restantes = (conexoesPorUsuario.get(usuarioId) ?? 1) - 1
+      if (restantes > 0) return conexoesPorUsuario.set(usuarioId, restantes)
+      conexoesPorUsuario.delete(usuarioId)
+      avisarPresenca(usuarioId, false).catch(() => {})
+    })
+
+    const podeMandarMensagem = criarLimitador(20, 10_000)
+    const podeAvisarDigitando = criarLimitador(30, 10_000)
+    const podeMarcarLidas = criarLimitador(60, 10_000)
 
     socket.on('enviar_mensagem', async (dados, responder) => {
-      // O front deve enviar uma função para receber a confirmação.
-      if (typeof responder !== 'function') {
-        return
-      }
-
+      if (typeof responder !== 'function') return
+      if (!podeMandarMensagem()) return responder({ ok: false, erro: 'Muitas mensagens em pouco tempo. Aguarde alguns segundos.' })
       try {
-        const resultado = await salvarMensagem(
-          dados?.conversa_id,
-          usuarioId,
-          dados?.texto,
-        )
-
-        avisarUsuarios(
-          resultado.participantes,
-          'nova_mensagem',
-          resultado.mensagem,
-        )
-
-        responder({
-          ok: true,
-          mensagem: resultado.mensagem,
-        })
+        const resultado = await salvarMensagem(dados?.conversa_id, usuarioId, dados?.texto)
+        avisarUsuarios(resultado.participantes, 'nova_mensagem', resultado.mensagem)
+        responder({ ok: true, mensagem: resultado.mensagem })
       } catch (erro) {
-        let mensagem = 'Não foi possível enviar a mensagem.'
+        if (!(erro.status < 500)) console.error('Erro ao enviar mensagem pelo socket:', erro)
+        responder({ ok: false, erro: erroDoSocket(erro, 'Não foi possível enviar a mensagem.') })
+      }
+    })
 
-        if (erro.status >= 400 && erro.status < 500) {
-          mensagem = erro.message
-        } else {
-          console.error('Erro ao enviar mensagem pelo socket:', erro)
+    // quem está com a conversa aberta avisa que leu; o outro lado vê os dois tiques
+    socket.on('marcar_lidas', async (dados, responder) => {
+      const responda = typeof responder === 'function' ? responder : () => {}
+      if (!podeMarcarLidas()) return responda({ ok: false, erro: 'Muitos pedidos em pouco tempo.' })
+      try {
+        const resultado = await marcarComoLidas(dados?.conversa_id, usuarioId)
+        if (resultado.marcadas > 0) {
+          avisarUsuarios(resultado.participantes, 'mensagens_lidas', { conversa_id: resultado.conversaId, leitor_id: usuarioId, ate_id: resultado.ateId })
         }
+        responda({ ok: true, marcadas: resultado.marcadas })
+      } catch (erro) {
+        responda({ ok: false, erro: erroDoSocket(erro, 'Não foi possível marcar como lida.') })
+      }
+    })
 
-        responder({
-          ok: false,
-          erro: mensagem,
-        })
+    socket.on('digitando', async (dados) => {
+      if (!podeAvisarDigitando()) return
+      try {
+        const conversaId = lerId(dados?.conversa_id, 'id da conversa')
+        const participantes = await participantesDaConversa(conversaId)
+        if (!participantes.includes(usuarioId)) return
+        avisarUsuarios(participantes.filter((id) => id !== usuarioId), 'digitando', { conversa_id: conversaId, usuario_id: usuarioId })
+      } catch {
+        // pedido inválido: ignora em silêncio (é só um aviso visual)
       }
     })
   })
+
+  registrar('socket.iniciado', { caminho: '/api/socket.io' })
 }
 
+export async function encerrarSocket() {
+  if (!io) return
+  const atual = io
+  io = null
+  conexoesPorUsuario.clear()
+  await new Promise((resolver) => atual.close(resolver))
+}
+
+// manda um evento para as abas/aparelhos dessas pessoas (o REST funciona mesmo sem o socket)
 export function avisarUsuarios(ids, evento, dados) {
-  // Permite que o REST funcione mesmo sem o socket iniciado.
-  if (!io) {
-    return
-  }
+  if (!io || !ids?.length) return
+  io.to([...new Set(ids)].map((id) => `usuario:${id}`)).emit(evento, dados)
+}
 
-  const salas = []
-
-  for (const id of ids) {
-    salas.push('usuario:' + id)
-  }
-
-  io.to(salas).emit(evento, dados)
+// feed público: todo mundo conectado, com ou sem login
+export function publicarParaTodos(evento, dados) {
+  if (!io) return
+  io.to('publico').emit(evento, dados)
 }

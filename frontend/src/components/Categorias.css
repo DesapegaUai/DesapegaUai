@@ -5,21 +5,21 @@
 .categorias {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 
 .categoria {
   min-width: 0;
-  height: 170px;
+  height: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 14px;
   border: 1px solid var(--cor-linha);
   border-radius: 18px;
   background: var(--cor-fundo);
-  font: 500 15.5px var(--fonte);
+  font: 500 15px var(--fonte);
   color: var(--cor-texto-campo);
   text-decoration: none;
   transition:
@@ -44,14 +44,13 @@
   }
 
   .categoria {
-    height: 160px;
-    gap: 18px;
+    height: 124px;
     font-size: 14.5px;
   }
 
   .categoria .icone {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -59,6 +58,13 @@
 @media (min-width: 901px) and (max-width: 1280px) {
   .categorias {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .categoria {
+    height: 170px;
+    gap: 20px;
+    font-size: 15.5px;
   }
 }
 

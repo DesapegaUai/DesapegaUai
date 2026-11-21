@@ -24,7 +24,7 @@
 .ma-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .ma-tag { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 8px; font-weight: 700; font-size: 13px; }
 .ma-tag.ativo { background: var(--marca-suave); color: var(--marca); }
-.ma-tag.rascunho { background: #FBF3DC; color: #7A5A00; }
+.ma-tag.rascunho, .ma-tag.reservado { background: #FBF3DC; color: #7A5A00; }
 .ma-tag.vendido { background: var(--sup-3); color: var(--texto-2); }
 .ma-titulo { margin-top: 4px; font-weight: 700; font-size: 17px; line-height: 1.25; color: var(--tinta); overflow-wrap: anywhere; }
 .ma-preco { margin-top: 6px; font-weight: 800; font-size: 19px; color: var(--marca); }
@@ -64,3 +64,6 @@
   .ma-item { flex-direction: column; }
   .ma-foto { width: 100%; aspect-ratio: 4 / 3; }
 }
+
+/* título com a quantidade numa etiqueta ao lado */
+.ma-titulo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }

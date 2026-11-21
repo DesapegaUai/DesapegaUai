@@ -5,11 +5,11 @@
 .secao {
   max-width: 1548px;
   margin: 0 auto;
-  padding: 54px 24px 0;
+  padding: 44px 24px 0;
 }
 
 .secao__topo {
-  margin-bottom: 34px;
+  margin-bottom: 26px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -17,7 +17,7 @@
 
 .secao__topo h2 {
   margin: 0;
-  font: 700 26px var(--fonte);
+  font: 700 24px var(--fonte);
   letter-spacing: -0.01em;
   color: var(--cor-texto);
 }
@@ -36,10 +36,18 @@
   color: var(--cor-link-hover);
 }
 
-/* Computador comum (referência 1440) */
-@media (min-width: 1281px) and (max-width: 1560px) {
+/* Computador estreito (901 a 1280): mantém as medidas maiores, que combinam com o topo empilhado */
+@media (min-width: 901px) and (max-width: 1280px) {
+  .secao {
+    padding-top: 54px;
+  }
+
+  .secao__topo {
+    margin-bottom: 34px;
+  }
+
   .secao__topo h2 {
-    font-size: 25px;
+    font-size: 26px;
   }
 }
 
