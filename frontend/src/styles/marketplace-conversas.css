@@ -106,7 +106,6 @@
 .campo-msg textarea::placeholder { color: var(--texto-3); opacity: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btn-emoji { flex: none; width: 40px; height: 40px; margin-bottom: 4px; border: 0; border-radius: var(--r-pill); background: none; display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color .15s ease; }
 .btn-emoji.on { background: var(--marca-suave); }
-.aviso-seg { display: flex; align-items: center; gap: var(--e2); margin-top: var(--e3); font-family: inherit; font-weight: 400; font-size: 13.5px; line-height: 1.4; color: #9AA39B; }
 .erro-anexo { margin: 0 0 10px; padding: 8px 14px; border-radius: 12px; background: var(--erro-suave); color: var(--erro); font-size: 14px; line-height: 1.4; }
 
 /* Prévia dos anexos antes de enviar */
@@ -276,7 +275,6 @@
   .conv-status { margin-top: 3px; }
   .conv-status span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .rapidas { margin-bottom: 10px; }
-  .aviso-seg { margin-top: 6px; font-size: 12px; }
 }
 
 /* Computador e tablet: a página de conversas funciona como um aplicativo de chat (referência: o chat da
@@ -288,4 +286,22 @@
   .conteudo.pag-conversas { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-top: 18px; padding-bottom: 18px; }
   .pag-conversas .t-titulo-1 { font-size: 26px; }
   .pag-conversas .conv-corpo { flex: 1; min-height: 0; height: auto; margin-top: 14px; }
+}
+
+/* Sem o título "Conversas" na tela: a lista e a conversa começam logo abaixo do cabeçalho do site */
+.conv-reconectando { margin-bottom: 10px; }
+.conteudo.pag-conversas { padding-top: 16px; }
+.pag-conversas .conv-corpo { margin-top: 0; }
+
+/* Celular: a lista e a conversa ocupam a tela inteira, de ponta a ponta (sem bordas, sem rodapé e sem o
+   botão flutuante), como num aplicativo de chat; só a lista ou as mensagens rolam */
+@media (max-width: 600px) {
+  .shell:has(.pag-conversas) { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .shell:has(.pag-conversas) > .mkt-rodape { display: none; }
+  .conteudo.pag-conversas, .conteudo.pag-conversas.conversa-aberta { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; }
+  .pag-conversas .conv-corpo, .pag-conversas .conv-corpo.aberta { flex: 1; min-height: 0; height: auto; margin-top: 0; }
+  .pag-conversas .lista-conv, .pag-conversas .conversa { border: 0; border-radius: 0; box-shadow: none; }
+  .pag-conversas .itens-conv { overflow-y: auto; }
+  .conv-reconectando { margin: 8px var(--e4) 0; }
+  .composer { padding-bottom: var(--e3); }
 }
