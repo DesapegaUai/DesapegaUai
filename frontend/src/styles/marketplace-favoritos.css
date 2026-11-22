@@ -58,3 +58,6 @@
 /* título com a quantidade numa etiqueta ao lado */
 .fav-cabeca { margin-top: 0; margin-bottom: 18px; }
 .fav-cabeca .fav-titulo { margin: 0; }
+
+/* espaço entre os filtros e os cards, igual ao das categorias: o card sobe um pouco com o mouse em cima e não pode encostar nos filtros */
+.barra-chips + .col-grade { margin-top: var(--e7); }
