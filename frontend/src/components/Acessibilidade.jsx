@@ -155,20 +155,11 @@ function IconeAcessibilidade() {
   )
 }
 
+// ícone "sign_language" do Material Symbols, do Google (licença Apache 2.0): duas mãos fazendo um sinal
 function IconeLibras() {
   return (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      {/* mão de trás */}
-      <path d="M19.5 9.2V5.9a1.5 1.5 0 0 1 3 0v6.6" />
-      <path d="M22.5 8.6a1.5 1.5 0 0 1 3 0v8.2a7.6 7.6 0 0 1-4.3 6.9" />
-      {/* mão da frente */}
-      <path d="M10.8 15.3V8.4a1.6 1.6 0 0 1 3.2 0v6" />
-      <path d="M14 14.2V6.7a1.6 1.6 0 0 1 3.2 0v7.6" />
-      <path d="M17.2 14.1V8.3a1.6 1.6 0 0 1 3.2 0v8.4" />
-      <path d="M20.4 11.2a1.6 1.6 0 0 1 3.2 0v7.2a9 9 0 0 1-9 9h-1.2a7.2 7.2 0 0 1-5.4-2.4l-4.1-4.6a1.8 1.8 0 0 1 2.6-2.5l2.3 2.2" />
-      {/* movimento */}
-      <path d="M6.6 9.6a6.5 6.5 0 0 1 2-3.4" />
-      <path d="M3.9 8.6a9.4 9.4 0 0 1 2.9-4.9" />
+    <svg viewBox="0 -960 960 960" width="30" height="30" aria-hidden="true" focusable="false" fill="currentColor">
+      <path d="M456-39 101-72q-13-2-21-11.5T74-105q1-13 10.5-21t22.5-6l160 14 25-90-228-45q-12-2-19-12.5T40-288q2-12 12.5-19t22.5-5l234 46 23-82-266-74q-12-3-18-14t-3-23q3-12 14-18t23-3l266 74 22-79-182-95q-11-6-15-18t2-23q6-11 18-14.5t23 2.5l255 133 4-89q1-15 8-28t18-22q9-8 20-11t21-2q10 1 18 6t12 15l93 217q8 17 9 36t-4 38l-53 189q-15 54-60 85.5T456-39Zm249-280q5-19 9.5-38.5T711-395L603-646l69-28-84-204q-5-11 0-22.5t16-16.5q11-5 22.5-.5T643-901l110 266 60-66q10-11 23.5-16t27.5-4q12 1 22.5 5t18.5 12q8 8 10.5 17t-.5 19l-68 224q-5 18-16 33t-27 26l-99 66ZM499-682 393-836q-7-11-5-22.5t13-18.5q10-8 22-6t19 13l128 185q-17-6-35.5-5.5T499-682Zm-65 117-57-29-95-113q-8-10-7-22t11-20q10-8 22-7t20 11l110 132q-3 12-3.5 24t-.5 24Z" />
     </svg>
   )
 }

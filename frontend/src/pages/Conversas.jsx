@@ -76,6 +76,9 @@ export default function Conversas() {
   // opções de uma mensagem (editar, apagar para mim, apagar para todos) e a mensagem que está sendo editada
   const [menuMensagem, setMenuMensagem] = useState(null); // { mensagem, posicao, origem }
   const [editando, setEditando] = useState(null);
+  // muda quando a conversa aberta precisa ser lida de novo da API (voltou a conexão ou a pessoa voltou para o site):
+  // o celular desliga o tempo real em segundo plano, e os avisos de "entregue" e "lida" desse intervalo se perdem
+  const [recarregarAberta, setRecarregarAberta] = useState(0);
   const fecharMenuDaMensagem = useCallback((devolverFoco) => {
     setMenuMensagem((atual) => {
       if (devolverFoco === true) atual?.origem?.focus();
@@ -106,7 +109,8 @@ export default function Conversas() {
   }), [meuId]);
   const [focarAvaliacao, setFocarAvaliacao] = useState(null); // conversa em que o menu pediu "Avaliar"
 
-  const selecionada = conversas.find((c) => String(c.id) === String(id)) ?? (!id ? conversas.find((c) => !arquivadas.has(c.id)) : null);
+  // só a conversa que a pessoa abriu (abrir é o que marca como lida e deixa os tiques azuis do outro lado)
+  const selecionada = id ? conversas.find((c) => String(c.id) === String(id)) ?? null : null;
   const selecionadaId = selecionada?.id;
   useLayoutEffect(() => { abertaRef.current = selecionadaId; }, [selecionadaId]);
   const naoLidas = conversas.reduce((t, c) => t + (c.naoLidas > 0 ? 1 : 0), 0);
@@ -255,7 +259,7 @@ export default function Conversas() {
       })
       .catch((erro) => { if (ativo) avisar('erro', 'Não foi possível carregar as mensagens', erro.message); });
     return () => { ativo = false; };
-  }, [selecionadaId, meuId, avisar]);
+  }, [selecionadaId, meuId, avisar, recarregarAberta]);
 
   // tempo real
   useEffect(() => {
@@ -316,7 +320,12 @@ export default function Conversas() {
         if (!status) return;
         setConversas((lista) => lista.map((c) => (c.anuncio.id === anuncioId ? { ...c, anuncio: { ...c.anuncio, status, vendido: status === 'vendido' } } : c)));
       }),
-      quandoReconectar(() => recarregarLista()),
+      quandoReconectar(() => {
+        recarregarLista();
+        // tiques, edições e mensagens apagadas enquanto estava sem conexão; com o site em segundo plano,
+        // espera a pessoa voltar (ler a conversa marca como lida, e ninguém está olhando)
+        if (!document.hidden) setRecarregarAberta((n) => n + 1);
+      }),
     ];
     return () => parares.forEach((parar) => parar());
   }, [meuId, recarregarLista, mudarArquivadas, trocarMensagem, tirarMensagem]);
@@ -326,6 +335,7 @@ export default function Conversas() {
     const aoVoltar = () => {
       if (document.hidden || abertaRef.current == null) return;
       emitir('marcar_lidas', { conversa_id: abertaRef.current }).catch(() => {});
+      setRecarregarAberta((n) => n + 1); // e atualiza os tiques das mensagens que eu mandei
     };
     document.addEventListener('visibilitychange', aoVoltar);
     return () => document.removeEventListener('visibilitychange', aoVoltar);
@@ -551,7 +561,7 @@ export default function Conversas() {
                           const estado = m.lida ? 'Lida' : m.entregue ? 'Entregue' : 'Enviada';
                           return (
                             <span className={`tiques ${estado.toLowerCase()}`} aria-label={estado} title={estado}>
-                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#A6E3FF' : 'rgba(255,255,255,.82)'} />
+                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#4FC3F7' : 'rgba(255,255,255,.82)'} espessura={estado === 'Lida' ? 2.4 : undefined} />
                             </span>
                           );
                         })()}

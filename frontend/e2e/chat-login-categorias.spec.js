@@ -105,6 +105,74 @@ test.describe('Confirmação de leitura', () => {
   })
 })
 
+test.describe('Azul só quando abre a conversa', () => {
+  test('abrir a lista de conversas não deixa azul; só abrir a conversa deixa', async ({ browser }) => {
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+    await compradora.goto('/conversas/1')
+    const texto = `Só azul quando abrir ${Date.now()}`
+    await compradora.getByRole('textbox').last().fill(texto)
+    await compradora.keyboard.press('Enter')
+    const tiques = compradora.locator('.linha-msg.eu').filter({ hasText: texto }).locator('.tiques')
+
+    await vendedor.goto('/conversas') // só a lista
+    await expect(vendedor.locator('.item-conv').first()).toBeVisible()
+    await expect(tiques).toHaveAttribute('aria-label', 'Entregue')
+    await compradora.waitForTimeout(1500)
+    await expect(tiques).toHaveAttribute('aria-label', 'Entregue')
+
+    await vendedor.locator('a.item-conv[href="/conversas/1"]').click() // abre a conversa
+    await expect(tiques).toHaveAttribute('aria-label', 'Lida')
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+})
+
+test.describe('Confirmação de leitura no celular', () => {
+  test('o aviso de lida se perdeu (celular em segundo plano): ao voltar para o site, os tiques ficam azuis', async ({ browser }) => {
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    // o tempo real da compradora passa por aqui: enquanto "bloquear" estiver ligado, o aviso de lida não chega,
+    // como acontece no iPhone com o site em segundo plano
+    let bloquear = false
+    await compradora.routeWebSocket(/socket.io/, (ws) => {
+      const servidor = ws.connectToServer()
+      servidor.onMessage((m) => { if (bloquear && typeof m === 'string' && m.includes('mensagens_lidas')) return; ws.send(m) })
+      ws.onMessage((m) => servidor.send(m))
+    })
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+    await vendedor.goto('/')
+    await compradora.goto('/conversas/1')
+
+    const texto = `Lida em segundo plano ${Date.now()}`
+    await compradora.getByRole('textbox').last().fill(texto)
+    await compradora.keyboard.press('Enter')
+    const tiques = compradora.locator('.linha-msg.eu').filter({ hasText: texto }).locator('.tiques')
+    await expect(tiques).toHaveAttribute('aria-label', 'Entregue')
+
+    bloquear = true
+    await vendedor.goto('/conversas/1') // o vendedor lê, mas o aviso não chega na compradora
+    await expect(vendedor.locator('.msgs').getByText(texto)).toBeVisible()
+    await compradora.waitForTimeout(1500)
+    await expect(tiques).toHaveAttribute('aria-label', 'Entregue')
+
+    // a compradora volta para o site (como desbloquear o celular)
+    await compradora.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect(tiques).toHaveAttribute('aria-label', 'Lida')
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+})
+
 test.describe('Mensagem antiga', () => {
   test('depois do prazo, Editar e Apagar para todos continuam no menu, apagados e com o aviso', async ({ page }) => {
     await entrarComo(page, 2)
