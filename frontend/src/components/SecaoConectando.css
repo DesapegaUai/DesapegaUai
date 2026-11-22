@@ -311,8 +311,20 @@
 }
 
 .rg-local .icone {
+  flex: none;
   width: 0.934cqw;
   height: 0.934cqw;
+}
+
+.rg-local {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rg-local-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rg-bici { display: flex; left: 50cqw; top: 2.802cqw; width: 22.414cqw; height: 9.77cqw; }

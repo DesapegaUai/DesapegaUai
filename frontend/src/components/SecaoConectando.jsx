@@ -227,9 +227,10 @@ export default function SecaoConectando() {
               <div key={`txt-${c.anuncio.id}`} className="rg-card-txt">
                 <b>{c.anuncio.titulo}</b>
                 <span className="rg-preco">{formatarPreco(c.anuncio.preco)}</span>
-                <span className="rg-local">
+                {/* nome de bairro ou cidade comprido termina em "..." dentro do card; o nome inteiro aparece ao passar o mouse */}
+                <span className="rg-local" title={c.anuncio.local}>
                   <Icone nome="home-localizacao-pequeno" tamanho={13} />
-                  {c.anuncio.local}
+                  <span className="rg-local-texto">{c.anuncio.local}</span>
                 </span>
               </div>
             </Link>
