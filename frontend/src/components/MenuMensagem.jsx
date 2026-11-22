@@ -13,15 +13,19 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
 
   useEffect(() => {
     menuRef.current?.querySelector('button:not(:disabled)')?.focus();
+    // pointerdown (e não mousedown): no celular, soltar o dedo depois de segurar a mensagem não conta como toque fora
     const clicouFora = (e) => { if (!menuRef.current?.contains(e.target)) onFechar(); };
     const tecla = (e) => { if (e.key === 'Escape') onFechar(true); };
-    document.addEventListener('mousedown', clicouFora);
+    // só fecha se a largura mudar (girou o celular): o teclado do celular sumindo muda só a altura
+    const larguraInicial = window.innerWidth;
+    const mudouTamanho = () => { if (window.innerWidth !== larguraInicial) onFechar(); };
+    document.addEventListener('pointerdown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('resize', onFechar);
+    window.addEventListener('resize', mudouTamanho);
     return () => {
-      document.removeEventListener('mousedown', clicouFora);
+      document.removeEventListener('pointerdown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('resize', onFechar);
+      window.removeEventListener('resize', mudouTamanho);
     };
   }, [onFechar]);
 
@@ -34,6 +38,8 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
 
   return createPortal(
     <div className="telas-marketplace">
+      {/* no celular, a conversa fica desfocada por trás das opções, como no iPhone */}
+      <div className="menu-mensagem-fundo" aria-hidden="true" />
       <div className="acoes-menu menu-mensagem" role="menu" aria-label="Opções da mensagem" ref={menuRef} style={posicao}>
         {minha && (
           <button type="button" role="menuitem" disabled={!editar} onClick={escolher(onEditar)}>

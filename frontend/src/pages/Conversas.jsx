@@ -485,6 +485,56 @@ export default function Conversas() {
     setMenuMensagem({ mensagem, posicao: posicaoDoMenu(evento.currentTarget, mensagem.minha), origem: evento.currentTarget });
   }
 
+  // Celular: como no WhatsApp, apertar e segurar a mensagem abre as opções; só tocar não abre nada.
+  // Computador: clicar ou usar o botão direito abre. Pelo teclado, Enter abre.
+  const toque = useRef({ espera: null, x: 0, y: 0, abriu: false, tipo: 'mouse' });
+  useEffect(() => {
+    const t = toque.current;
+    return () => clearTimeout(t.espera);
+  }, []);
+
+  function aoApertarBolha(e, mensagem) {
+    const t = toque.current;
+    t.tipo = e.pointerType;
+    t.abriu = false;
+    if (e.pointerType !== 'touch' || e.target.closest('button')) return;
+    const bolha = e.currentTarget;
+    t.x = e.clientX;
+    t.y = e.clientY;
+    clearTimeout(t.espera);
+    t.espera = setTimeout(() => {
+      t.abriu = true;
+      navigator.vibrate?.(15); // um toque leve no Android, como no WhatsApp
+      setMenuMensagem({ mensagem, posicao: posicaoDoMenu(bolha, mensagem.minha), origem: bolha });
+    }, 450);
+  }
+
+  function aoMexerNaBolha(e) {
+    const t = toque.current;
+    if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10) clearTimeout(t.espera); // está rolando a conversa
+  }
+
+  function aoSoltarBolha() {
+    clearTimeout(toque.current.espera);
+  }
+
+  function aoClicarBolha(e, mensagem) {
+    const t = toque.current;
+    if (t.abriu) {
+      // acabou de segurar: o "soltar" não abre a foto nem o vídeo
+      e.preventDefault();
+      t.abriu = false;
+      return;
+    }
+    if (t.tipo === 'touch') return;
+    abrirMenuDaMensagem(e, mensagem);
+  }
+
+  function aoMenuDoNavegador(e, mensagem) {
+    e.preventDefault(); // nada do menu do navegador (copiar, salvar imagem) por cima das opções
+    if (toque.current.tipo !== 'touch') abrirMenuDaMensagem(e, mensagem);
+  }
+
   const statusDoContato = (c) => (digitando[c.id] ? 'digitando…' : c.online ? 'Online agora' : textoDoUltimoAcesso(c.ultimoAcesso));
 
   return (
@@ -625,20 +675,27 @@ export default function Conversas() {
               {selecionada.mensagens.length === 0 && <p className="lista-vazia">Mande a primeira mensagem para {selecionada.nome.split(' ')[0]}.</p>}
               {selecionada.mensagens.map((m, i) => {
                 const anterior = selecionada.mensagens[i - 1];
-                // como no WhatsApp: mensagens seguidas da mesma pessoa ficam juntas, e só a primeira tem a "pontinha"
+                const proxima = selecionada.mensagens[i + 1];
+                // como no iPhone: mensagens seguidas da mesma pessoa ficam juntas, e só a última tem o "rabinho"
                 const primeira = !anterior || anterior.autor !== m.autor || anterior.dia !== m.dia;
+                const ultima = !proxima || proxima.autor !== m.autor || proxima.dia !== m.dia;
                 const midia = !m.apagada && Boolean(m.foto || m.video);
                 return (
                 <Fragment key={m.id}>
                   {m.dia !== anterior?.dia && <div className="dia"><span>{m.dia}</span></div>}
-                  <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}`}>
+                  <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}${ultima ? ' ultima' : ''}`}>
                     <div
-                      className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.editada ? ' com-editada' : ''}`}
+                      className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.editada ? ' com-editada' : ''}${menuMensagem?.mensagem.id === m.id ? ' em-destaque' : ''}`}
                       role="button"
                       tabIndex={0}
                       aria-haspopup="menu"
                       aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || (m.video ? 'Vídeo' : 'Foto')}. Abrir opções da mensagem`}
-                      onClick={(e) => abrirMenuDaMensagem(e, m)}
+                      onPointerDown={(e) => aoApertarBolha(e, m)}
+                      onPointerMove={aoMexerNaBolha}
+                      onPointerUp={aoSoltarBolha}
+                      onPointerCancel={aoSoltarBolha}
+                      onClick={(e) => aoClicarBolha(e, m)}
+                      onContextMenu={(e) => aoMenuDoNavegador(e, m)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirMenuDaMensagem(e, m); } }}
                     >
                       {m.apagada && <p className="texto-apagada">{m.autor === 'eu' ? 'Você apagou esta mensagem' : 'Mensagem apagada'}</p>}
@@ -663,7 +720,7 @@ export default function Conversas() {
                           const estado = m.lida ? 'Lida' : m.entregue ? 'Entregue' : 'Enviada';
                           return (
                             <span className={`tiques ${estado.toLowerCase()}`} aria-label={estado} title={estado}>
-                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#53BDEB' : midia && !m.texto ? '#fff' : '#667781'} espessura={estado === 'Lida' ? 2.4 : undefined} />
+                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#BFF0FF' : 'rgba(255,255,255,.85)'} espessura={estado === 'Lida' ? 2.4 : undefined} />
                             </span>
                           );
                         })()}
