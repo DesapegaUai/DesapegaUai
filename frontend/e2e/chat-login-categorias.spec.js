@@ -2,7 +2,7 @@
 // outras cidades na categoria. Conversa 1 do seed: Larissa (2) comprando a air fryer do Diego (1).
 import { Buffer } from 'node:buffer'
 import { expect, test } from '@playwright/test'
-import { entrarComo, semMapaDaInternet, vigiarErros } from './ajuda.js'
+import { criarAnuncioPelaApi, entrarComo, semMapaDaInternet, vigiarErros } from './ajuda.js'
 
 test.describe('Mensagens do chat', () => {
   test('editar e apagar para todos aparecem na hora para a outra pessoa', async ({ browser }) => {
@@ -429,6 +429,42 @@ test.describe('Login', () => {
     await page.goto('/entrar')
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByText('Olá, Larissa')).toHaveCount(0)
+  })
+})
+
+test.describe('Avaliações no perfil', () => {
+  test('no perfil de quem foi avaliado, o nome e a foto de quem avaliou levam ao perfil dessa pessoa', async ({ browser }) => {
+    const doVendedor = await browser.newContext()
+    const daCompradora = await browser.newContext()
+    const vendedor = await doVendedor.newPage()
+    const compradora = await daCompradora.newPage()
+    await entrarComo(vendedor, 3)
+    await entrarComo(compradora, 2)
+    // uma negociação de verdade: anúncio, conversa, vendido e avaliação
+    const anuncio = await criarAnuncioPelaApi(vendedor, { titulo: `Cadeira da avaliação ${Date.now()}` })
+    const conversa = (await (await compradora.request.post('/api/conversas', { data: { anuncio_id: anuncio.id } })).json()).conversa.id
+    const mensagem = await compradora.request.post(`/api/conversas/${conversa}/mensagens`, { data: { texto: 'Ainda tem a cadeira?' } })
+    expect(mensagem.ok(), await mensagem.text()).toBeTruthy()
+    const resposta = await vendedor.request.post(`/api/conversas/${conversa}/mensagens`, { data: { texto: 'Tenho sim!' } })
+    expect(resposta.ok(), await resposta.text()).toBeTruthy() // a avaliação só vale se as duas pessoas conversaram
+    const vendido = await vendedor.request.patch(`/api/anuncios/${anuncio.id}/status`, { data: { status: 'vendido' } })
+    expect(vendido.ok(), await vendido.text()).toBeTruthy()
+    const avaliou = await compradora.request.post(`/api/avaliacoes/conversas/${conversa}`, { data: { nota: 5 } })
+    expect(avaliou.ok(), await avaliou.text()).toBeTruthy()
+
+    // quem visita o perfil do vendedor (sem login) vê a avaliação e chega no perfil de quem avaliou
+    const visitante = await browser.newPage()
+    await visitante.goto('/usuario/3')
+    const avaliacao = visitante.getByRole('region', { name: 'Avaliações recebidas' })
+    // .first(): cada navegador do teste deixa uma avaliação da Larissa (o anúncio sai, a avaliação fica no perfil)
+    await avaliacao.getByRole('link', { name: 'Larissa Andrade' }).first().click()
+    await expect(visitante).toHaveURL(/\/usuario\/2$/)
+    await expect(visitante.getByRole('heading', { level: 1 })).toHaveText(/Larissa Andrade/)
+
+    await vendedor.request.delete(`/api/anuncios/${anuncio.id}`)
+    await visitante.close()
+    await doVendedor.close()
+    await daCompradora.close()
   })
 })
 

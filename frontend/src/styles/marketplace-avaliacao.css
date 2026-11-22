@@ -93,3 +93,9 @@
 /* foto de quem avaliou (sem foto, as iniciais) */
 .lista-aval .rec-av { overflow: hidden; }
 .lista-aval .rec-av img { width: 100%; height: 100%; object-fit: cover; }
+
+/* quem avaliou: a foto e o nome levam ao perfil dessa pessoa */
+.link-perfil:has(> .pub-aval-av), .link-perfil:has(> .rec-av) { flex: none; display: block; border-radius: 50%; }
+.lista-aval .rec-nm .link-perfil, .pub-aval-nm .link-perfil { color: inherit; text-decoration: none; }
+.lista-aval .rec-nm .link-perfil:hover, .pub-aval-nm .link-perfil:hover { text-decoration: underline; }
+.lista-aval .rec-nm .link-perfil:focus-visible, .pub-aval-nm .link-perfil:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; border-radius: 4px; }
