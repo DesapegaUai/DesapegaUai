@@ -250,8 +250,18 @@ export const PAGINAS_INSTITUCIONAIS = [
         paragrafos: ['Seu acesso fica salvo no navegador por até 7 dias. Em computadores compartilhados, saia da conta ao terminar.'],
       },
       {
+        titulo: 'Acessibilidade e Libras',
+        paragrafos: [
+          'As escolhas do menu de acessibilidade (tamanho do texto, contraste, links e animações) ficam salvas só no seu navegador.',
+          'A tradução para Libras é feita pelo VLibras, do Governo Federal. Ele só é carregado quando você clica no botão de Libras, e o texto que você pede para traduzir é enviado ao serviço do VLibras.',
+        ],
+      },
+      {
         titulo: 'Seus controles',
-        paragrafos: ['Você pode editar o nome, o telefone e a bio no perfil e excluir os seus anúncios a qualquer momento.'],
+        paragrafos: [
+          'Você pode editar o nome, o telefone e a bio no perfil e excluir os seus anúncios a qualquer momento.',
+          'Você também pode excluir a sua conta em Perfil > Privacidade. Os seus anúncios, fotos, conversas e avaliações são apagados e não dá para desfazer.',
+        ],
       },
     ],
   },

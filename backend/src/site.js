@@ -22,15 +22,18 @@ function politicaDeConteudo(frontendUrl) {
   } catch {
     // FRONTEND_URL inválido: fica só o 'self'
   }
+  // VLibras (tradução para Libras do Governo Federal): o endereço vlibras.gov.br/app redireciona para os
+  // arquivos oficiais no jsDelivr; o caminho /gh/spbgovbr-vlibras/ deixa de fora qualquer outro pacote de lá
+  const vlibras = 'https://vlibras.gov.br https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/'
   return [
     "default-src 'self'",
-    "script-src 'self' https://accounts.google.com/gsi/client",
-    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
-    // data: ícones do CSS; blob: prévia da foto antes de enviar; mapa; foto da conta Google
-    "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.googleusercontent.com",
-    "font-src 'self' data:",
-    `connect-src 'self' https://accounts.google.com/gsi/${tempoReal}`,
-    'frame-src https://accounts.google.com/gsi/',
+    `script-src 'self' https://accounts.google.com/gsi/client ${vlibras}`,
+    `style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style ${vlibras}`,
+    // data: ícones do CSS; blob: prévia da foto antes de enviar; mapa; foto da conta Google; VLibras
+    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.googleusercontent.com ${vlibras}`,
+    `font-src 'self' data: ${vlibras}`,
+    `connect-src 'self' https://accounts.google.com/gsi/ ${vlibras} https://*.vlibras.gov.br${tempoReal}`,
+    `frame-src https://accounts.google.com/gsi/ ${vlibras}`, // o avatar do VLibras abre num quadro
     "media-src 'self' blob:",
     "worker-src 'self'",
     "manifest-src 'self'",

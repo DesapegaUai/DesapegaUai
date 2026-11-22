@@ -226,6 +226,22 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
   .btn-anunciar { height: 46px; padding: 0 16px; font-size: 16px; line-height: 46px; }
 }
 
+/* Celular deitado e tablets bem estreitos (601 a 700 px): a busca vira a lupa, como no celular,
+   e o logo e os ícones ficam um pouco menores; assim todos os atalhos continuam no cabeçalho */
+@media (min-width: 601px) and (max-width: 700px) {
+  .cab { gap: 6px; padding: var(--e3); }
+  .cab-logo { height: 28px; }
+  .busca { display: none; }
+  .cab-lupa { display: flex; }
+  .local { width: 44px; height: 44px; margin-left: 0; }
+  .cab-icones { gap: 0; }
+  .cab-icone { width: 38px; height: 38px; }
+  .btn-anunciar { height: 42px; padding: 0 12px; font-size: 15px; line-height: 42px; }
+  .cab.buscando { flex-wrap: wrap; }
+  .cab.buscando .busca { display: flex; order: 10; flex: 1 0 100%; max-width: none; height: 46px; margin: 0; }
+  .cab.buscando .cab-lupa { background: var(--marca-suave); border-color: var(--marca-clara); }
+}
+
 /* Celulares bem estreitos: o seletor de ordem não passa da largura da tela */
 @media (max-width: 380px) {
   .ordenar { min-width: 0; }

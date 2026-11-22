@@ -92,6 +92,7 @@ O DesapegaUai organiza essa troca em um só lugar e, alinhado ao tema Cidades In
 | Notificações | Avisos de anúncios novos, por distância ou só de uma cidade e bairro; aviso de pedido do Procura-se atendido; aviso de mensagem nova; contador de mensagens não lidas |
 | Perfil | Visualizar e editar o perfil; foto de perfil; excluir a conta, com os anúncios, as conversas e as fotos |
 | Sessão | Fazer logout |
+| Acessibilidade | Botões fixos no canto da tela: menu com tamanho do texto, alto contraste, links destacados e pausa das animações; tradução do site para Libras com o VLibras, do Governo Federal, gratuito |
 
 **Fora do escopo desta versão:** cadastro com e-mail e senha, login com Apple, processamento de pagamento, entrega ou frete, pausa de anúncio e painel de administração (as denúncias ficam registradas no banco para análise, mas ainda não há uma tela para a equipe tratá-las).
 
@@ -104,6 +105,7 @@ O DesapegaUai organiza essa troca em um só lugar e, alinhado ao tema Cidades In
 - **Confiança sem burocracia:** o selo de vínculo acadêmico aparece sozinho para quem entra com o e-mail da UFV (@ufv.br) ou da Univiçosa (@univicosa.com.br), que o Google já confirmou. Não é preciso enviar documento, e o e-mail continua sem aparecer para os outros usuários.
 - **Avaliação só de negociação real:** só avalia quem conversou com o vendedor, depois que ele marca o anúncio como vendido, e uma única vez por negociação.
 - **Plataforma web responsiva**, e não aplicativo: funciona no computador, no tablet e no celular.
+- **Acessibilidade sem custo:** a tradução para Libras usa o VLibras, do Governo Federal, no lugar de ferramentas pagas. O VLibras só é baixado quando alguém clica no botão de Libras, e o tamanho máximo do texto depende da largura da tela, para a página nunca precisar de rolagem para o lado.
 
 ### 2.6 Metodologia
 
@@ -237,7 +239,7 @@ Na Sprint 5, o grupo implementou o sistema, integrou o front-end à API e ao ban
 | 16 a 19/11/2026 | Telas de login, Home, categorias, favoritos, conversas e perfil; ligação entre as telas e avaliação do vendedor |
 | 20/11/2026 | Conversas, mensagens e chat em tempo real |
 | 21/11/2026 | Versão final: localização e mapa, notificações, fotos e denúncia no chat, perfil público do vendedor, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, ajustes de visual, testes e relatório |
-| 22/11/2026 | Publicação do sistema na internet, na AWS, e ajustes de visual encontrados no site publicado |
+| 22/11/2026 | Publicação do sistema na internet, na AWS; ajustes de visual encontrados no site publicado; botões de acessibilidade e tradução para Libras (VLibras) |
 
 **Arquitetura.** O sistema tem três partes: o front-end (site em React), a API (Node.js com Express) e o banco de dados MySQL. O site conversa com a API por pedidos HTTP e por uma conexão em tempo real (Socket.IO), usada no chat, nos avisos e na atualização dos anúncios. A API está documentada em `/api/docs`.
 
@@ -306,8 +308,9 @@ Resultados da versão final, conferidos em 21 e 22/11/2026.
 | O que foi testado | Como | Resultado |
 | --- | --- | --- |
 | Funcionalidades da API (login, perfil, anúncios, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, segurança, exclusão de imagens e de conta e entrega do site em produção) | 239 testes automáticos, em 22 arquivos (`npm test` na pasta `backend`) | 239 de 239 aprovados |
-| Fluxos no navegador (buscar por proximidade, trocar a distância, usar sem GPS, publicar anúncio, chat entre duas contas, avisos, perda de conexão, Procura-se e anúncio reservado) | 16 testes automáticos com Playwright, no Chrome (`npm run e2e` na pasta `frontend`) | 16 de 16 aprovados |
-| Outros navegadores | Os mesmos 16 testes no Edge, no Firefox, no WebKit (motor do Safari), em tela de tablet e em tela de celular (Android e iPhone) | 16 de 16 no Edge, no Firefox, no WebKit e no tablet. No celular, 13 de 16: os outros 3 usam botões do cabeçalho de computador, e esses caminhos foram conferidos à parte |
+| Fluxos no navegador (buscar por proximidade, trocar a distância, usar sem GPS, publicar anúncio, chat entre duas contas, avisos, perda de conexão, Procura-se, anúncio reservado e botões de acessibilidade) | 18 testes automáticos com Playwright, no Chrome (`npm run e2e` na pasta `frontend`) | 18 de 18 aprovados |
+| Outros navegadores | Os mesmos 18 testes no Edge, no Firefox, no WebKit (motor do Safari), em tela de tablet e em tela de celular (Android e iPhone) | 18 de 18 no Edge, no Firefox, no WebKit e no tablet. No celular, 15 de 18: os outros 3 usam botões do cabeçalho de computador, e esses caminhos foram conferidos à parte |
+| Acessibilidade em várias telas | Botões, menu, texto maior e VLibras no site em modo de produção, em 13 combinações de navegador e tela: computador (Chrome, Edge, Firefox e Safari), notebook, tablets, iPad em pé e deitado, celulares Android e iPhone, celular de 320 px e celular deitado | Em todas: os botões e o menu cabem na tela, o texto no maior tamanho permitido não cria rolagem para o lado em sete páginas e o VLibras abre com o avatar |
 | Segurança (autenticação, autorização e IDOR, XSS, CSRF e CORS, validação, upload e exclusão de imagens, privacidade, geolocalização, cabeçalhos HTTP, limite de requisições e carga) | Auditoria com 103 cenários, cada um com objetivo, requisição, resultado esperado, resultado obtido e evidência (`docs/seguranca/auditoria-de-seguranca.md`) | 103 de 103 aprovados |
 | SQL injection | 1.441 pedidos de ataque em 42 parâmetros de consulta e 18 rotas de gravação | Nenhuma injeção funcionou |
 | Tempo de resposta | 24 rotas da API, 29 telas e 13 ações medidas (chat em tempo real, publicação com fotos, favoritos, exclusão de conta) | Rotas em até 23 ms, telas prontas em até 1,2 s e mensagem do chat na tela da outra pessoa em 143 ms |
@@ -334,6 +337,7 @@ A partir dessa documentação, a Sprint 5 entregou uma versão operacional do si
 - O usuário pode excluir a própria conta, e os anúncios, as conversas e as fotos saem junto.
 - O site se adapta ao computador, ao tablet e ao celular.
 - O sistema está publicado na internet, com HTTPS, e pode ser usado de qualquer lugar.
+- Qualquer pessoa pode aumentar o texto, ligar o alto contraste e traduzir o site para Libras pelos botões de acessibilidade.
 
 Em relação ao escopo inicial do MVP, a versão entregue foi ampliada com a localização por proximidade, o mapa, as notificações, a avaliação do vendedor, a denúncia de usuário, o perfil público do vendedor, o Procura-se, a tag de transporte, o status reservado, os pontos de encontro seguros, o selo de vínculo acadêmico, o compromisso nas entregas e a exclusão de conta. O projeto também foi apresentado em sala (pitch), e o grupo produziu o vídeo de apresentação do sistema e o banner do projeto.
 
@@ -403,6 +407,7 @@ Próximos passos:
 - **Avisos de mensagem nova com o site fechado** (notificação no aparelho), que hoje existem para anúncios novos e avaliações.
 - **Pausa de anúncio**, prevista no diagrama de estados.
 - **Bazar de Mudança:** um anúncio-vitrine com vários itens da mesma casa, data limite e baixa item por item, pensado para o fim de semestre.
+- **Avatar do VLibras com a logo do DesapegaUai:** a personalização é gratuita, mas é liberada pelo Governo Federal só para instituições parceiras, e o pedido já foi preparado.
 - **Testes em aparelhos reais da Apple** e com usuários da comunidade, agora pelo endereço publicado.
 
 ## 12. Referências e materiais do projeto
@@ -434,3 +439,4 @@ Referências:
 - Documentação do Caddy. Disponível em: <https://caddyserver.com/docs/>.
 - LET'S ENCRYPT. Certificados HTTPS gratuitos. Disponível em: <https://letsencrypt.org>.
 - DUCKDNS. Endereço gratuito para o site. Disponível em: <https://www.duckdns.org>.
+- BRASIL. VLibras: tradução de conteúdos digitais para Libras. Disponível em: <https://vlibras.gov.br>.
