@@ -11,7 +11,7 @@ let proximoId = 1;
 
 /**
  * Caixa de mensagem do chat:
- * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar] · aviso de segurança.
+ * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar]. As dicas de segurança ficam no escudo do topo da conversa.
  * - Anexos: fotos JPG, PNG ou WebP (até 5, 8 MB cada), com prévia antes de enviar. Também entram
  *   colando um print (Ctrl+V) ou arrastando a imagem para cima da conversa.
  * - Câmera: tira uma foto na hora e ela entra nos anexos (mesmos limites).
@@ -424,11 +424,6 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
         >
           <Icone nome={edicao ? 'check' : 'enviar'} tamanho={22} cor="#fff" />
         </button>
-      </div>
-
-      <div className="aviso-seg">
-        <Icone nome="escudo-simples" tamanho={16} cor="#9AA39B" />
-        <span>Combine encontros em lugares públicos e nunca pague antes de ver o produto.</span>
       </div>
     </div>
   );

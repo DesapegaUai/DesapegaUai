@@ -447,13 +447,11 @@ export default function Conversas() {
   const statusDoContato = (c) => (digitando[c.id] ? 'digitando…' : c.online ? 'Online agora' : textoDoUltimoAcesso(c.ultimoAcesso));
 
   return (
-    <LayoutMarketplace comAbas={false} comFab={!id} classeConteudo={`pag-conversas${id ? ' conversa-aberta' : ''}`}>
+    <LayoutMarketplace comAbas={false} comFab={false} classeConteudo={`pag-conversas${id ? ' conversa-aberta' : ''}`}>
       <Toast aviso={toast} onFechar={() => setToast(null)} />
-      <div className="titulo-pagina">
-        <h1 className="t-titulo-1">Conversas</h1>
-        {naoLidas > 0 && <span className="titulo-selo destaque">{naoLidas} {naoLidas === 1 ? 'não lida' : 'não lidas'}</span>}
-        {!conectado && <span className="titulo-selo alerta" role="status">Reconectando…</span>}
-      </div>
+      {/* sem o título na tela, para sobrar espaço para a conversa (o leitor de tela continua lendo) */}
+      <h1 className="oculto">Conversas{naoLidas > 0 ? ` (${naoLidas} ${naoLidas === 1 ? 'não lida' : 'não lidas'})` : ''}</h1>
+      {!conectado && <div className="conv-reconectando"><span className="titulo-selo alerta" role="status">Reconectando…</span></div>}
 
       <div className={`conv-corpo${id ? ' aberta' : ''}`}>
         <section className="lista-conv" aria-label="Lista de conversas">
