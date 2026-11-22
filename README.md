@@ -91,6 +91,10 @@ Cada pasta tem o seu README com mais detalhes: [frontend](frontend/README.md) e 
 
 > Se aparecer `"banco":"sem conexão"`, confira o usuário, a senha e o nome do banco no `backend/.env`.
 
+## Como publicar
+
+O passo a passo para colocar o site no ar está em [docs/publicacao.md](docs/publicacao.md).
+
 ## Como a equipe trabalha
 
 - **Cada equipe mexe só na sua pasta:** o front-end em `frontend/` e o back-end em `backend/`.
