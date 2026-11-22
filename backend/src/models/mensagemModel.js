@@ -348,6 +348,31 @@ export async function apagarParaMim(conversaId, mensagemId, usuarioId) {
   })
 }
 
+// Fotos e vídeos da conversa que nenhuma das duas pessoas vê mais: cada uma apagou "para mim" ou excluiu a
+// conversa depois que a mensagem chegou (as mesmas regras que escondem a mensagem na tela). A mensagem fica
+// sem a foto e sem o vídeo (e marcada como apagada, porque ninguém a vê); devolve os nomes dos arquivos para
+// o controller apagar do disco.
+export async function liberarMidiasQueNinguemVe(conversaId) {
+  const [mensagens] = await db.query(
+    `SELECT m.id, m.foto, m.video
+       FROM mensagem m
+       JOIN conversa c ON c.id = m.conversa_id
+       JOIN anuncio a ON a.id = c.anuncio_id
+      WHERE m.conversa_id = ? AND (m.foto IS NOT NULL OR m.video IS NOT NULL)
+        AND (EXISTS (SELECT 1 FROM mensagem_oculta o WHERE o.mensagem_id = m.id AND o.usuario_id = c.comprador_id)
+             OR (c.oculta_comprador_em IS NOT NULL AND m.enviada_em <= c.oculta_comprador_em))
+        AND (EXISTS (SELECT 1 FROM mensagem_oculta o WHERE o.mensagem_id = m.id AND o.usuario_id = a.usuario_id)
+             OR (c.oculta_vendedor_em IS NOT NULL AND m.enviada_em <= c.oculta_vendedor_em))`,
+    [conversaId],
+  )
+  if (mensagens.length === 0) return []
+  await db.query(
+    'UPDATE mensagem SET foto = NULL, video = NULL, apagada_em = COALESCE(apagada_em, NOW()) WHERE id IN (?)',
+    [mensagens.map((m) => m.id)],
+  )
+  return mensagens
+}
+
 // "Entregue" (dois tiques cinza, como no WhatsApp): a mensagem chegou no aparelho de quem recebe, ou seja,
 // o site dessa pessoa estava aberto com o tempo real ligado. Marca as mensagens recebidas por essa pessoa
 // que ainda não estavam entregues (só uma, se vier mensagemId) e devolve, por conversa, quem enviou e até

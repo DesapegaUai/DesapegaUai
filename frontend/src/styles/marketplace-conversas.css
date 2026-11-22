@@ -65,22 +65,8 @@
 .conv-anuncio .p { font-family: inherit; font-weight: 700; font-size: 17px; line-height: 1; color: var(--marca-clara); margin-top: 6px; }
 .btn-ver { flex: none; display: inline-flex; align-items: center; min-height: 42px; border-radius: 21px; border: 1px solid #CFE5C1; background: var(--sup); padding: 0 var(--e5); font-family: inherit; font-weight: 600; font-size: 15px; line-height: 40px; color: var(--marca); white-space: nowrap; }
 .msgs { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--e6) 26px; }
-.dia { display: flex; justify-content: center; padding: 6px 0 var(--e4); }
-.dia span { font-family: inherit; font-weight: 600; font-size: 13.5px; line-height: 1; color: #9AA39B; background: var(--sup-3); border-radius: 13px; padding: var(--e2) var(--e4); }
-.linha-msg { display: flex; justify-content: flex-start; padding-bottom: 14px; }
-.linha-msg.eu { justify-content: flex-end; }
-.bolha { max-width: 74%; background: #F4F5F2; border: 1px solid var(--linha); border-radius: 20px 20px 20px 6px; padding: 14px 18px; box-shadow: var(--elev-1); }
-.bolha p { font-family: inherit; font-weight: 400; font-size: 16.5px; line-height: 1.5; color: var(--tinta); white-space: pre-wrap; overflow-wrap: anywhere; }
-.bolha .meta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 7px; font-family: inherit; font-weight: 400; font-size: 13px; line-height: 1; color: #9AA39B; }
-.linha-msg.eu .bolha { background: var(--marca); border: 0; border-radius: 20px 20px 6px 20px; }
-.linha-msg.eu .bolha p { color: #fff; }
-.linha-msg.eu .bolha .meta { color: rgba(255, 255, 255, .78); }
 
 /* Anexos dentro da mensagem */
-.bolha-anexos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.bolha-anexos:last-child { margin-bottom: 0; }
-.bolha-img { display: block; border-radius: 12px; overflow: hidden; background: rgba(0, 0, 0, .06); }
-.bolha-img img { display: block; width: 100%; max-width: 240px; max-height: 240px; object-fit: cover; }
 .bolha-arquivo { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 280px; padding: 10px 12px; border-radius: 12px; background: var(--sup); border: 1px solid var(--linha); color: var(--tinta); }
 .bolha-arquivo:hover { color: var(--tinta); }
 .linha-msg.eu .bolha-arquivo { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .28); color: #fff; }
@@ -177,8 +163,6 @@
   .conv-corpo.aberta .lista-conv { display: none; }
   .conv-corpo.aberta .conversa { display: flex; }
   .conv-voltar { display: flex; }
-  .bolha { max-width: 84%; }
-  .bolha p { font-size: 15.5px; }
   .msgs { padding: var(--e4); }
   .composer { padding: var(--e4) var(--e4) var(--e5); }
   /* 3 botões redondos (anexo · câmera · enviar): 44 px para sobrar espaço para o texto */
@@ -192,7 +176,6 @@
   .camera-visor { aspect-ratio: auto; }
   .conv-topo, .conv-anuncio { padding: var(--e3) var(--e4); }
   .emoji-painel { left: 8px; right: 8px; width: auto; max-width: none; }
-  .bolha-img img { max-width: 200px; }
 }
 
 .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
@@ -213,9 +196,6 @@
 .bolha[role="button"]:focus-visible { outline: 3px solid var(--marca-clara); outline-offset: 2px; }
 .bolha .editada { font-style: italic; }
 /* mensagem apagada: só o aviso, em cinza e itálico, nos dois lados */
-.bolha.apagada, .linha-msg.eu .bolha.apagada { background: var(--sup); border: 1px dashed var(--linha-forte); box-shadow: none; }
-.bolha.apagada .texto-apagada, .linha-msg.eu .bolha.apagada .texto-apagada { font-style: italic; color: var(--texto-2); }
-.linha-msg.eu .bolha.apagada .meta { color: #9AA39B; }
 
 
 /* "Editando mensagem" em cima da caixa de texto */
@@ -313,12 +293,60 @@
 }
 
 /* Vídeo no chat: na bolha, com os controles do próprio navegador; na prévia, com um triângulo de "play" */
-.bolha-video { display: block; width: 260px; max-width: 100%; max-height: 360px; border-radius: 12px; background: #000; }
 .anexo-item.video { position: relative; }
 .anexo-item.video video { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: #000; }
 .anexo-play { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: rgba(0, 0, 0, .55); pointer-events: none; }
 .anexo-play::after { content: ""; position: absolute; left: 10px; top: 7px; border-style: solid; border-width: 6px 0 6px 9px; border-color: transparent transparent transparent #fff; }
 .enviando-video { margin: 0 0 10px; font-size: 13.5px; color: var(--texto-2); }
 @media (max-width: 600px) {
-  .bolha-video { width: 220px; }
+}
+
+/* Balões das mensagens no estilo do WhatsApp: verde clarinho (as minhas) e branco (as da outra pessoa),
+   no fundo bege; justos ao texto, cantos pouco redondos, a "pontinha" só na primeira de uma sequência da
+   mesma pessoa, e o horário e os tiques na mesma linha do texto, no canto. Foto e vídeo ocupam o balão,
+   com borda fininha, e sem legenda o horário fica por cima da imagem. */
+.msgs { background: #EFEAE2; }
+.dia { display: flex; justify-content: center; padding: 8px 0; }
+.dia span { font-family: inherit; font-weight: 600; font-size: 12.5px; line-height: 1; color: #54656F; background: #fff; border-radius: 8px; padding: 6px 12px; box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13); }
+.linha-msg { display: flex; justify-content: flex-start; padding-top: 2px; }
+.linha-msg.primeira { padding-top: 10px; }
+.linha-msg.eu { justify-content: flex-end; }
+.bolha { position: relative; max-width: 72%; min-width: 0; background: #fff; border-radius: 8px; padding: 6px 8px 7px 10px; box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13); }
+.linha-msg.eu .bolha { background: #D9FDD3; }
+.linha-msg.primeira .bolha { border-top-left-radius: 0; }
+.linha-msg.eu.primeira .bolha { border-top-left-radius: 8px; border-top-right-radius: 0; }
+.bolha p { font-family: inherit; font-weight: 400; font-size: 15px; line-height: 1.4; color: #111B21; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* espaço guardado no fim do texto para o horário (e os tiques) caberem na mesma linha */
+.bolha p::after { content: ""; display: inline-block; width: 44px; }
+.linha-msg.eu .bolha p::after { width: 66px; }
+.bolha.com-editada p::after { width: 92px; }
+.linha-msg.eu .bolha.com-editada p::after { width: 114px; }
+.bolha .meta { position: absolute; right: 8px; bottom: 5px; display: flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 400; font-size: 11px; line-height: 1; color: #667781; }
+.bolha .tiques { display: inline-flex; margin-right: -2px; }
+
+/* foto e vídeo */
+.bolha.midia { padding: 3px; }
+.bolha-anexos { display: block; }
+.bolha-img, .bolha-video-quadro { position: relative; display: block; width: 270px; max-width: 100%; border-radius: 6px; overflow: hidden; background: rgba(0, 0, 0, .08); }
+.bolha-img img { display: block; width: 100%; height: auto; max-height: 340px; object-fit: cover; }
+.bolha.midia p { padding: 4px 5px 3px 7px; }
+/* sem legenda: o horário fica por cima da imagem, em branco, com uma sombra embaixo */
+.bolha.so-midia .meta { right: 9px; bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); z-index: 1; pointer-events: none; }
+.bolha.so-midia .bolha-anexos::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 40px; border-radius: 0 0 6px 6px; background: linear-gradient(transparent, rgba(0, 0, 0, .38)); pointer-events: none; }
+.bolha.so-midia:has(.tocando) .meta, .bolha.so-midia:has(.tocando) .bolha-anexos::after { display: none; }
+.bolha-video { display: block; width: 100%; max-height: 380px; background: #000; }
+.video-play { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .48); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.video-play span { margin-left: 5px; border-style: solid; border-width: 12px 0 12px 19px; border-color: transparent transparent transparent #fff; }
+.video-play:hover { background: rgba(0, 0, 0, .6); }
+.video-play:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.video-duracao { position: absolute; left: 9px; bottom: 8px; z-index: 1; display: flex; align-items: center; gap: 5px; color: #fff; font-size: 12px; font-weight: 600; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); pointer-events: none; }
+.bolha:not(.so-midia) .video-duracao { bottom: 8px; }
+
+/* apagada: o mesmo balão, com o aviso em itálico */
+.bolha.apagada .texto-apagada { font-style: italic; color: #667781; }
+
+@media (max-width: 600px) {
+  .bolha { max-width: 85%; }
+  .bolha p { font-size: 15.5px; }
+  .bolha-img, .bolha-video-quadro { width: 240px; }
 }

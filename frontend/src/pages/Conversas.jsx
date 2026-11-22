@@ -46,6 +46,41 @@ function quando(conversa) {
 
 const CHAVE_BARRA_DO_ANUNCIO = 'desapegauai:barra-do-anuncio';
 
+const duracaoEmTexto = (segundos) => `${Math.floor(segundos / 60)}:${String(Math.floor(segundos % 60)).padStart(2, '0')}`;
+
+// Vídeo no balão, como no WhatsApp: parado, mostra a imagem com o botão de play e a duração; tocando, mostra
+// os controles. O #t=0.1 faz o iPhone mostrar o primeiro quadro. Tocar no vídeo não abre o menu da mensagem.
+function VideoDoChat({ url }) {
+  const [tocando, setTocando] = useState(false);
+  const [duracao, setDuracao] = useState(null);
+  const videoRef = useRef(null);
+  return (
+    <div className={`bolha-video-quadro${tocando ? ' tocando' : ''}`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <video
+        ref={videoRef}
+        className="bolha-video"
+        src={`${url}#t=0.1`}
+        controls={tocando}
+        playsInline
+        preload="metadata"
+        onLoadedMetadata={(e) => setDuracao(e.currentTarget.duration)}
+        aria-label="Vídeo enviado na conversa"
+      />
+      {!tocando && (
+        <button type="button" className="video-play" aria-label="Assistir o vídeo" onClick={() => { setTocando(true); videoRef.current?.play().catch(() => {}); }}>
+          <span aria-hidden="true" />
+        </button>
+      )}
+      {!tocando && Number.isFinite(duracao) && (
+        <span className="video-duracao" aria-hidden="true">
+          <svg viewBox="0 0 16 12" width="16" height="12"><rect x="0" y="1" width="11" height="10" rx="2" fill="#fff" /><path d="M11 6l5-3v6z" fill="#fff" /></svg>
+          {duracaoEmTexto(duracao)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Avatar({ conversa, grande }) {
   return (
     <span className={`avatar${grande ? ' g' : ''}`} aria-hidden="true">
@@ -588,12 +623,17 @@ export default function Conversas() {
 
             <div className="msgs" ref={msgsRef} role="log" aria-live="polite" aria-label="Mensagens" tabIndex={0}>
               {selecionada.mensagens.length === 0 && <p className="lista-vazia">Mande a primeira mensagem para {selecionada.nome.split(' ')[0]}.</p>}
-              {selecionada.mensagens.map((m, i) => (
+              {selecionada.mensagens.map((m, i) => {
+                const anterior = selecionada.mensagens[i - 1];
+                // como no WhatsApp: mensagens seguidas da mesma pessoa ficam juntas, e só a primeira tem a "pontinha"
+                const primeira = !anterior || anterior.autor !== m.autor || anterior.dia !== m.dia;
+                const midia = !m.apagada && Boolean(m.foto || m.video);
+                return (
                 <Fragment key={m.id}>
-                  {m.dia !== selecionada.mensagens[i - 1]?.dia && <div className="dia"><span>{m.dia}</span></div>}
-                  <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}`}>
+                  {m.dia !== anterior?.dia && <div className="dia"><span>{m.dia}</span></div>}
+                  <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}`}>
                     <div
-                      className={`bolha${m.apagada ? ' apagada' : ''}`}
+                      className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.editada ? ' com-editada' : ''}`}
                       role="button"
                       tabIndex={0}
                       aria-haspopup="menu"
@@ -611,8 +651,7 @@ export default function Conversas() {
                       )}
                       {m.video && (
                         <div className="bolha-anexos">
-                          {/* tocar no vídeo não abre o menu da mensagem; o #t=0.1 mostra o primeiro quadro no iPhone */}
-                          <video className="bolha-video" src={`${m.video.url}#t=0.1`} controls playsInline preload="metadata" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} aria-label="Vídeo enviado na conversa" />
+                          <VideoDoChat url={m.video.url} />
                         </div>
                       )}
                       {m.texto && <p>{m.texto}</p>}
@@ -624,7 +663,7 @@ export default function Conversas() {
                           const estado = m.lida ? 'Lida' : m.entregue ? 'Entregue' : 'Enviada';
                           return (
                             <span className={`tiques ${estado.toLowerCase()}`} aria-label={estado} title={estado}>
-                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#4FC3F7' : 'rgba(255,255,255,.82)'} espessura={estado === 'Lida' ? 2.4 : undefined} />
+                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#53BDEB' : midia && !m.texto ? '#fff' : '#667781'} espessura={estado === 'Lida' ? 2.4 : undefined} />
                             </span>
                           );
                         })()}
@@ -632,7 +671,8 @@ export default function Conversas() {
                     </div>
                   </div>
                 </Fragment>
-              ))}
+                );
+              })}
               {digitando[selecionada.id] && <p className="digitando" aria-live="polite">{selecionada.nome.split(' ')[0]} está digitando…</p>}
               {selecionada.anuncio.vendido && (
                 <CartaoCompromisso
