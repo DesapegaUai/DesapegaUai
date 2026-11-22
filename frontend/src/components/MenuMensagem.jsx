@@ -12,7 +12,7 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
   const menuRef = useRef(null);
 
   useEffect(() => {
-    menuRef.current?.querySelector('button')?.focus();
+    menuRef.current?.querySelector('button:not(:disabled)')?.focus();
     const clicouFora = (e) => { if (!menuRef.current?.contains(e.target)) onFechar(); };
     const tecla = (e) => { if (e.key === 'Escape') onFechar(true); };
     document.addEventListener('mousedown', clicouFora);
@@ -26,21 +26,34 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
   }, [onFechar]);
 
   const escolher = (acao) => () => { onFechar(); acao(mensagem); };
+  // a própria mensagem (ainda não apagada) sempre mostra Editar e Apagar para todos; depois do prazo,
+  // a opção fica apagada com o aviso, para ninguém achar que ela sumiu
+  const minha = mensagem.minha && !mensagem.apagada;
+  const editar = podeEditar(mensagem);
+  const apagarParaTodos = podeApagarParaTodos(mensagem);
 
   return createPortal(
     <div className="telas-marketplace">
       <div className="acoes-menu menu-mensagem" role="menu" aria-label="Opções da mensagem" ref={menuRef} style={posicao}>
-        {podeEditar(mensagem) && (
-          <button type="button" role="menuitem" onClick={escolher(onEditar)}>
-            <Icone nome="lapis" tamanho={19} cor="#3E8B22" />Editar
+        {minha && (
+          <button type="button" role="menuitem" disabled={!editar} onClick={escolher(onEditar)}>
+            <Icone nome="lapis" tamanho={19} cor={editar ? '#3E8B22' : '#9AA39B'} />
+            <span className="menu-mensagem-texto">
+              Editar
+              {!editar && <small>Só dá para editar até 15 minutos depois de enviar</small>}
+            </span>
           </button>
         )}
         <button type="button" role="menuitem" onClick={escolher(onApagarParaMim)}>
           <Icone nome="lixeira" tamanho={19} cor="#3E8B22" />Apagar para mim
         </button>
-        {podeApagarParaTodos(mensagem) && (
-          <button type="button" role="menuitem" className="perigo" onClick={escolher(onApagarParaTodos)}>
-            <Icone nome="lixeira" tamanho={19} cor="#C0392B" />Apagar para todos
+        {minha && (
+          <button type="button" role="menuitem" className="perigo" disabled={!apagarParaTodos} onClick={escolher(onApagarParaTodos)}>
+            <Icone nome="lixeira" tamanho={19} cor={apagarParaTodos ? '#C0392B' : '#9AA39B'} />
+            <span className="menu-mensagem-texto">
+              Apagar para todos
+              {!apagarParaTodos && <small>Só dá para apagar para todos até 2 dias depois de enviar</small>}
+            </span>
           </button>
         )}
       </div>

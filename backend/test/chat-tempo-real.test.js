@@ -136,3 +136,46 @@ test('WebSocket vindo de outro site é recusado', async () => {
   })
   assert.ok(erro, 'não podia conectar')
 })
+
+// Confirmação como no WhatsApp: ✓ enviada, ✓✓ entregue (chegou no aparelho), ✓✓ azul lida
+test('quem está com o site aberto recebe a mensagem já como entregue', async () => {
+  const doVendedor = await abrirSocket(vendedor)
+  const doComprador = await abrirSocket(comprador)
+  const chegou = esperar(doVendedor, 'nova_mensagem')
+  const resposta = await emitir(doComprador, 'enviar_mensagem', { conversa_id: 1, texto: 'Teste do chat: entregue na hora?' })
+  assert.equal(resposta.ok, true)
+  assert.equal(resposta.mensagem.entregue, true)
+  assert.equal((await chegou).entregue, true)
+  doVendedor.disconnect()
+  doComprador.disconnect()
+})
+
+test('quem estava fora: ao abrir o site, o que chegou vira entregue e quem enviou é avisado', async () => {
+  for (const s of sockets) s.disconnect()
+  await new Promise((ok) => setTimeout(ok, 200))
+  const doComprador = await abrirSocket(comprador)
+  const enviada = await fetch(`${base}/conversas/1/mensagens`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: comprador }, body: JSON.stringify({ texto: 'Teste do chat: o vendedor está fora' }) })
+  const { mensagem } = await enviada.json()
+  assert.equal(mensagem.entregue, false, 'o vendedor está fora: só um tique')
+
+  const aviso = esperar(doComprador, 'mensagens_entregues')
+  await abrirSocket(vendedor) // o vendedor abre o site
+  const recebido = await aviso
+  assert.equal(recebido.conversa_id, 1)
+  assert.ok(recebido.ate_id >= mensagem.id)
+
+  const lista = await (await fetch(`${base}/conversas/1/mensagens`, { headers: { Cookie: comprador } })).json()
+  const vista = lista.mensagens.find((m) => m.id === mensagem.id)
+  assert.equal(vista.entregue, true)
+  assert.equal(vista.lida, false, 'entregue não é lida: o vendedor ainda não abriu a conversa')
+})
+
+test('lida também conta como entregue', async () => {
+  const doVendedor = await abrirSocket(vendedor)
+  const r = await emitir(doVendedor, 'marcar_lidas', { conversa_id: 1 })
+  assert.equal(r.ok, true)
+  const lista = await (await fetch(`${base}/conversas/1/mensagens`, { headers: { Cookie: comprador } })).json()
+  const daLarissa = lista.mensagens.filter((m) => m.remetente_id === 2)
+  assert.ok(daLarissa.length > 0)
+  assert.ok(daLarissa.every((m) => m.lida && m.entregue))
+})

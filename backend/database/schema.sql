@@ -283,6 +283,7 @@ CREATE TABLE mensagem (
   foto         CHAR(32)       NULL,                                  -- nome do arquivo da foto (sem tamanho e sem .webp)
   enviada_em   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   lida         BOOLEAN        NOT NULL DEFAULT FALSE,
+  entregue_em  DATETIME       NULL,                                  -- chegou no aparelho de quem recebe (site aberto)
   editada_em   DATETIME       NULL,                                  -- quando o texto foi editado (até 15 min depois de enviar)
   apagada_em   DATETIME       NULL,                                  -- "apagar para todos": o texto e a foto saem
   PRIMARY KEY (id),

@@ -18,6 +18,8 @@ export function formatarMensagem(m) {
     foto: apagada ? null : formatarFotoDoChat(m.conversa_id, m.foto),
     enviada_em: m.enviada_em,
     lida: Boolean(m.lida),
+    // dois tiques cinza: chegou no aparelho da outra pessoa; lida também conta como entregue
+    entregue: Boolean(m.entregue_em) || Boolean(m.lida),
     editada: Boolean(m.editada_em) && !apagada,
     apagada: apagada,
   }
@@ -72,7 +74,7 @@ export async function buscarMensagens(conversaId, usuarioId) {
 
     // as que a pessoa apagou só para ela não voltam
     const [mensagens] = await conexao.query(
-      `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.editada_em, m.apagada_em
+      `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em
        FROM mensagem m
        WHERE m.conversa_id = ?
          AND NOT EXISTS (SELECT 1 FROM mensagem_oculta o WHERE o.mensagem_id = m.id AND o.usuario_id = ?)
@@ -84,7 +86,7 @@ export async function buscarMensagens(conversaId, usuarioId) {
     // Marca como lidas somente as mensagens recebidas.
     const [marcacao] = await conexao.query(
       `UPDATE mensagem
-       SET lida = TRUE
+       SET lida = TRUE, entregue_em = COALESCE(entregue_em, NOW())
        WHERE conversa_id = ?
          AND remetente_id <> ?
          AND lida = FALSE`,
@@ -183,7 +185,7 @@ export async function salvarMensagem(conversaId, usuarioId, texto, foto = null) 
     )
 
     const [mensagens] = await conexao.query(
-      `SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, editada_em, apagada_em
+      `SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, entregue_em, editada_em, apagada_em
        FROM mensagem
        WHERE id = ?`,
       [resultado.insertId],
@@ -243,7 +245,7 @@ export async function marcarComoLidas(conversaId, usuarioId) {
     [conversaId, usuarioId],
   )
   const [resultado] = await db.query(
-    'UPDATE mensagem SET lida = TRUE WHERE conversa_id = ? AND remetente_id <> ? AND lida = FALSE',
+    'UPDATE mensagem SET lida = TRUE, entregue_em = COALESCE(entregue_em, NOW()) WHERE conversa_id = ? AND remetente_id <> ? AND lida = FALSE',
     [conversaId, usuarioId],
   )
   return { conversaId, marcadas: resultado.affectedRows, ateId, participantes }
@@ -259,7 +261,7 @@ export async function idsDasConversasDoAnuncio(anuncioId) {
 // participa. Bloqueia a linha (FOR UPDATE) para dois pedidos não mexerem na mesma mensagem ao mesmo tempo.
 async function mensagemDaConversa(conexao, conversaId, mensagemId, usuarioId) {
   const [linhas] = await conexao.query(
-    `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.editada_em, m.apagada_em,
+    `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em,
             TIMESTAMPDIFF(SECOND, m.enviada_em, NOW()) AS idade_s, c.comprador_id, a.usuario_id AS vendedor_id
        FROM conversa c
        JOIN anuncio a ON a.id = c.anuncio_id
@@ -291,7 +293,7 @@ async function naTransacao(trabalho) {
   }
 }
 
-const SELECIONAR_MENSAGEM = 'SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, editada_em, apagada_em FROM mensagem WHERE id = ?'
+const SELECIONAR_MENSAGEM = 'SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, entregue_em, editada_em, apagada_em FROM mensagem WHERE id = ?'
 
 // PATCH: só quem enviou, até 15 minutos depois. Mensagem com foto pode ficar sem legenda.
 export async function editarMensagem(conversaId, mensagemId, usuarioId, texto) {
@@ -340,4 +342,36 @@ export async function apagarParaMim(conversaId, mensagemId, usuarioId) {
     await conexao.query('INSERT IGNORE INTO mensagem_oculta (mensagem_id, usuario_id) VALUES (?, ?)', [mensagemId, usuarioId])
     return { conversaId, mensagemId }
   })
+}
+
+// "Entregue" (dois tiques cinza, como no WhatsApp): a mensagem chegou no aparelho de quem recebe, ou seja,
+// o site dessa pessoa estava aberto com o tempo real ligado. Marca as mensagens recebidas por essa pessoa
+// que ainda não estavam entregues (só uma, se vier mensagemId) e devolve, por conversa, quem enviou e até
+// qual mensagem, para o socket avisar quem enviou.
+export async function marcarComoEntregues(usuarioId, { mensagemId = null } = {}) {
+  const soUma = mensagemId ? 'AND m.id = ?' : ''
+  const parametros = [usuarioId, usuarioId, usuarioId, ...(mensagemId ? [mensagemId] : [])]
+  const [pendentes] = await db.query(
+    `SELECT m.conversa_id, m.remetente_id, MAX(m.id) AS ate_id
+       FROM mensagem m
+       JOIN conversa c ON c.id = m.conversa_id
+       JOIN anuncio a ON a.id = c.anuncio_id
+      WHERE m.entregue_em IS NULL AND m.lida = FALSE AND m.remetente_id <> ?
+        AND (c.comprador_id = ? OR a.usuario_id = ?) ${soUma}
+      GROUP BY m.conversa_id, m.remetente_id`,
+    parametros,
+  )
+  if (pendentes.length === 0) return []
+  // só até a última mensagem que entrou na lista (a que chegar agora é avisada na próxima vez)
+  const ateId = Math.max(...pendentes.map((p) => p.ate_id))
+  await db.query(
+    `UPDATE mensagem m
+       JOIN conversa c ON c.id = m.conversa_id
+       JOIN anuncio a ON a.id = c.anuncio_id
+        SET m.entregue_em = NOW()
+      WHERE m.entregue_em IS NULL AND m.lida = FALSE AND m.remetente_id <> ?
+        AND (c.comprador_id = ? OR a.usuario_id = ?) ${soUma} AND m.id <= ?`,
+    [...parametros, ateId],
+  )
+  return pendentes.map((p) => ({ conversaId: p.conversa_id, remetenteId: p.remetente_id, ateId: p.ate_id }))
 }

@@ -9,7 +9,7 @@ import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, pas
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
-import { avisarUsuarios, estaOnline } from '../socket.js'
+import { avisarUsuarios, estaOnline, marcarEntregueSeOnline } from '../socket.js'
 
 // POST /api/conversas (A2)
 export async function abrir(req, res) {
@@ -95,6 +95,7 @@ export async function enviarMensagem(req, res) {
     req.body?.texto,
   )
 
+  await marcarEntregueSeOnline(resultado.mensagem, resultado.participantes)
   avisarUsuarios(
     resultado.participantes,
     'nova_mensagem',

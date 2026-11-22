@@ -77,6 +77,53 @@ test.describe('Mensagens do chat', () => {
   })
 })
 
+test.describe('Confirmação de leitura', () => {
+  test('um tique enviada, dois quando a outra pessoa abre o site e dois azuis quando ela abre a conversa', async ({ browser }) => {
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+    await compradora.goto('/conversas/1')
+
+    const texto = `Confirmação de leitura ${Date.now()}`
+    await compradora.getByRole('textbox').last().fill(texto)
+    await compradora.keyboard.press('Enter')
+    const tiques = compradora.locator('.linha-msg.eu').filter({ hasText: texto }).locator('.tiques')
+    await expect(tiques).toHaveAttribute('aria-label', 'Enviada') // o vendedor está fora
+
+    await vendedor.goto('/') // o vendedor abre o site, em outra tela
+    await expect(tiques).toHaveAttribute('aria-label', 'Entregue')
+
+    await vendedor.goto('/conversas/1') // e abre a conversa
+    await expect(tiques).toHaveAttribute('aria-label', 'Lida')
+    await expect(tiques).toHaveClass(/lida/)
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+})
+
+test.describe('Mensagem antiga', () => {
+  test('depois do prazo, Editar e Apagar para todos continuam no menu, apagados e com o aviso', async ({ page }) => {
+    await entrarComo(page, 2)
+    const texto = `Mensagem para envelhecer ${Date.now()}`
+    expect((await page.request.post('/api/conversas/1/mensagens', { data: { texto } })).ok()).toBeTruthy()
+    // o navegador acha que já passaram 3 dias (o prazo de editar é 15 minutos e o de apagar para todos, 2 dias)
+    await page.clock.install({ time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) })
+    await page.goto('/conversas/1')
+    await page.locator('.linha-msg.eu .bolha').filter({ hasText: texto }).click()
+    const menu = page.getByRole('menu', { name: 'Opções da mensagem' })
+    await expect(menu.getByRole('menuitem', { name: /Editar/ })).toBeDisabled()
+    await expect(menu).toContainText('Só dá para editar até 15 minutos depois de enviar')
+    await expect(menu.getByRole('menuitem', { name: /Apagar para todos/ })).toBeDisabled()
+    await expect(menu).toContainText('Só dá para apagar para todos até 2 dias depois de enviar')
+    await expect(menu.getByRole('menuitem', { name: 'Apagar para mim' })).toBeEnabled()
+    await expect(menu.getByRole('menuitem', { name: 'Apagar para mim' })).toBeFocused()
+  })
+})
+
 test.describe('Login', () => {
   test('tela da conta sem login vai para o login; quem já entrou e abre o login vai para a tela inicial', async ({ page }) => {
     await page.goto('/perfil')

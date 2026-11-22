@@ -287,7 +287,13 @@ export default function Conversas() {
       ouvir('mensagens_lidas', ({ conversa_id: conversaId, leitor_id: leitorId }) => {
         if (leitorId === meuId) return;
         setConversas((lista) => lista.map((c) => (c.id === conversaId
-          ? { ...c, mensagens: c.mensagens.map((m) => (m.minha ? { ...m, lida: true } : m)) }
+          ? { ...c, mensagens: c.mensagens.map((m) => (m.minha ? { ...m, lida: true, entregue: true } : m)) }
+          : c)));
+      }),
+      // a mensagem chegou no aparelho da outra pessoa: dois tiques sem cor
+      ouvir('mensagens_entregues', ({ conversa_id: conversaId, ate_id: ateId }) => {
+        setConversas((lista) => lista.map((c) => (c.id === conversaId
+          ? { ...c, mensagens: c.mensagens.map((m) => (m.minha && m.id <= ateId ? { ...m, entregue: true } : m)) }
           : c)));
       }),
       ouvir('digitando', ({ conversa_id: conversaId }) => {
@@ -540,11 +546,15 @@ export default function Conversas() {
                       <div className="meta">
                         {m.editada && <span className="editada">editada</span>}
                         <span>{m.hora}</span>
-                        {m.autor === 'eu' && (
-                          <span aria-label={m.lida ? 'Lida' : 'Enviada'} title={m.lida ? 'Lida' : 'Enviada'}>
-                            <Icone nome={m.lida ? 'lida' : 'check'} tamanho={16} cor={m.lida ? '#B9F5A0' : 'rgba(255,255,255,.82)'} />
-                          </span>
-                        )}
+                        {/* como no WhatsApp: ✓ enviada, ✓✓ entregue (chegou no aparelho), ✓✓ azul lida */}
+                        {m.autor === 'eu' && !m.apagada && (() => {
+                          const estado = m.lida ? 'Lida' : m.entregue ? 'Entregue' : 'Enviada';
+                          return (
+                            <span className={`tiques ${estado.toLowerCase()}`} aria-label={estado} title={estado}>
+                              <Icone nome={estado === 'Enviada' ? 'check' : 'lida'} tamanho={16} cor={estado === 'Lida' ? '#A6E3FF' : 'rgba(255,255,255,.82)'} />
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
