@@ -21,5 +21,6 @@ set -a
 # shellcheck disable=SC1090
 . "$AMBIENTE"
 set +a
-sudo -H -u "$USUARIO" --preserve-env=NODE_ENV,DB_HOST,DB_PORT,DB_USER,DB_PASSWORD,DB_NAME,PASTA_UPLOADS,PASTA_UPLOADS_PRIVADOS \
+# JWT_SEGREDO: a exclusão de conta carrega o token.js, que não abre sem ele
+sudo -H -u "$USUARIO" --preserve-env=NODE_ENV,DB_HOST,DB_PORT,DB_USER,DB_PASSWORD,DB_NAME,JWT_SEGREDO,PASTA_UPLOADS,PASTA_UPLOADS_PRIVADOS \
   node database/remover-demonstracao.js "$@"
