@@ -5,6 +5,7 @@ import { env } from './config/env.js'
 import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
 import { exigirOrigemDoFront, recusarLinkDeOutroSite, registrarRequisicoes } from './middlewares/seguranca.js'
 import { rotas } from './routes/index.js'
+import { entregarSite } from './site.js'
 import { PASTA_UPLOADS } from './utils/fotos.js'
 
 export const app = express()
@@ -13,6 +14,12 @@ export const app = express()
 if (env.producao) app.set('trust proxy', 1)
 
 app.use(helmet())
+
+// em produção, tudo o que não é /api é o site (frontend/dist); fica antes das travas da API
+// para que o link do site possa ser aberto a partir de qualquer lugar (WhatsApp, Instagram...)
+const site = env.producao ? entregarSite() : null
+if (site) app.use(site)
+
 app.use(cors({ origin: env.origensDoFront, credentials: true })) // só o front pode chamar a API
 app.use(registrarRequisicoes)
 app.use(exigirOrigemDoFront)
