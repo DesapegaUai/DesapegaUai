@@ -8,10 +8,12 @@ export const RESPOSTAS_RAPIDAS = [
 
 /** Fotos aceitas no chat (os mesmos limites do servidor: POST /api/conversas/:id/fotos) */
 export const ANEXOS = {
-  aceitos: 'image/jpeg,image/png,image/webp',
+  aceitos: 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm',
   tipos: ['image/jpeg', 'image/png', 'image/webp'],
+  tiposDeVideo: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'],
   maxArquivos: 5,
   maxBytes: 8 * 1024 * 1024, // 8 MB por foto
+  maxBytesVideo: 25 * 1024 * 1024, // 25 MB por vídeo
 };
 
 // Conversas arquivadas: é só uma organização da lista, guardada neste navegador (por conta).

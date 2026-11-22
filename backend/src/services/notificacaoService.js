@@ -76,7 +76,7 @@ export async function avisarMensagemNova(mensagem, participantes) {
     if (!destinatarios.length) return
     const nome = mensagem.remetente?.nome ?? null
     const foto = mensagem.remetente?.foto_url ?? null
-    const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : 'Mensagem nova')
+    const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : mensagem.video ? '🎥 Vídeo' : 'Mensagem nova')
     for (const id of destinatarios) {
       const preferencias = await repo.buscarPreferencias(id)
       if (!preferencias?.mensagens) continue

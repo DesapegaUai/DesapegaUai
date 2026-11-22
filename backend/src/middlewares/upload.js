@@ -65,6 +65,34 @@ const uploadFotosDoChat = multer({
   fileFilter: filtroDeImagem,
 }).array('fotos', MAXIMO_DE_FOTOS_NO_CHAT)
 
+// Vídeo mandado no chat: um por envio, no campo video, até 25 MB (MP4, MOV do iPhone ou WebM)
+export const MAXIMO_DO_VIDEO_MB = 25
+const TIPOS_DE_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v']
+
+const uploadVideoDoChat = multer({
+  storage: armazenamentoEmMemoria,
+  limits: { fileSize: MAXIMO_DO_VIDEO_MB * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, callback) => {
+    if (!TIPOS_DE_VIDEO.includes(file.mimetype)) return callback(erroHttp(400, 'Envie um vídeo MP4, MOV ou WebM.'))
+    callback(null, true)
+  },
+}).single('video')
+
+export function receberVideoDoChat(req, res, next) {
+  uploadVideoDoChat(req, res, (erro) => {
+    if (!erro) return next()
+    if (!erro.status) {
+      const mensagens = {
+        LIMIT_FILE_SIZE: `O vídeo pode ter no máximo ${MAXIMO_DO_VIDEO_MB} MB.`,
+        LIMIT_FILE_COUNT: 'Envie um vídeo por vez.',
+        LIMIT_UNEXPECTED_FILE: 'Envie o vídeo no campo video.',
+      }
+      return next(erroHttp(400, mensagens[erro.code] ?? 'Não foi possível ler o envio. Mande como multipart/form-data, com o vídeo no campo video.'))
+    }
+    next(erro)
+  })
+}
+
 export function receberFotosDoChat(req, res, next) {
   uploadFotosDoChat(req, res, (erro) => {
     if (!erro) return next()

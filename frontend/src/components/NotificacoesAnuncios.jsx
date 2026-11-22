@@ -112,7 +112,7 @@ export function NotificacoesAnunciosProvider({ children }) {
       if (Number(mensagem.remetente_id) === Number(usuario.id)) return; // fui eu que mandei
       contarMensagens();
       if (!preferenciasRef.current.mensagens) return;
-      const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : '');
+      const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : mensagem.video ? '🎥 Vídeo' : '');
       // como no WhatsApp: a foto e o nome de quem mandou (sem foto, as iniciais do perfil) e o texto
       const nome = mensagem.remetente?.nome ?? '';
       const aviso = {

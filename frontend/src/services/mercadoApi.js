@@ -135,6 +135,7 @@ export function mensagemDaApi(mensagem, meuId) {
   const foto = mensagem.foto ? { pequena: urlDaApi(mensagem.foto.pequena), grande: urlDaApi(mensagem.foto.grande) } : null
   return {
     ...mensagem, foto, temFoto: Boolean(foto || mensagem.tem_foto),
+    video: mensagem.video ? { url: urlDaApi(mensagem.video.url) } : null, temVideo: Boolean(mensagem.video || mensagem.tem_video),
     minha, autor: minha ? 'eu' : 'outro', hora: formatoHora.format(data), dia: diaDaMensagem(data),
   }
 }
@@ -187,6 +188,14 @@ export const denunciarConversa = (conversaId, dados) => api.post(`/conversas/${c
 export const buscarDenuncia = (conversaId) => api.get(`/conversas/${conversaId}/denuncia`)
 
 // manda as fotos (arquivos File) e, se tiver, o texto como legenda da última; devolve { mensagens }
+// um vídeo por envio (MP4, MOV ou WebM de até 25 MB); o texto vai junto como legenda
+export function enviarVideoPelaApi(conversaId, arquivo, texto) {
+  const corpo = new FormData()
+  corpo.append('video', arquivo)
+  if (texto) corpo.append('texto', texto)
+  return api.post(`/conversas/${conversaId}/videos`, corpo)
+}
+
 export function enviarFotosPelaApi(conversaId, arquivos, texto) {
   const corpo = new FormData()
   arquivos.forEach((arquivo) => corpo.append('fotos', arquivo))
