@@ -120,6 +120,16 @@ const DESENHOS = {
     </>
   ),
   'seta-link': <path d="M5 12h13M13.4 6.4 19 12l-5.6 5.6" />,
+  // compartilhar (três pontos ligados) e copiar link (dois elos de corrente)
+  compartilhar: (
+    <>
+      <circle cx="18" cy="5.5" r="2.6" />
+      <circle cx="6" cy="12" r="2.6" />
+      <circle cx="18" cy="18.5" r="2.6" />
+      <path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" />
+    </>
+  ),
+  link: <path d="M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1" />,
 
   // Conversas
   telefone: <path d="M6.4 4.2 9 4.9l1 3.4-2 1.6a11 11 0 0 0 6.1 6.1l1.6-2 3.4 1 .7 2.6a2 2 0 0 1-2.2 2.4C11.7 19.4 4.6 12.3 4 6.4a2 2 0 0 1 2.4-2.2z" />,

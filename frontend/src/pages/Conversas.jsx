@@ -13,10 +13,12 @@ import { lerArquivadas, salvarArquivadas, posicaoDoMenu } from '../services/conv
 import { carregarMinhasAvaliacoes, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { formatarPreco } from '../services/formatar.js';
 import {
-  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, excluirConversa, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
+  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
 } from '../services/mercadoApi.js';
+import { urlDaApi } from '../services/api.js';
 import { useSessao } from '../services/sessao.js';
 import { avisar as avisarSocket, emitir, ouvir, quandoReconectar, useTempoReal } from '../services/tempoReal.js';
+import { pedirAvisosDeMensagem } from '../services/push.js';
 import '../styles/marketplace-conversas.css';
 import '../styles/marketplace-perfil-publico.css';
 
@@ -41,6 +43,8 @@ function quando(conversa) {
   if (!ultima) return '';
   return ultima.dia === 'Hoje' ? ultima.hora : ultima.dia;
 }
+
+const CHAVE_BARRA_DO_ANUNCIO = 'desapegauai:barra-do-anuncio';
 
 function Avatar({ conversa, grande }) {
   return (
@@ -79,6 +83,12 @@ export default function Conversas() {
   // muda quando a conversa aberta precisa ser lida de novo da API (voltou a conexão ou a pessoa voltou para o site):
   // o celular desliga o tempo real em segundo plano, e os avisos de "entregue" e "lida" desse intervalo se perdem
   const [recarregarAberta, setRecarregarAberta] = useState(0);
+  // barra do anúncio: começa recolhida numa faixa fina, para sobrar espaço para a conversa;
+  // tocar (ou puxar para baixo) abre. A escolha fica guardada neste navegador.
+  const [anuncioAberto, setAnuncioAberto] = useState(() => {
+    try { return localStorage.getItem(CHAVE_BARRA_DO_ANUNCIO) === 'aberta'; } catch { return false; }
+  });
+  const inicioDoToque = useRef(null);
   const fecharMenuDaMensagem = useCallback((devolverFoco) => {
     setMenuMensagem((atual) => {
       if (devolverFoco === true) atual?.origem?.focus();
@@ -265,6 +275,11 @@ export default function Conversas() {
   useEffect(() => {
     if (!meuId) return undefined;
     const parares = [
+      ouvir('perfil_atualizado', ({ id: quem, nome, foto_url: foto }) => {
+        setConversas((lista) => lista.map((c) => (Number(c.outro_usuario?.id) === Number(quem)
+          ? { ...c, nome, foto: urlDaApi(foto), iniciais: iniciais(nome), outro_usuario: { ...c.outro_usuario, nome, foto_url: foto } }
+          : c)));
+      }),
       ouvir('nova_mensagem', (dados) => {
         const mensagem = mensagemDaApi(dados, meuId);
         const aberta = String(dados.conversa_id) === String(abertaRef.current);
@@ -354,6 +369,11 @@ export default function Conversas() {
       && (!termo || c.nome.toLowerCase().includes(termo) || c.anuncio.titulo.toLowerCase().includes(termo)));
   }, [conversas, filtro, busca, arquivadas]);
 
+  function mostrarAnuncio(aberto) {
+    setAnuncioAberto(aberto);
+    try { localStorage.setItem(CHAVE_BARRA_DO_ANUNCIO, aberto ? 'aberta' : 'recolhida'); } catch { /* sem localStorage: vale só agora */ }
+  }
+
   function avisarQueEstouDigitando() {
     if (!selecionada || Date.now() - ultimoAvisoDigitando.current < 2000) return;
     ultimoAvisoDigitando.current = Date.now();
@@ -373,6 +393,10 @@ export default function Conversas() {
         return false;
       }
     }
+    // primeira mensagem: o navegador pergunta se pode avisar quando responderem, mesmo com o site fechado
+    pedirAvisosDeMensagem()
+      .then((permitiu) => { if (permitiu) avisar('sucesso', 'Avisos de mensagem ligados', 'Você vai receber um aviso quando responderem, mesmo com o site fechado.'); })
+      .catch(() => {});
     try {
       let enviadas;
       if (anexos.length > 0) {
@@ -423,7 +447,7 @@ export default function Conversas() {
   const statusDoContato = (c) => (digitando[c.id] ? 'digitando…' : c.online ? 'Online agora' : textoDoUltimoAcesso(c.ultimoAcesso));
 
   return (
-    <LayoutMarketplace comAbas={false} comFab={!id} classeConteudo="pag-conversas">
+    <LayoutMarketplace comAbas={false} comFab={!id} classeConteudo={`pag-conversas${id ? ' conversa-aberta' : ''}`}>
       <Toast aviso={toast} onFechar={() => setToast(null)} />
       <div className="titulo-pagina">
         <h1 className="t-titulo-1">Conversas</h1>
@@ -506,7 +530,31 @@ export default function Conversas() {
               </div>
             </div>
 
-            <div className="conv-anuncio">
+            <div
+              className={`conv-anuncio${anuncioAberto ? '' : ' recolhida'}`}
+              onTouchStart={(e) => { inicioDoToque.current = e.touches[0].clientY; }}
+              onTouchEnd={(e) => {
+                // puxar para baixo abre a barra; empurrar para cima recolhe
+                const distancia = e.changedTouches[0].clientY - (inicioDoToque.current ?? e.changedTouches[0].clientY);
+                inicioDoToque.current = null;
+                if (distancia > 30 && !anuncioAberto) mostrarAnuncio(true);
+                else if (distancia < -30 && anuncioAberto) mostrarAnuncio(false);
+              }}
+            >
+              {!anuncioAberto ? (
+                <button type="button" className="conv-anuncio-faixa" aria-expanded="false" onClick={() => mostrarAnuncio(true)} title="Mostrar o anúncio">
+                  <span className="mini">{selecionada.anuncio.foto ? <img src={selecionada.anuncio.foto} alt="" /> : <Icone nome="etiqueta" tamanho={18} cor="#4CA02B" />}</span>
+                  <span className="t">{selecionada.anuncio.titulo}</span>
+                  <span className="p">
+                    {formatarPreco(selecionada.anuncio.preco)}
+                    {selecionada.anuncio.vendido && <span className="tag-vendido">Vendido</span>}
+                    {selecionada.anuncio.status === 'reservado' && <span className="tag-vendido reservado">Reservado</span>}
+                  </span>
+                  <span className="oculto">Mostrar o anúncio</span>
+                  <Icone nome="seta-baixo" tamanho={20} cor="#3E8B22" />
+                </button>
+              ) : (
+              <>
               <span className="mini">{selecionada.anuncio.foto ? <img src={selecionada.anuncio.foto} alt="" /> : <Icone nome="etiqueta" tamanho={24} cor="#4CA02B" />}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="t">{selecionada.anuncio.titulo}</div>
@@ -527,6 +575,11 @@ export default function Conversas() {
                 </>
               )}
               <Link className="btn-ver" to={`/anuncio/${selecionada.anuncio.id}`}>Ver anúncio</Link>
+              <button type="button" className="conv-anuncio-recolher" aria-expanded="true" aria-label="Esconder o anúncio" title="Esconder o anúncio" onClick={() => mostrarAnuncio(false)}>
+                <Icone nome="seta-baixo" tamanho={20} cor="#3E8B22" />
+              </button>
+              </>
+              )}
             </div>
 
             <div className="msgs" ref={msgsRef} role="log" aria-live="polite" aria-label="Mensagens" tabIndex={0}>
@@ -578,7 +631,8 @@ export default function Conversas() {
                   onRespondido={() => avisar('sucesso', 'Resposta registrada', 'Obrigado por contar como foi o combinado.')}
                 />
               )}
-              {!carregandoAvaliacoes && podeAvaliar(selecionada) && (
+              {/* depois de avaliar, a caixa some da conversa (o aviso "Avaliação enviada" confirma) */}
+              {!carregandoAvaliacoes && podeAvaliar(selecionada) && !daConversa(avaliacoes, selecionada.id) && (
                 <CartaoAvaliacao
                   key={selecionada.id}
                   conversa={selecionada}

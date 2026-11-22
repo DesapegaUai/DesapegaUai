@@ -1,13 +1,16 @@
-// Avisos: anúncio novo (para quem ativou no sininho) e avaliação recebida.
+// Avisos: anúncio novo (para quem ativou no sininho), avaliação recebida e mensagem nova do chat.
 // Cada aviso fica no banco (histórico do sininho), vai pelo Socket.IO para quem está com o site
 // aberto e por push para os aparelhos inscritos (site fechado).
 import * as repo from '../repositories/notificacaoRepository.js'
-import { avisarUsuarios } from '../socket.js'
+import { avisarUsuarios, estaComOSiteNaTela } from '../socket.js'
 import { erroHttp } from '../utils/erroHttp.js'
 import { registrar } from '../utils/log.js'
 import { lerId } from '../utils/validacao.js'
 import { lerPaginacao, lerRaio } from '../validations/localizacaoValidation.js'
 import * as push from './pushService.js'
+
+// as mesmas iniciais do avatar sem foto do site (primeira letra de até dois nomes)
+const iniciais = (nome) => nome.split(' ').filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase()
 
 const formatarPreco = (preco) => Number(preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -57,6 +60,38 @@ export async function avisarAvaliacaoRecebida(avaliacao) {
     await push.enviarPara([avaliacao.avaliado_id], { titulo: aviso.titulo, texto: aviso.texto, url: '/perfil', tag: `avaliacao-${avaliacao.id}` })
   } catch (erro) {
     console.error('Não foi possível avisar sobre a avaliação:', erro.message)
+  }
+}
+
+/**
+ * Mensagem nova no chat: notificação no aparelho de quem recebe, sem precisar ativar nada no sininho
+ * (basta o navegador ter permitido as notificações). Quem está com o site na tela não recebe, porque
+ * a mensagem já aparece no próprio site. Só não chega para quem desligou "Avisar mensagens novas".
+ * Não trava o envio da mensagem: erros só vão para o log.
+ */
+export async function avisarMensagemNova(mensagem, participantes) {
+  if (!push.pushConfigurado) return
+  try {
+    const destinatarios = participantes.filter((id) => Number(id) !== Number(mensagem.remetente_id) && !estaComOSiteNaTela(id))
+    if (!destinatarios.length) return
+    const nome = mensagem.remetente?.nome ?? null
+    const foto = mensagem.remetente?.foto_url ?? null
+    const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : 'Mensagem nova')
+    for (const id of destinatarios) {
+      const preferencias = await repo.buscarPreferencias(id)
+      if (!preferencias?.mensagens) continue
+      const { enviados } = await push.enviarPara([id], {
+        titulo: (nome ?? 'Nova mensagem').slice(0, 120),
+        texto: texto.length > 150 ? `${texto.slice(0, 150)}…` : texto,
+        icone: foto,
+        iniciais: foto || !nome ? null : iniciais(nome),
+        url: `/conversas/${mensagem.conversa_id}`,
+        tag: `conversa-${mensagem.conversa_id}`, // várias mensagens da mesma conversa ficam numa notificação só
+      })
+      registrar('notificacao.mensagem_nova', { conversa_id: mensagem.conversa_id, usuario_id: id, push_enviados: enviados })
+    }
+  } catch (erro) {
+    console.error('Não foi possível avisar sobre a mensagem nova:', erro.message)
   }
 }
 

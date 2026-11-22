@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto'
 import { db } from '../config/db.js'
+import { formatarFoto } from '../utils/fotos.js'
+
+// foto de capa do anúncio do aviso (a caixinha do sininho e o aviso na tela mostram o que foi publicado)
+const FOTO_DO_ANUNCIO = `(SELECT f.arquivo FROM foto_anuncio f WHERE f.anuncio_id = n.anuncio_id ORDER BY f.ordem, f.id LIMIT 1) AS foto_arquivo`
+function comFoto({ foto_arquivo: arquivo, ...aviso }) {
+  return { ...aviso, lida: Boolean(aviso.lida), foto: aviso.anuncio_id && arquivo ? formatarFoto(aviso.anuncio_id, { arquivo }).pequena : null }
+}
 
 export const hashDoEndpoint = (endpoint) => createHash('sha256').update(endpoint).digest('hex')
 
@@ -97,14 +104,14 @@ export async function criarAvisosDeAnuncioNovo(anuncio) {
     let avisos = []
     if (resultado.affectedRows > 0) {
       const [linhas] = await conexao.query(
-        `SELECT id, usuario_id, tipo, anuncio_id, titulo, texto, lida, criada_em
-           FROM notificacao WHERE anuncio_id = ? AND tipo = 'novo_anuncio' AND id >= ?`,
+        `SELECT n.id, n.usuario_id, n.tipo, n.anuncio_id, n.titulo, n.texto, n.lida, n.criada_em, ${FOTO_DO_ANUNCIO}
+           FROM notificacao n WHERE n.anuncio_id = ? AND n.tipo = 'novo_anuncio' AND n.id >= ?`,
         [anuncio.id, resultado.insertId],
       )
       avisos = linhas
     }
     await conexao.commit()
-    return avisos.map((a) => ({ ...a, lida: Boolean(a.lida) }))
+    return avisos.map(comFoto)
   } catch (erro) {
     await conexao.rollback()
     throw erro
@@ -119,10 +126,10 @@ export async function criarAviso({ usuarioId, tipo, anuncioId = null, titulo, te
     [usuarioId, tipo, anuncioId, titulo, texto],
   )
   const [linhas] = await db.query(
-    'SELECT id, usuario_id, tipo, anuncio_id, titulo, texto, lida, criada_em FROM notificacao WHERE id = ?',
+    `SELECT n.id, n.usuario_id, n.tipo, n.anuncio_id, n.titulo, n.texto, n.lida, n.criada_em, ${FOTO_DO_ANUNCIO} FROM notificacao n WHERE n.id = ?`,
     [resultado.insertId],
   )
-  return { ...linhas[0], lida: Boolean(linhas[0].lida) }
+  return comFoto(linhas[0])
 }
 
 export async function listar(usuarioId, { pagina, porPagina }) {
@@ -132,7 +139,7 @@ export async function listar(usuarioId, { pagina, porPagina }) {
   )
   const [linhas] = await db.query(
     `SELECT n.id, n.tipo, n.anuncio_id, n.titulo, n.texto, n.lida, n.criada_em,
-            a.status AS anuncio_status
+            a.status AS anuncio_status, ${FOTO_DO_ANUNCIO}
        FROM notificacao n
        LEFT JOIN anuncio a ON a.id = n.anuncio_id
       WHERE n.usuario_id = ?
@@ -143,7 +150,7 @@ export async function listar(usuarioId, { pagina, porPagina }) {
   return {
     total: Number(total),
     nao_lidas: Number(nao_lidas),
-    itens: linhas.map((n) => ({ ...n, lida: Boolean(n.lida) })),
+    itens: linhas.map(comFoto),
   }
 }
 

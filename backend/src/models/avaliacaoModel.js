@@ -7,6 +7,7 @@ const COLUNAS = `
   av.avaliador_id,
   av.avaliado_id,
   avaliador.nome AS avaliador_nome,
+  avaliador.foto_url AS avaliador_foto,
   avaliado.nome AS avaliado_nome,
   av.anuncio_titulo,
   av.nota,

@@ -9,11 +9,13 @@ import SeloVinculo from '../components/SeloVinculo.jsx';
 import SemFoto from '../components/SemFoto.jsx';
 import Toast from '../components/Toast.jsx';
 import useFavoritar from '../hooks/useFavoritar.js';
+import CompartilharAnuncio from '../components/CompartilharAnuncio.jsx';
 import { carregarAvaliacoesUsuario, resumoDe, textoDaMedia, useAvaliacoes } from '../services/avaliacoes.js';
 import { caminhoCategoria, buscarCategoria } from '../services/categorias.js';
 import { formatarPreco } from '../services/formatar.js';
 import { origemDaBusca, useLocalizacao } from '../services/localizacao.js';
-import { abrirConversa, buscarProximos, verAnuncio } from '../services/mercadoApi.js';
+import { abrirConversa, buscarProximos, iniciais, verAnuncio } from '../services/mercadoApi.js';
+import { urlDaApi } from '../services/api.js';
 import { ENTREGAS, TRANSPORTES } from '../services/meusAnuncios.js';
 import { useSessao } from '../services/sessao.js';
 import { ouvir } from '../services/tempoReal.js';
@@ -103,6 +105,13 @@ function Conteudo({ anuncio: inicial }) {
   }), [anuncio.id]);
 
   // reservado ou liberado pelo vendedor enquanto a página está aberta
+  // o vendedor mudou nome ou foto: troca na hora
+  useEffect(() => ouvir('perfil_atualizado', ({ id, nome, foto_url: foto }) => {
+    setAnuncio((a) => (a?.vendedor && Number(a.vendedor.id) === Number(id)
+      ? { ...a, vendedor: { ...a.vendedor, nome, foto_url: urlDaApi(foto), iniciais: iniciais(nome) } }
+      : a));
+  }), []);
+
   useEffect(() => ouvir('anuncio_atualizado', ({ id, status }) => {
     if (id === anuncio.id && status) setAnuncio((a) => ({ ...a, status }));
   }), [anuncio.id]);
@@ -196,6 +205,7 @@ function Conteudo({ anuncio: inicial }) {
                   </Link>
                 )}
                 <Link className="det-btn" to="/meus-anuncios">Ver meus anúncios</Link>
+                <CompartilharAnuncio anuncio={anuncio} onAviso={avisar} />
               </>
             ) : (
               <>
@@ -206,6 +216,7 @@ function Conteudo({ anuncio: inicial }) {
                   <Icone nome="favorito" tamanho={21} cor="#3E8B22" preenchimento={anuncio.favoritado ? '#3E8B22' : 'none'} />
                   {anuncio.favoritado ? 'Salvo nos favoritos' : 'Favoritar'}
                 </button>
+                <CompartilharAnuncio anuncio={anuncio} onAviso={avisar} />
               </>
             )}
           </section>

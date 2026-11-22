@@ -6,6 +6,7 @@ import { Server } from 'socket.io'
 import { env } from './config/env.js'
 import { listarParceirosDeConversa, marcarComoLidas, participantesDaConversa, salvarMensagem, marcarComoEntregues } from './models/mensagemModel.js'
 import * as usuarioModel from './models/usuarioModel.js'
+import { avisarMensagemNova } from './services/notificacaoService.js'
 import { registrar } from './utils/log.js'
 import { usuarioDoCookie } from './middlewares/autenticacao.js'
 import { lerId } from './utils/validacao.js'
@@ -16,6 +17,15 @@ const ultimoRegistroDeAcesso = new Map() // id -> ms do último UPDATE de ultimo
 const REGISTRO_DE_ACESSO_MS = 60 * 1000
 
 export const estaOnline = (usuarioId) => (conexoesPorUsuario.get(Number(usuarioId)) ?? 0) > 0
+
+// a pessoa está olhando o site agora (alguma aba dela está na tela)? Quem está não recebe a
+// notificação de mensagem no aparelho, porque a mensagem já aparece no site
+export function estaComOSiteNaTela(usuarioId) {
+  const sala = io?.sockets.adapter.rooms.get(`usuario:${usuarioId}`)
+  if (!sala) return false
+  for (const id of sala) if (io.sockets.sockets.get(id)?.data.naTela) return true
+  return false
+}
 
 // limite simples por conexão: no máximo `maximo` eventos a cada `janelaMs`
 function criarLimitador(maximo, janelaMs) {
@@ -93,6 +103,12 @@ export function iniciarSocket(servidor) {
     const podeMandarMensagem = criarLimitador(20, 10_000)
     const podeAvisarDigitando = criarLimitador(30, 10_000)
     const podeMarcarLidas = criarLimitador(60, 10_000)
+    const podeAvisarTela = criarLimitador(30, 10_000)
+
+    // a aba avisa quando aparece ou some da tela (trocou de aba, minimizou, bloqueou o celular)
+    socket.on('na_tela', (naTela) => {
+      if (podeAvisarTela()) socket.data.naTela = naTela === true
+    })
 
     socket.on('enviar_mensagem', async (dados, responder) => {
       if (typeof responder !== 'function') return
@@ -101,6 +117,7 @@ export function iniciarSocket(servidor) {
         const resultado = await salvarMensagem(dados?.conversa_id, usuarioId, dados?.texto)
         await marcarEntregueSeOnline(resultado.mensagem, resultado.participantes)
         avisarUsuarios(resultado.participantes, 'nova_mensagem', resultado.mensagem)
+        avisarMensagemNova(resultado.mensagem, resultado.participantes) // notificação no aparelho de quem não está no site
         responder({ ok: true, mensagem: resultado.mensagem })
       } catch (erro) {
         if (!(erro.status < 500)) console.error('Erro ao enviar mensagem pelo socket:', erro)

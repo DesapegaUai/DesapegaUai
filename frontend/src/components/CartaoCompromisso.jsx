@@ -5,6 +5,7 @@ import { buscarComparecimento, responderComparecimento } from '../services/merca
 /**
  * Depois da venda, cada lado da conversa diz se o outro apareceu no combinado.
  * A resposta entra na taxa de compromisso do perfil da outra pessoa; quem respondeu não aparece.
+ * Depois de responder, a caixa some da conversa.
  */
 export default function CartaoCompromisso({ conversa, onRespondido }) {
   const [estado, setEstado] = useState({ carregando: true, resposta: null, erro: null });
@@ -34,20 +35,8 @@ export default function CartaoCompromisso({ conversa, onRespondido }) {
 
   if (estado.carregando) return null;
 
-  if (estado.resposta) {
-    return (
-      <div className="aval-cartao feita">
-        <div className="aval-topo">
-          <span className="aval-icone ok"><Icone nome="check" tamanho={22} cor="#fff" espessura={2.2} /></span>
-          <div>
-            <h3>Compromisso registrado</h3>
-            <p>Você informou que {primeiroNome} {estado.resposta.compareceu ? 'compareceu ao combinado' : 'não apareceu no combinado'}.</p>
-          </div>
-        </div>
-        <p className="aval-aviso">A resposta entra na taxa de compromisso do perfil de {primeiroNome}, sem mostrar quem respondeu.</p>
-      </div>
-    );
-  }
+  // depois de responder, a caixa some da conversa (o aviso "Resposta registrada" confirma)
+  if (estado.resposta) return null;
 
   return (
     <div className="aval-cartao" role="group" aria-label={`${primeiroNome} compareceu ao combinado?`}>

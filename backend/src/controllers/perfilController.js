@@ -11,11 +11,18 @@ import { erroHttp } from '../utils/erroHttp.js'
 import { apagarCookieDeLogin } from '../utils/token.js'
 import { lerTexto } from '../utils/validacao.js'
 import { caminhoDaFotoDePerfil, pastaDoPerfil } from '../utils/fotos.js'
+import { publicarParaTodos } from '../socket.js'
 
 const FORMATOS_DE_FOTO = ['jpeg', 'png', 'webp']
 const MAXIMO_DE_PIXELS = 40_000_000
 
 // GET /api/perfil
+// nome e foto são públicos (aparecem no perfil, nos anúncios, nas avaliações e no chat): quem mudou
+// avisa todo mundo com o site aberto, e cada tela troca na hora, sem ficar com o dado antigo
+function avisarQuePerfilMudou(perfil) {
+  publicarParaTodos('perfil_atualizado', { id: perfil.id, nome: perfil.nome, foto_url: perfil.foto_url ?? null })
+}
+
 export async function verPerfil(req, res) {
   const perfil = await usuarioModel.buscarPerfil(req.usuario.id)
   if (!perfil) throw erroHttp(404, 'Usuário não encontrado.')
@@ -38,7 +45,9 @@ export async function editarPerfil(req, res) {
   const bio = 'bio' in corpo ? lerTexto(corpo.bio, 'bio', { max: 300 }) : atual.bio
 
   await usuarioModel.atualizarPerfil(req.usuario.id, { nome, telefone, bio })
-  res.json(await usuarioModel.buscarPerfil(req.usuario.id))
+  const perfil = await usuarioModel.buscarPerfil(req.usuario.id)
+  avisarQuePerfilMudou(perfil)
+  res.json(perfil)
 }
 
 // PUT /api/perfil/foto: a foto de perfil é independente da imagem da conta Google.
@@ -92,7 +101,9 @@ export async function atualizarFoto(req, res) {
     await apagarDoDisco(caminhoDaFotoDePerfil(usuarioId, anterior[2]), { tipo: 'foto_perfil', usuario_id: usuarioId })
   }
 
-  res.json(await usuarioModel.buscarPerfil(usuarioId))
+  const perfil = await usuarioModel.buscarPerfil(usuarioId)
+  avisarQuePerfilMudou(perfil)
+  res.json(perfil)
 }
 
 // DELETE /api/perfil/foto: volta a exibir as iniciais e apaga uploads próprios.
@@ -108,7 +119,9 @@ export async function removerFoto(req, res) {
     await apagarDoDisco(caminhoDaFotoDePerfil(usuarioId, anterior[2]), { tipo: 'foto_perfil', usuario_id: usuarioId })
   }
 
-  res.json(await usuarioModel.buscarPerfil(usuarioId))
+  const perfil = await usuarioModel.buscarPerfil(usuarioId)
+  avisarQuePerfilMudou(perfil)
+  res.json(perfil)
 }
 
 // DELETE /api/perfil  { confirmar: "EXCLUIR" }

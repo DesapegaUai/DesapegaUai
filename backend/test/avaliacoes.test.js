@@ -168,6 +168,21 @@ test('persiste a avaliação e envia atualização em tempo real às duas contas
   }
 })
 
+test('a avaliação mostra a foto atual de quem avaliou, lida do perfil na hora (nunca a foto antiga)', async () => {
+  const [avaliacao] = (await chamar('GET', '/avaliacoes/usuarios/3')).dados.avaliacoes
+  assert.ok(avaliacao, 'o teste anterior deixa uma avaliação para o usuário 3')
+  assert.ok('avaliador_foto' in avaliacao)
+  const [[antes]] = await db.query('SELECT foto_url FROM usuario WHERE id = ?', [avaliacao.avaliador_id])
+  try {
+    // quem avaliou coloca uma foto depois de avaliar
+    await db.query('UPDATE usuario SET foto_url = ? WHERE id = ?', ['/api/uploads/perfis/2/foto-nova.webp', avaliacao.avaliador_id])
+    const depois = (await chamar('GET', '/avaliacoes/usuarios/3')).dados.avaliacoes.find((a) => a.id === avaliacao.id)
+    assert.equal(depois.avaliador_foto, '/api/uploads/perfis/2/foto-nova.webp')
+  } finally {
+    await db.query('UPDATE usuario SET foto_url = ? WHERE id = ?', [antes.foto_url, avaliacao.avaliador_id])
+  }
+})
+
 test('impede nota inválida, avaliação antes da venda, outro usuário e duplicação', async () => {
   assert.equal((await chamar('POST', `/avaliacoes/conversas/${conversaAtiva}`, {
     cookie: comprador,

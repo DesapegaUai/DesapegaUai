@@ -10,6 +10,7 @@ import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { avisarUsuarios, estaOnline, marcarEntregueSeOnline } from '../socket.js'
+import { avisarMensagemNova } from '../services/notificacaoService.js'
 
 // POST /api/conversas (A2)
 export async function abrir(req, res) {
@@ -101,6 +102,7 @@ export async function enviarMensagem(req, res) {
     'nova_mensagem',
     resultado.mensagem,
   )
+  avisarMensagemNova(resultado.mensagem, resultado.participantes) // notificação no aparelho (não trava a resposta)
 
   res.status(201).json({
     mensagem: { ...resultado.mensagem, minha: true },
@@ -219,12 +221,18 @@ export async function enviarFotos(req, res) {
     } catch (erro) {
       await apagar(foto)
       // as fotos anteriores já foram enviadas: avisa o outro lado delas antes de devolver o erro
-      for (const mensagem of mensagens) avisarUsuarios(participantes, 'nova_mensagem', mensagem)
+      for (const mensagem of mensagens) {
+        avisarUsuarios(participantes, 'nova_mensagem', mensagem)
+        avisarMensagemNova(mensagem, participantes)
+      }
       throw erro
     }
   }
 
-  for (const mensagem of mensagens) avisarUsuarios(participantes, 'nova_mensagem', mensagem)
+  for (const mensagem of mensagens) {
+    avisarUsuarios(participantes, 'nova_mensagem', mensagem)
+    avisarMensagemNova(mensagem, participantes)
+  }
 
   res.status(201).json({
     mensagens: mensagens.map((mensagem) => ({ ...mensagem, minha: true })),

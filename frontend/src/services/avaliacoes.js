@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { api } from './api.js';
+import { api, urlDaApi } from './api.js';
 import { ouvir, quandoReconectar } from './tempoReal.js';
 
 const CHAVE_ANTIGA = 'desapegauai.avaliacoes.v1';
@@ -39,6 +39,8 @@ function normalizar(avaliacao) {
     conversa: avaliacao.conversa_id == null ? null : Number(avaliacao.conversa_id),
     avaliado_id: Number(avaliacao.avaliado_id),
     autor: avaliacao.avaliador_nome,
+    autorId: avaliacao.avaliador_id == null ? null : Number(avaliacao.avaliador_id),
+    autorFoto: urlDaApi(avaliacao.avaliador_foto),
     anuncio: avaliacao.anuncio_titulo,
     nota: Number(avaliacao.nota),
     qualidades: Array.isArray(avaliacao.qualidades) ? avaliacao.qualidades : [],
@@ -75,6 +77,13 @@ function assinar(ouvinte) {
   return () => ouvintes.delete(ouvinte);
 }
 
+// quem avaliou mudou o nome ou a foto: as avaliações dessa pessoa mostram o novo na hora
+function trocarAutor({ id, nome, foto_url: foto }) {
+  if (!cache.some((avaliacao) => avaliacao.autorId === Number(id))) return;
+  cache = cache.map((avaliacao) => (avaliacao.autorId === Number(id) ? { ...avaliacao, autor: nome, autorFoto: urlDaApi(foto) } : avaliacao));
+  avisar();
+}
+
 function ler() {
   return cache;
 }
@@ -84,8 +93,9 @@ export function useAvaliacoes() {
   const avaliacoes = useSyncExternalStore(assinar, ler);
   useEffect(() => {
     const pararNova = ouvir('nova_avaliacao', (avaliacao) => adicionar([avaliacao]));
+    const pararPerfil = ouvir('perfil_atualizado', trocarAutor);
     const pararReconexao = quandoReconectar(recarregarDepoisDeReconectar);
-    return () => { pararNova(); pararReconexao(); };
+    return () => { pararNova(); pararPerfil(); pararReconexao(); };
   }, []);
   return avaliacoes;
 }

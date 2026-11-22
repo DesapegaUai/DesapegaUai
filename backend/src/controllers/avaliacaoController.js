@@ -23,7 +23,9 @@ export async function listarUsuario(req, res) {
     avaliacoes: avaliacoes.map((avaliacao) => ({
       id: avaliacao.id,
       avaliado_id: avaliacao.avaliado_id,
+      avaliador_id: avaliacao.avaliador_id,
       avaliador_nome: avaliacao.avaliador_nome,
+      avaliador_foto: avaliacao.avaliador_foto,
       avaliado_nome: avaliacao.avaliado_nome,
       anuncio_titulo: avaliacao.anuncio_titulo,
       nota: avaliacao.nota,

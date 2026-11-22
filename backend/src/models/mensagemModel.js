@@ -192,6 +192,9 @@ export async function salvarMensagem(conversaId, usuarioId, texto, foto = null) 
     )
 
     const mensagem = formatarMensagem(mensagens[0])
+    // quem mandou: o aviso de mensagem nova mostra a foto e o nome (sem foto, as iniciais, como no perfil)
+    const [[remetente]] = await conexao.query('SELECT id, nome, foto_url FROM usuario WHERE id = ?', [usuarioId])
+    mensagem.remetente = { id: remetente.id, nome: remetente.nome, foto_url: remetente.foto_url ?? null }
 
     await conexao.query(
       'UPDATE conversa SET atualizada_em = ? WHERE id = ?',
