@@ -151,8 +151,8 @@ export default function PerfilPublico() {
               {notas.lista.map((a) => (
                 <li key={a.id}>
                   <div className="pub-aval-cab">
-                    <span className="pub-aval-av" aria-hidden="true">{a.autorFoto ? <img src={a.autorFoto} alt="" referrerPolicy="no-referrer" /> : a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>
-                    <span className="pub-aval-nm"><b>{a.autor}</b><small>{a.anuncio} · {a.quando}</small></span>
+                    {a.autorId ? <Link className="link-perfil" to={`/usuario/${a.autorId}`} tabIndex={-1} aria-hidden="true"><span className="pub-aval-av" aria-hidden="true">{a.autorFoto ? <img src={a.autorFoto} alt="" referrerPolicy="no-referrer" /> : a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span></Link> : <span className="pub-aval-av" aria-hidden="true">{a.autorFoto ? <img src={a.autorFoto} alt="" referrerPolicy="no-referrer" /> : a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>}
+                    <span className="pub-aval-nm"><b>{a.autorId ? <Link className="link-perfil" to={`/usuario/${a.autorId}`} title={`Ver o perfil de ${a.autor}`}>{a.autor}</Link> : a.autor}</b><small>{a.anuncio} · {a.quando}</small></span>
                     <Estrelas nota={a.nota} tamanho={14} /><span className="oculto">Nota {a.nota} de 5</span>
                   </div>
                   {a.qualidades.length > 0 && (
