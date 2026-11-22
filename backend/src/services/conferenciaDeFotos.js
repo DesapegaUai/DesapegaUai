@@ -1,4 +1,4 @@
-// Conferência das fotos: compara o que está no disco com o que está no banco.
+// Conferência das fotos (e dos vídeos do chat): compara o que está no disco com o que está no banco.
 // - arquivo sem registro (órfão): sobrou de uma exclusão em que o disco falhou, ou de um envio interrompido;
 // - registro sem arquivo: a foto apareceria quebrada no site.
 // Sem { corrigir: true } só conta e lista. Com ele, apaga os órfãos e acerta os registros.
@@ -14,6 +14,7 @@ import { registrar } from '../utils/log.js'
 const FOTO_DO_ANUNCIO = new RegExp(`^([a-f0-9]{32})-(${LARGURAS_FOTO.join('|')})\\.webp$`)
 const FOTO_DO_CHAT = new RegExp(`^([a-f0-9]{32})-(${LARGURAS_FOTO_DO_CHAT.join('|')})\\.webp$`)
 const FOTO_DE_PERFIL = /^[a-f0-9]{32}\.webp$/
+const VIDEO_DO_CHAT = /^[a-f0-9]{32}\.(mp4|webm|mov)$/
 const URL_DO_PERFIL = /^\/api\/uploads\/perfis\/(\d+)\/([a-f0-9]{32}\.webp)$/
 
 const listar = (pasta) => readdir(pasta, { withFileTypes: true }).catch(() => [])
@@ -107,7 +108,21 @@ export async function conferirFotos({ corrigir = false, idadeMinimaMs = 60 * 60 
     }
     relatorio.semArquivo.push({ tipo: 'foto_chat', id: mensagem.id, conversa_id: mensagem.conversa_id, corrigido: corrigir })
   }
-  await conferirPasta(PASTA_PRIVADA, path.join(PASTA_PRIVADA, 'conversas'), daConversa, (nome) => FOTO_DO_CHAT.test(nome), 'pasta de conversa')
+  // vídeos do chat (um arquivo por mensagem, com a extensão)
+  const [comVideo] = await db.query('SELECT id, conversa_id, video, texto FROM mensagem WHERE video IS NOT NULL')
+  for (const mensagem of comVideo) {
+    relatorio.registros += 1
+    daConversa.get(mensagem.conversa_id)?.add(mensagem.video)
+    if (await existe(path.join(PASTA_PRIVADA, 'conversas', String(mensagem.conversa_id), mensagem.video))) continue
+    if (corrigir) {
+      // mensagem só com o vídeo some; com texto, fica o texto
+      if (mensagem.texto.trim() === '') await db.query('DELETE FROM mensagem WHERE id = ?', [mensagem.id])
+      else await db.query('UPDATE mensagem SET video = NULL WHERE id = ?', [mensagem.id])
+      daConversa.get(mensagem.conversa_id)?.delete(mensagem.video)
+    }
+    relatorio.semArquivo.push({ tipo: 'video_chat', id: mensagem.id, conversa_id: mensagem.conversa_id, corrigido: corrigir })
+  }
+  await conferirPasta(PASTA_PRIVADA, path.join(PASTA_PRIVADA, 'conversas'), daConversa, (nome) => FOTO_DO_CHAT.test(nome) || VIDEO_DO_CHAT.test(nome), 'pasta de conversa')
 
   registrar('fotos.conferencia', { arquivos: relatorio.arquivos, registros: relatorio.registros, orfaos: relatorio.orfaos.length, sem_arquivo: relatorio.semArquivo.length, corrigir })
   return relatorio

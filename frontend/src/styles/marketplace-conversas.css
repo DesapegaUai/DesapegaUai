@@ -311,3 +311,14 @@
 @media (max-width: 600px) {
   .emoji-painel emoji-picker { height: 330px; --num-columns: 7; --emoji-size: 1.5rem; }
 }
+
+/* Vídeo no chat: na bolha, com os controles do próprio navegador; na prévia, com um triângulo de "play" */
+.bolha-video { display: block; width: 260px; max-width: 100%; max-height: 360px; border-radius: 12px; background: #000; }
+.anexo-item.video { position: relative; }
+.anexo-item.video video { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: #000; }
+.anexo-play { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: rgba(0, 0, 0, .55); pointer-events: none; }
+.anexo-play::after { content: ""; position: absolute; left: 10px; top: 7px; border-style: solid; border-width: 6px 0 6px 9px; border-color: transparent transparent transparent #fff; }
+.enviando-video { margin: 0 0 10px; font-size: 13.5px; color: var(--texto-2); }
+@media (max-width: 600px) {
+  .bolha-video { width: 220px; }
+}

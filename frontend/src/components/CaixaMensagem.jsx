@@ -13,7 +13,8 @@ let proximoId = 1;
 /**
  * Caixa de mensagem do chat:
  * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar]. As dicas de segurança ficam no escudo do topo da conversa.
- * - Anexos: fotos JPG, PNG ou WebP (até 5, 8 MB cada), com prévia antes de enviar. Também entram
+ * - Anexos: fotos JPG, PNG ou WebP (8 MB cada) e vídeos MP4, MOV ou WebM (25 MB cada), até 5 por
+ *   mensagem, com prévia antes de enviar. As fotos também entram
  *   colando um print (Ctrl+V) ou arrastando a imagem para cima da conversa.
  * - Câmera: tira uma foto na hora e ela entra nos anexos (mesmos limites).
  *   Computador: janela com a webcam ao vivo · celular/tablet: câmera do próprio aparelho.
@@ -158,15 +159,17 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
     const novos = [];
     escolhidos.forEach((arquivo) => {
       if (anexos.length + novos.length >= ANEXOS.maxArquivos) {
-        problemas.push(`no máximo ${ANEXOS.maxArquivos} fotos por mensagem`);
+        problemas.push(`no máximo ${ANEXOS.maxArquivos} fotos ou vídeos por mensagem`);
         return;
       }
-      if (!ANEXOS.tipos.includes(arquivo.type)) {
-        problemas.push('só dá para mandar fotos JPG, PNG ou WebP');
+      const ehVideo = ANEXOS.tiposDeVideo.includes(arquivo.type);
+      if (!ehVideo && !ANEXOS.tipos.includes(arquivo.type)) {
+        problemas.push('só dá para mandar fotos (JPG, PNG ou WebP) e vídeos (MP4, MOV ou WebM)');
         return;
       }
-      if (arquivo.size > ANEXOS.maxBytes) {
-        problemas.push(`“${arquivo.name}” passa de ${formatarTamanho(ANEXOS.maxBytes)}`);
+      const limite = ehVideo ? ANEXOS.maxBytesVideo : ANEXOS.maxBytes;
+      if (arquivo.size > limite) {
+        problemas.push(`“${arquivo.name}” passa de ${formatarTamanho(limite)}`);
         return;
       }
       novos.push({
@@ -307,15 +310,24 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
       )}
 
       {erro && <p className="erro-anexo" role="alert">{erro}</p>}
+      {enviando && anexos.some((a) => a.tipo.startsWith('video/')) && (
+        <p className="enviando-video" role="status">Enviando o vídeo… pode levar alguns segundos.</p>
+      )}
 
       {anexos.length > 0 && (
         <ul className="anexos-previa" aria-label="Anexos para enviar">
           {anexos.map((a) => {
             const ehImagem = a.tipo.startsWith('image/');
+            const ehVideo = a.tipo.startsWith('video/');
             return (
-              <li key={a.id} className={`anexo-item${ehImagem ? ' imagem' : ''}`}>
+              <li key={a.id} className={`anexo-item${ehImagem || ehVideo ? ' imagem' : ''}${ehVideo ? ' video' : ''}`}>
                 {ehImagem ? (
                   <img src={a.url} alt={a.nome} />
+                ) : ehVideo ? (
+                  <>
+                    <video src={`${a.url}#t=0.1`} muted playsInline preload="metadata" aria-label={`Vídeo ${a.nome}`} />
+                    <span className="anexo-play" aria-hidden="true" />
+                  </>
                 ) : (
                   <>
                     <span className="doc"><Icone nome="documento" tamanho={22} cor="#3E8B22" /></span>
@@ -346,7 +358,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
           type="button"
           className="circ"
           aria-label="Anexar foto"
-          title="Anexar foto (também dá para colar um print com Ctrl+V ou arrastar a imagem para a conversa)"
+          title="Anexar foto ou vídeo (também dá para colar um print com Ctrl+V ou arrastar para a conversa)"
           onClick={() => arquivoRef.current?.click()}
         >
           <Icone nome="clipe" tamanho={22} cor="#3E8B22" espessura={1.7} />

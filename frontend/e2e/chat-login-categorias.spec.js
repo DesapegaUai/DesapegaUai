@@ -272,6 +272,46 @@ test.describe('Foto no chat colando ou arrastando', () => {
   })
 })
 
+// começo de um MP4 (caixa ftyp "isom") e bytes quaisquer: o servidor confere que é vídeo pelo começo
+const VIDEO_MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom', 'latin1'), Buffer.alloc(12), Buffer.alloc(32 * 1024, 7)])
+
+test.describe('Vídeo no chat', () => {
+  test('anexar um vídeo mostra a prévia, envia com legenda e a outra pessoa recebe o vídeo na conversa', async ({ browser }) => {
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+    await vendedor.goto('/conversas/1')
+    await compradora.goto('/conversas/1')
+    await expect(vendedor.locator('.msgs')).toBeVisible()
+    const videosAntes = await vendedor.locator('.msgs video.bolha-video').count()
+
+    await compradora.locator('.composer input[type="file"]').first().setInputFiles({ name: 'produto.mp4', mimeType: 'video/mp4', buffer: VIDEO_MP4 })
+    const previa = compradora.getByRole('list', { name: 'Anexos para enviar' })
+    await expect(previa.locator('li.video video')).toHaveCount(1)
+    const legenda = `Olha ele funcionando ${Date.now()}`
+    await compradora.getByRole('textbox').last().fill(legenda)
+    await compradora.getByRole('button', { name: 'Enviar mensagem' }).click()
+    await expect(previa).toHaveCount(0)
+
+    await expect(vendedor.locator('.msgs video.bolha-video')).toHaveCount(videosAntes + 1)
+    await expect(vendedor.locator('.msgs').getByText(legenda)).toBeVisible()
+    await expect(vendedor.locator('.msgs video.bolha-video').last()).toHaveAttribute('src', /\/api\/conversas\/1\/videos\/[a-f0-9]{32}\.mp4#t=0\.1$/)
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+
+  test('arquivo que não é foto nem vídeo não entra nos anexos', async ({ page }) => {
+    await entrarComo(page, 2)
+    await page.goto('/conversas/1')
+    await page.locator('.composer input[type="file"]').first().setInputFiles({ name: 'planilha.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') })
+    await expect(page.getByRole('alert')).toContainText('só dá para mandar fotos (JPG, PNG ou WebP) e vídeos (MP4, MOV ou WebM)')
+  })
+})
+
 test.describe('Emojis no chat', () => {
   test('o painel tem todos os emojis por categoria, busca em português e põe o emoji escolhido na mensagem', async ({ page }) => {
     const erros = vigiarErros(page)

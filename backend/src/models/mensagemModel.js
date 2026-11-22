@@ -1,6 +1,6 @@
 import { db } from '../config/db.js'
 import { erroHttp } from '../utils/erroHttp.js'
-import { formatarFotoDoChat } from '../utils/fotos.js'
+import { formatarFotoDoChat, formatarVideoDoChat } from '../utils/fotos.js'
 import { lerId, lerTexto } from '../utils/validacao.js'
 
 // Editar e "apagar para todos" seguem os prazos do WhatsApp
@@ -16,6 +16,7 @@ export function formatarMensagem(m) {
     remetente_id: m.remetente_id,
     texto: apagada ? '' : m.texto,
     foto: apagada ? null : formatarFotoDoChat(m.conversa_id, m.foto),
+    video: apagada ? null : formatarVideoDoChat(m.conversa_id, m.video),
     enviada_em: m.enviada_em,
     lida: Boolean(m.lida),
     // dois tiques cinza: chegou no aparelho da outra pessoa; lida também conta como entregue
@@ -74,7 +75,7 @@ export async function buscarMensagens(conversaId, usuarioId) {
 
     // as que a pessoa apagou só para ela não voltam
     const [mensagens] = await conexao.query(
-      `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em
+      `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.video, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em
        FROM mensagem m
        WHERE m.conversa_id = ?
          AND NOT EXISTS (SELECT 1 FROM mensagem_oculta o WHERE o.mensagem_id = m.id AND o.usuario_id = ?)
@@ -135,13 +136,13 @@ export async function buscarMensagens(conversaId, usuarioId) {
 
 // `foto` é o nome do arquivo já gravado em disco (só o envio de fotos passa). Com foto, o texto é
 // opcional e vira a legenda; sem foto, o texto é obrigatório.
-export async function salvarMensagem(conversaId, usuarioId, texto, foto = null) {
+export async function salvarMensagem(conversaId, usuarioId, texto, foto = null, video = null) {
   // Essas validações também são usadas pelo Socket.IO.
   conversaId = lerId(conversaId, 'id da conversa')
 
   texto = lerTexto(texto, 'texto', {
-    obrigatorio: !foto,
-    min: foto ? 0 : 1,
+    obrigatorio: !foto && !video,
+    min: foto || video ? 0 : 1,
     max: 1000,
   }) ?? ''
 
@@ -179,13 +180,13 @@ export async function salvarMensagem(conversaId, usuarioId, texto, foto = null) 
     }
 
     const [resultado] = await conexao.query(
-      `INSERT INTO mensagem (conversa_id, remetente_id, texto, foto)
-       VALUES (?, ?, ?, ?)`,
-      [conversaId, usuarioId, texto, foto],
+      `INSERT INTO mensagem (conversa_id, remetente_id, texto, foto, video)
+       VALUES (?, ?, ?, ?, ?)`,
+      [conversaId, usuarioId, texto, foto, video],
     )
 
     const [mensagens] = await conexao.query(
-      `SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, entregue_em, editada_em, apagada_em
+      `SELECT id, conversa_id, remetente_id, texto, foto, video, enviada_em, lida, entregue_em, editada_em, apagada_em
        FROM mensagem
        WHERE id = ?`,
       [resultado.insertId],
@@ -264,7 +265,7 @@ export async function idsDasConversasDoAnuncio(anuncioId) {
 // participa. Bloqueia a linha (FOR UPDATE) para dois pedidos não mexerem na mesma mensagem ao mesmo tempo.
 async function mensagemDaConversa(conexao, conversaId, mensagemId, usuarioId) {
   const [linhas] = await conexao.query(
-    `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em,
+    `SELECT m.id, m.conversa_id, m.remetente_id, m.texto, m.foto, m.video, m.enviada_em, m.lida, m.entregue_em, m.editada_em, m.apagada_em,
             TIMESTAMPDIFF(SECOND, m.enviada_em, NOW()) AS idade_s, c.comprador_id, a.usuario_id AS vendedor_id
        FROM conversa c
        JOIN anuncio a ON a.id = c.anuncio_id
@@ -296,7 +297,7 @@ async function naTransacao(trabalho) {
   }
 }
 
-const SELECIONAR_MENSAGEM = 'SELECT id, conversa_id, remetente_id, texto, foto, enviada_em, lida, entregue_em, editada_em, apagada_em FROM mensagem WHERE id = ?'
+const SELECIONAR_MENSAGEM = 'SELECT id, conversa_id, remetente_id, texto, foto, video, enviada_em, lida, entregue_em, editada_em, apagada_em FROM mensagem WHERE id = ?'
 
 // PATCH: só quem enviou, até 15 minutos depois. Mensagem com foto pode ficar sem legenda.
 export async function editarMensagem(conversaId, mensagemId, usuarioId, texto) {
@@ -307,7 +308,7 @@ export async function editarMensagem(conversaId, mensagemId, usuarioId, texto) {
     if (mensagem.remetente_id !== usuarioId) throw erroHttp(403, 'Só quem enviou pode editar a mensagem.')
     if (mensagem.apagada_em) throw erroHttp(409, 'Esta mensagem foi apagada.')
     if (mensagem.idade_s > PRAZO_PARA_EDITAR_S) throw erroHttp(409, 'Só dá para editar até 15 minutos depois de enviar.')
-    const novo = lerTexto(texto, 'texto', { obrigatorio: !mensagem.foto, min: mensagem.foto ? 0 : 1, max: 1000 }) ?? ''
+    const novo = lerTexto(texto, 'texto', { obrigatorio: !mensagem.foto && !mensagem.video, min: mensagem.foto || mensagem.video ? 0 : 1, max: 1000 }) ?? ''
     if (novo !== mensagem.texto) {
       await conexao.query('UPDATE mensagem SET texto = ?, editada_em = NOW() WHERE id = ?', [novo, mensagemId])
     }
@@ -329,10 +330,10 @@ export async function apagarParaTodos(conversaId, mensagemId, usuarioId) {
       if (mensagem.idade_s > PRAZO_PARA_APAGAR_PARA_TODOS_S) {
         throw erroHttp(409, 'Só dá para apagar para todos até 2 dias depois de enviar. Você ainda pode apagar só para você.')
       }
-      await conexao.query("UPDATE mensagem SET texto = '', foto = NULL, apagada_em = NOW() WHERE id = ?", [mensagemId])
+      await conexao.query("UPDATE mensagem SET texto = '', foto = NULL, video = NULL, apagada_em = NOW() WHERE id = ?", [mensagemId])
     }
     const [[atual]] = await conexao.query(SELECIONAR_MENSAGEM, [mensagemId])
-    return { mensagem: formatarMensagem(atual), participantes, fotoAntiga: jaApagada ? null : mensagem.foto }
+    return { mensagem: formatarMensagem(atual), participantes, fotoAntiga: jaApagada ? null : mensagem.foto, videoAntigo: jaApagada ? null : mensagem.video }
   })
 }
 

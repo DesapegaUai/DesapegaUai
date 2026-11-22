@@ -95,6 +95,20 @@ export function caminhoDoArquivoDoChat(conversaId, arquivo) {
   return caminhoDaFotoDoChat(conversaId, partes[1], Number(partes[2]))
 }
 
+// vídeos do chat: "<32 letras e números>.<mp4|webm|mov>", na mesma pasta privada das fotos da conversa
+const VIDEO_DO_CHAT = /^[a-f0-9]{32}\.(mp4|webm|mov)$/
+
+export function caminhoDoVideoDoChat(conversaId, video) {
+  if (typeof video !== 'string' || !VIDEO_DO_CHAT.test(video)) return null
+  return path.join(pastaDaConversa(conversaId), video)
+}
+
+// { url, tipo }, ou null quando a mensagem não tem vídeo
+export function formatarVideoDoChat(conversaId, video) {
+  if (!video) return null
+  return { url: `/api/conversas/${conferirId(conversaId)}/videos/${video}` }
+}
+
 // { pequena, grande }, ou null quando a mensagem não tem foto
 export function formatarFotoDoChat(conversaId, foto) {
   if (!foto) return null

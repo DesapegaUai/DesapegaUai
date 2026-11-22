@@ -5,7 +5,7 @@ import { access, mkdir, rm, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import { abrirConversa, listarConversas, contarConversasNaoLidas, ocultarConversa } from '../models/conversaModel.js'
 import { erroHttp } from '../utils/erroHttp.js'
-import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, pastaDaConversa } from '../utils/fotos.js'
+import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, caminhoDoVideoDoChat, pastaDaConversa } from '../utils/fotos.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
@@ -141,8 +141,78 @@ export async function apagarMensagem(req, res) {
       })
     }
   }
+  if (resultado.videoAntigo) {
+    const caminho = caminhoDoVideoDoChat(resultado.mensagem.conversa_id, resultado.videoAntigo)
+    if (caminho) await apagarDoDisco(caminho, { tipo: 'video_chat', conversa_id: resultado.mensagem.conversa_id, mensagem_id: resultado.mensagem.id })
+  }
   avisarUsuarios(resultado.participantes, 'mensagem_apagada', resultado.mensagem)
   res.json({ mensagem: { ...resultado.mensagem, minha: true } })
+}
+
+// ---------------------------------------------------------------- vídeo no chat
+
+// Descobre pelo começo do arquivo se é mesmo um vídeo (não confia no nome nem no tipo que o navegador
+// mandou). MP4 e MOV começam com uma "caixa" (ftyp, moov...) nos bytes 4 a 8; WebM começa com 1A 45 DF A3.
+// Devolve a extensão para guardar, ou null se não for vídeo.
+function extensaoDoVideo(buffer) {
+  if (!buffer || buffer.length < 12) return null
+  if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return 'webm'
+  const caixa = buffer.toString('latin1', 4, 8)
+  if (caixa === 'ftyp') return buffer.toString('latin1', 8, 12) === 'qt  ' ? 'mov' : 'mp4'
+  if (['moov', 'wide', 'free', 'mdat', 'skip'].includes(caixa)) return 'mov' // QuickTime antigo, sem ftyp
+  return null
+}
+
+// POST /api/conversas/:id/videos (multipart: video = um MP4, MOV ou WebM de até 25 MB, texto = legenda opcional)
+export async function enviarVideo(req, res) {
+  const conversaId = lerId(req.params.id, 'id da conversa')
+  const usuarioId = req.usuario.id
+  if (!req.file) throw erroHttp(400, 'Envie o vídeo no campo video.')
+  const legenda = lerTexto(req.body?.texto, 'texto', { max: 1000 })
+  await exigirParticipante(conversaId, usuarioId)
+
+  const extensao = extensaoDoVideo(req.file.buffer)
+  if (!extensao) throw erroHttp(400, 'O arquivo não é um vídeo válido. Envie um vídeo MP4, MOV ou WebM.')
+
+  const arquivo = `${randomUUID().replaceAll('-', '')}.${extensao}`
+  const caminho = caminhoDoVideoDoChat(conversaId, arquivo)
+  await mkdir(pastaDaConversa(conversaId), { recursive: true })
+  await writeFile(caminho, req.file.buffer)
+
+  let resultado
+  try {
+    resultado = await salvarMensagem(conversaId, usuarioId, legenda, null, arquivo)
+  } catch (erro) {
+    await rm(caminho, { force: true }).catch(() => {})
+    throw erro
+  }
+
+  await marcarEntregueSeOnline(resultado.mensagem, resultado.participantes)
+  avisarUsuarios(resultado.participantes, 'nova_mensagem', resultado.mensagem)
+  avisarMensagemNova(resultado.mensagem, resultado.participantes)
+  res.status(201).json({ mensagem: { ...resultado.mensagem, minha: true } })
+}
+
+const TIPO_DO_VIDEO = { mp4: 'video/mp4', webm: 'video/webm', mov: 'video/mp4' } // MOV é da mesma família do MP4: assim toca também no Chrome
+
+// GET /api/conversas/:id/videos/:arquivo (só quem participa). O sendFile atende pedidos de pedaço
+// (Range), e é isso que deixa avançar o vídeo sem baixar tudo, inclusive no iPhone.
+export async function verVideo(req, res) {
+  const conversaId = lerId(req.params.id, 'id da conversa')
+  await exigirParticipante(conversaId, req.usuario.id)
+
+  const caminho = caminhoDoVideoDoChat(conversaId, req.params.arquivo)
+  if (!caminho) throw erroHttp(404, 'Vídeo não encontrado.')
+  try {
+    await access(caminho)
+  } catch {
+    throw erroHttp(404, 'Vídeo não encontrado.')
+  }
+
+  res.set('Cache-Control', 'private, max-age=2592000, immutable')
+  res.set('Cross-Origin-Resource-Policy', 'same-site')
+  res.type(TIPO_DO_VIDEO[req.params.arquivo.split('.').pop()])
+  res.sendFile(caminho)
 }
 
 // ---------------------------------------------------------------- fotos no chat

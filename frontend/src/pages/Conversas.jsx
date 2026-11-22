@@ -13,7 +13,7 @@ import { lerArquivadas, salvarArquivadas, posicaoDoMenu } from '../services/conv
 import { carregarMinhasAvaliacoes, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { formatarPreco } from '../services/formatar.js';
 import {
-  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
+  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, enviarVideoPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
 } from '../services/mercadoApi.js';
 import { urlDaApi } from '../services/api.js';
 import { useSessao } from '../services/sessao.js';
@@ -34,7 +34,7 @@ function previa(conversa) {
   const ultima = conversa.mensagens.at(-1);
   if (!ultima) return 'Conversa iniciada';
   if (ultima.apagada) return ultima.autor === 'eu' ? 'Você apagou esta mensagem' : 'Mensagem apagada';
-  const texto = ultima.texto || (ultima.temFoto ? '📷 Foto' : '');
+  const texto = ultima.texto || (ultima.temFoto ? '📷 Foto' : ultima.temVideo ? '🎥 Vídeo' : '');
   return ultima.autor === 'eu' ? `Você: ${texto}` : texto;
 }
 
@@ -400,8 +400,14 @@ export default function Conversas() {
     try {
       let enviadas;
       if (anexos.length > 0) {
-        // fotos vão pela API (arquivo não passa pelo Socket.IO); o texto vira a legenda da última
-        enviadas = (await enviarFotosPelaApi(selecionada.id, anexos.map((a) => a.arquivo), texto)).mensagens;
+        // fotos e vídeos vão pela API (arquivo não passa pelo Socket.IO); o texto vira a legenda do último
+        const fotos = anexos.filter((a) => !a.tipo.startsWith('video/'));
+        const videos = anexos.filter((a) => a.tipo.startsWith('video/'));
+        enviadas = [];
+        if (fotos.length) enviadas.push(...(await enviarFotosPelaApi(selecionada.id, fotos.map((a) => a.arquivo), videos.length ? '' : texto)).mensagens);
+        for (const [i, video] of videos.entries()) {
+          enviadas.push((await enviarVideoPelaApi(selecionada.id, video.arquivo, i === videos.length - 1 ? texto : '')).mensagem);
+        }
       } else {
         try {
           enviadas = [(await emitir('enviar_mensagem', { conversa_id: selecionada.id, texto })).mensagem];
@@ -591,7 +597,7 @@ export default function Conversas() {
                       role="button"
                       tabIndex={0}
                       aria-haspopup="menu"
-                      aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || 'Foto'}. Abrir opções da mensagem`}
+                      aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || (m.video ? 'Vídeo' : 'Foto')}. Abrir opções da mensagem`}
                       onClick={(e) => abrirMenuDaMensagem(e, m)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirMenuDaMensagem(e, m); } }}
                     >
@@ -601,6 +607,12 @@ export default function Conversas() {
                           <a className="bolha-img" href={m.foto.grande} target="_blank" rel="noreferrer" aria-label="Abrir a foto em tamanho grande">
                             <img src={m.foto.pequena} alt={m.texto ? `Foto: ${m.texto}` : 'Foto enviada na conversa'} width="240" height="240" />
                           </a>
+                        </div>
+                      )}
+                      {m.video && (
+                        <div className="bolha-anexos">
+                          {/* tocar no vídeo não abre o menu da mensagem; o #t=0.1 mostra o primeiro quadro no iPhone */}
+                          <video className="bolha-video" src={`${m.video.url}#t=0.1`} controls playsInline preload="metadata" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} aria-label="Vídeo enviado na conversa" />
                         </div>
                       )}
                       {m.texto && <p>{m.texto}</p>}
@@ -651,7 +663,7 @@ export default function Conversas() {
             )}
             <CaixaMensagem
               key={`${selecionada.id}-${editando?.id ?? 'nova'}`}
-              edicao={editando ? { texto: editando.texto, temFoto: editando.temFoto } : null}
+              edicao={editando ? { texto: editando.texto, temFoto: editando.temFoto || editando.temVideo } : null}
               onCancelarEdicao={() => setEditando(null)}
               nomeContato={selecionada.nome}
               onEnviar={enviar}
