@@ -301,52 +301,84 @@
 @media (max-width: 600px) {
 }
 
-/* Balões das mensagens no estilo do WhatsApp: verde clarinho (as minhas) e branco (as da outra pessoa),
-   no fundo bege; justos ao texto, cantos pouco redondos, a "pontinha" só na primeira de uma sequência da
-   mesma pessoa, e o horário e os tiques na mesma linha do texto, no canto. Foto e vídeo ocupam o balão,
-   com borda fininha, e sem legenda o horário fica por cima da imagem. */
-.msgs { background: #EFEAE2; }
-.dia { display: flex; justify-content: center; padding: 8px 0; }
-.dia span { font-family: inherit; font-weight: 600; font-size: 12.5px; line-height: 1; color: #54656F; background: #fff; border-radius: 8px; padding: 6px 12px; box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13); }
+/* Balões das mensagens com visual de iPhone, no verde do DesapegaUai: fundo branco liso, as minhas
+   mensagens em verde com letra branca e as da outra pessoa em cinza claro; balões bem redondos, com o
+   "rabinho" só na última mensagem de cada sequência; horário e tiques pequenos no canto. Foto e vídeo
+   sem legenda aparecem sem moldura, só a imagem com cantos redondos. */
+.msgs { background: #fff; }
+.dia { display: flex; justify-content: center; padding: 10px 0 6px; }
+.dia span { font-family: inherit; font-weight: 600; font-size: 12px; line-height: 1; color: #8E8E93; }
 .linha-msg { display: flex; justify-content: flex-start; padding-top: 2px; }
 .linha-msg.primeira { padding-top: 10px; }
 .linha-msg.eu { justify-content: flex-end; }
-.bolha { position: relative; max-width: 72%; min-width: 0; background: #fff; border-radius: 8px; padding: 6px 8px 7px 10px; box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13); }
-.linha-msg.eu .bolha { background: #D9FDD3; }
-.linha-msg.primeira .bolha { border-top-left-radius: 0; }
-.linha-msg.eu.primeira .bolha { border-top-left-radius: 8px; border-top-right-radius: 0; }
-.bolha p { font-family: inherit; font-weight: 400; font-size: 15px; line-height: 1.4; color: #111B21; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bolha { position: relative; max-width: 72%; min-width: 0; background: #E9E9EB; border-radius: 18px; padding: 7px 12px 8px; }
+.linha-msg.eu .bolha { background: var(--marca); }
+.bolha p { font-family: inherit; font-weight: 400; font-size: 15.5px; line-height: 1.34; color: #000; white-space: pre-wrap; overflow-wrap: anywhere; }
+.linha-msg.eu .bolha p { color: #fff; }
+/* o "rabinho" do iPhone: um pedaço da cor do balão e outro da cor do fundo, por cima, recortando a curva */
+.linha-msg.ultima .bolha:not(.so-midia):not(.apagada)::before,
+.linha-msg.ultima .bolha:not(.so-midia):not(.apagada)::after { content: ""; position: absolute; bottom: 0; height: 20px; }
+.linha-msg.ultima .bolha:not(.so-midia):not(.apagada)::before { left: -7px; width: 20px; background: #E9E9EB; border-bottom-right-radius: 16px 14px; }
+.linha-msg.ultima .bolha:not(.so-midia):not(.apagada)::after { left: -26px; width: 26px; background: #fff; border-bottom-right-radius: 10px; }
+.linha-msg.eu.ultima .bolha:not(.so-midia):not(.apagada)::before { left: auto; right: -7px; background: var(--marca); border-bottom-right-radius: 0; border-bottom-left-radius: 16px 14px; }
+.linha-msg.eu.ultima .bolha:not(.so-midia):not(.apagada)::after { left: auto; right: -26px; border-bottom-right-radius: 0; border-bottom-left-radius: 10px; }
 /* espaço guardado no fim do texto para o horário (e os tiques) caberem na mesma linha */
-.bolha p::after { content: ""; display: inline-block; width: 44px; }
-.linha-msg.eu .bolha p::after { width: 66px; }
-.bolha.com-editada p::after { width: 92px; }
-.linha-msg.eu .bolha.com-editada p::after { width: 114px; }
-.bolha .meta { position: absolute; right: 8px; bottom: 5px; display: flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 400; font-size: 11px; line-height: 1; color: #667781; }
+.bolha p::after { content: ""; display: inline-block; width: 40px; }
+.linha-msg.eu .bolha p::after { width: 60px; }
+.bolha.com-editada p::after { width: 88px; }
+.linha-msg.eu .bolha.com-editada p::after { width: 108px; }
+.bolha .meta { position: absolute; right: 11px; bottom: 6px; display: flex; align-items: center; gap: 3px; font-family: inherit; font-weight: 400; font-size: 10.5px; line-height: 1; color: #8E8E93; }
+.linha-msg.eu .bolha .meta { color: rgba(255, 255, 255, .8); }
 .bolha .tiques { display: inline-flex; margin-right: -2px; }
 
 /* foto e vídeo */
 .bolha.midia { padding: 3px; }
 .bolha-anexos { display: block; }
-.bolha-img, .bolha-video-quadro { position: relative; display: block; width: 270px; max-width: 100%; border-radius: 6px; overflow: hidden; background: rgba(0, 0, 0, .08); }
+.bolha-img, .bolha-video-quadro { position: relative; display: block; width: 260px; max-width: 100%; border-radius: 15px; overflow: hidden; background: rgba(0, 0, 0, .08); }
 .bolha-img img { display: block; width: 100%; height: auto; max-height: 340px; object-fit: cover; }
-.bolha.midia p { padding: 4px 5px 3px 7px; }
-/* sem legenda: o horário fica por cima da imagem, em branco, com uma sombra embaixo */
-.bolha.so-midia .meta { right: 9px; bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); z-index: 1; pointer-events: none; }
-.bolha.so-midia .bolha-anexos::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 40px; border-radius: 0 0 6px 6px; background: linear-gradient(transparent, rgba(0, 0, 0, .38)); pointer-events: none; }
+.bolha.midia p { padding: 5px 9px 4px; }
+/* sem legenda: sem moldura, só a imagem com cantos redondos, e o horário por cima dela */
+.bolha.so-midia, .linha-msg.eu .bolha.so-midia { padding: 0; background: transparent; }
+.bolha.so-midia .bolha-img, .bolha.so-midia .bolha-video-quadro { border-radius: 18px; }
+.bolha.so-midia .meta, .linha-msg.eu .bolha.so-midia .meta { right: 11px; bottom: 9px; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); z-index: 1; pointer-events: none; }
+.bolha.so-midia .bolha-anexos { position: relative; }
+.bolha.so-midia .bolha-anexos::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 44px; border-radius: 0 0 18px 18px; background: linear-gradient(transparent, rgba(0, 0, 0, .35)); pointer-events: none; }
 .bolha.so-midia:has(.tocando) .meta, .bolha.so-midia:has(.tocando) .bolha-anexos::after { display: none; }
 .bolha-video { display: block; width: 100%; max-height: 380px; background: #000; }
-.video-play { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .48); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.video-play span { margin-left: 5px; border-style: solid; border-width: 12px 0 12px 19px; border-color: transparent transparent transparent #fff; }
-.video-play:hover { background: rgba(0, 0, 0, .6); }
-.video-play:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
-.video-duracao { position: absolute; left: 9px; bottom: 8px; z-index: 1; display: flex; align-items: center; gap: 5px; color: #fff; font-size: 12px; font-weight: 600; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); pointer-events: none; }
-.bolha:not(.so-midia) .video-duracao { bottom: 8px; }
+.video-play { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .88); box-shadow: 0 2px 10px rgba(0, 0, 0, .25); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.video-play span { margin-left: 5px; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent #1C1C1E; }
+.video-play:hover { background: #fff; }
+.video-play:focus-visible { outline: 3px solid var(--marca); outline-offset: 2px; }
+.video-duracao { position: absolute; left: 11px; bottom: 9px; z-index: 1; display: flex; align-items: center; gap: 5px; color: #fff; font-size: 12px; font-weight: 600; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); pointer-events: none; }
 
-/* apagada: o mesmo balão, com o aviso em itálico */
-.bolha.apagada .texto-apagada { font-style: italic; color: #667781; }
+/* apagada: sem cor, só o contorno e o aviso em itálico */
+.bolha.apagada, .linha-msg.eu .bolha.apagada { background: transparent; border: 1px solid #E5E5EA; }
+.bolha.apagada .texto-apagada, .linha-msg.eu .bolha.apagada .texto-apagada { font-style: italic; color: #8E8E93; }
+.linha-msg.eu .bolha.apagada .meta { color: #8E8E93; }
 
 @media (max-width: 600px) {
-  .bolha { max-width: 85%; }
-  .bolha p { font-size: 15.5px; }
-  .bolha-img, .bolha-video-quadro { width: 240px; }
+  .bolha { max-width: 80%; }
+  .bolha p { font-size: 16px; }
+  .bolha-img, .bolha-video-quadro { width: 230px; }
 }
+
+/* Celular: segurar a mensagem abre as opções; o navegador não seleciona o texto nem mostra o menu dele */
+@media (pointer: coarse) {
+  .bolha { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+}
+
+/* Opções da mensagem no celular, como no iPhone: a conversa fica desfocada, a mensagem escolhida fica em
+   destaque por cima e o menu vem arredondado, com o ícone à direita e "Apagar para todos" em vermelho */
+.menu-mensagem-fundo { position: fixed; inset: 0; z-index: 64; }
+@media (pointer: coarse) {
+  .menu-mensagem-fundo { background: rgba(255, 255, 255, .35); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .bolha.em-destaque { z-index: 65; transform: scale(1.03); box-shadow: 0 8px 24px rgba(0, 0, 0, .16); transition: transform .15s ease; }
+  .bolha.em-destaque::before, .bolha.em-destaque::after { display: none; }
+  .acoes-menu.menu-mensagem { width: 240px; padding: 0; border: 0; border-radius: 14px; background: rgba(242, 242, 247, .97); box-shadow: 0 10px 30px rgba(0, 0, 0, .22); overflow: hidden; }
+  .acoes-menu.menu-mensagem button { flex-direction: row-reverse; justify-content: space-between; min-height: 46px; padding: 0 16px; border-radius: 0; border-bottom: .5px solid #D1D1D6; font-weight: 500; font-size: 16px; }
+  .acoes-menu.menu-mensagem button:last-child { border-bottom: 0; }
+  .acoes-menu.menu-mensagem button:hover { background: rgba(0, 0, 0, .04); }
+  .acoes-menu.menu-mensagem .perigo:not(:disabled) { color: #FF3B30; }
+  .acoes-menu.menu-mensagem button:focus-visible { outline: none; background: rgba(0, 0, 0, .05); }
+}
+

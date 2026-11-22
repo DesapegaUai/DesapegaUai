@@ -78,6 +78,35 @@ test.describe('Mensagens do chat', () => {
   })
 })
 
+test.describe('Segurar a mensagem no celular', () => {
+  test('tocar rápido não abre nada; apertar e segurar abre Editar, Apagar para mim e Apagar para todos', async ({ page }) => {
+    await entrarComo(page, 2)
+    const texto = `Segura aqui ${Date.now()}`
+    expect((await page.request.post('/api/conversas/1/mensagens', { data: { texto } })).ok()).toBeTruthy()
+    await page.goto('/conversas/1')
+    const bolha = page.locator('.linha-msg.eu .bolha').filter({ hasText: texto })
+    await expect(bolha).toBeVisible()
+    const caixa = await bolha.boundingBox()
+    const dedo = { pointerType: 'touch', isPrimary: true, clientX: caixa.x + 20, clientY: caixa.y + 10, bubbles: true }
+    const menu = page.getByRole('menu', { name: 'Opções da mensagem' })
+
+    // toque rápido (como rolar ou só encostar): nada abre
+    await bolha.dispatchEvent('pointerdown', dedo)
+    await bolha.dispatchEvent('pointerup', dedo)
+    await bolha.dispatchEvent('click', dedo)
+    await page.waitForTimeout(700)
+    await expect(menu).toHaveCount(0)
+
+    // apertar e segurar: as opções aparecem
+    await bolha.dispatchEvent('pointerdown', dedo)
+    await page.waitForTimeout(700)
+    await expect(menu.getByRole('menuitem')).toHaveText(['Editar', 'Apagar para mim', 'Apagar para todos'])
+    await bolha.dispatchEvent('pointerup', dedo)
+    await bolha.dispatchEvent('click', dedo)
+    await expect(menu).toBeVisible() // soltar o dedo não fecha nem abre outra coisa
+  })
+})
+
 test.describe('Confirmação de leitura', () => {
   test('um tique enviada, dois quando a outra pessoa abre o site e dois azuis quando ela abre a conversa', async ({ browser }) => {
     const daCompradora = await browser.newContext()
