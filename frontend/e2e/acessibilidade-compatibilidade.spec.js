@@ -18,7 +18,7 @@ const rolagemLateral = (page) => page.evaluate(() => document.documentElement.sc
 
 test.beforeEach(async ({ page }) => {
   await semMapaDaInternet(page)
-  await page.route(/cdn\.jsdelivr\.net\/gh\/spbgovbr-vlibras\/.*vlibras-plugin\.js/, (rota) =>
+  await page.route(/vlibras\.gov\.br\/app\/vlibras-plugin\.js/, (rota) =>
     rota.fulfill({ status: 200, contentType: 'application/javascript', body: VLIBRAS_DE_MENTIRA }))
 })
 
@@ -65,5 +65,5 @@ test('o botão de Libras abre o VLibras', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Traduzir para Libras com o VLibras' }).click()
   await expect.poll(() => page.evaluate(() => window.__vlibras?.aberto)).toBe(true)
-  expect(await page.evaluate(() => window.__vlibras.opcoes.rootPath)).toMatch(/^https:\/\/cdn\.jsdelivr\.net\/gh\/spbgovbr-vlibras\//)
+  expect(await page.evaluate(() => window.__vlibras.opcoes.rootPath)).toBe('https://vlibras.gov.br/app')
 })

@@ -8,10 +8,9 @@ import './Acessibilidade.css'
 // O VLibras só é baixado quando alguém clica nele: quem não usa não carrega nada a mais.
 
 const CHAVE = 'desapegauai:acessibilidade'
-// Arquivos oficiais do VLibras. O endereço vlibras.gov.br/app redireciona para cá, e o Safari recusa
-// esse redirecionamento ao carregar os ícones do avatar; por isso o site aponta direto para a versão
-// para a qual o vlibras.gov.br aponta hoje. Para atualizar, troque o número da versão.
-const ENDERECO_VLIBRAS = 'https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/vlibras-portal@v7.12.3/app'
+// Endereço oficial do VLibras. Ele manda a maior parte dos arquivos para o jsDelivr, mas a página do
+// avatar precisa vir dele mesmo: o jsDelivr entrega páginas HTML como texto e o avatar não abre.
+const ENDERECO_VLIBRAS = 'https://vlibras.gov.br/app'
 const TAMANHOS = [100, 110, 120, 130] // % do tamanho normal
 const PADRAO = { texto: 0, contraste: false, links: false, semAnimacao: false }
 
@@ -79,6 +78,7 @@ function carregarVLibras() {
       script.async = true
       script.onload = () => {
         try {
+          vigiarIconesDoVLibras()
           new window.VLibras.Widget({ rootPath: ENDERECO_VLIBRAS, avatar: 'icaro', position: 'R' })
           if (window.VLibrasWidget?.open) ok(window.VLibrasWidget)
           else throw new Error('O VLibras não respondeu.')
@@ -96,6 +96,45 @@ function carregarVLibras() {
     })
   }
   return carregandoVLibras
+}
+
+// Safari: os ícones da barra do VLibras (fechar, menu, velocidade...) são máscaras CSS, e o Safari recusa
+// o redirecionamento do vlibras.gov.br para o jsDelivr. Os ícones passam a vir direto do jsDelivr, na versão
+// para a qual o vlibras.gov.br aponta hoje (os arquivos de uma versão nunca mudam).
+const ICONES_DO_VLIBRAS = 'https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/vlibras-portal@v7.12.3/app/assets/'
+
+// a janela do VLibras fica num shadow DOM; o Safari escreve o endereço com barras invertidas (https\:\/\/...)
+function trocarIcones(sombra) {
+  for (const elemento of sombra.querySelectorAll('[style]')) {
+    for (const propriedade of ['--icon', 'background-image']) {
+      const valor = elemento.style.getPropertyValue(propriedade).replaceAll('\\', '')
+      if (valor.includes(`${ENDERECO_VLIBRAS}/assets/`)) {
+        elemento.style.setProperty(propriedade, valor.replaceAll(`${ENDERECO_VLIBRAS}/assets/`, ICONES_DO_VLIBRAS))
+      }
+    }
+  }
+}
+
+let vigiandoIcones = false
+function vigiarIconesDoVLibras() {
+  if (vigiandoIcones) return
+  vigiandoIcones = true
+  const vigiarJanela = (janela) => {
+    const sombra = janela.shadowRoot
+    if (!sombra) return setTimeout(() => vigiarJanela(janela), 100)
+    trocarIcones(sombra)
+    new MutationObserver(() => trocarIcones(sombra)).observe(sombra, { subtree: true, childList: true, attributes: true, attributeFilter: ['style'] })
+  }
+  const janela = document.getElementById('vlibras-app-root')
+  if (janela) return vigiarJanela(janela)
+  // a janela do VLibras ainda não existe: espera ela aparecer
+  const espera = new MutationObserver(() => {
+    const criada = document.getElementById('vlibras-app-root')
+    if (!criada) return
+    espera.disconnect()
+    vigiarJanela(criada)
+  })
+  espera.observe(document.body, { subtree: true, childList: true })
 }
 
 // o próprio VLibras lembra se ficou aberto: se a pessoa recarregar a página, ele volta aberto
