@@ -12,6 +12,7 @@
 | **Tema** | Cidades Inteligentes |
 | **Local e data** | Viçosa – MG, novembro de 2026 |
 | **Repositório** | <https://github.com/DesapegaUai/DesapegaUai> |
+| **Site no ar** | <https://desapegauai.duckdns.org> |
 
 ## Identificação do projeto
 
@@ -236,10 +237,17 @@ Na Sprint 5, o grupo implementou o sistema, integrou o front-end à API e ao ban
 | 16 a 19/11/2026 | Telas de login, Home, categorias, favoritos, conversas e perfil; ligação entre as telas e avaliação do vendedor |
 | 20/11/2026 | Conversas, mensagens e chat em tempo real |
 | 21/11/2026 | Versão final: localização e mapa, notificações, fotos e denúncia no chat, perfil público do vendedor, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, ajustes de visual, testes e relatório |
+| 22/11/2026 | Publicação do sistema na internet, na AWS, e ajustes de visual encontrados no site publicado |
 
 **Arquitetura.** O sistema tem três partes: o front-end (site em React), a API (Node.js com Express) e o banco de dados MySQL. O site conversa com a API por pedidos HTTP e por uma conexão em tempo real (Socket.IO), usada no chat, nos avisos e na atualização dos anúncios. A API está documentada em `/api/docs`.
 
 **Banco de dados.** O modelo está em `backend/database/schema.sql`, com 20 tabelas: cidade, bairro, rua, usuario, categoria, subcategoria, anuncio, foto_anuncio, localizacao_anuncio, localizacao_usuario, preferencia_localizacao, favorito, conversa, mensagem, avaliacao, comparecimento, procura, denuncia, notificacao e inscricao_push. A base de locais reúne 142 cidades da Zona da Mata mineira, com seus bairros, localidades e ruas, a partir de dados públicos do IBGE e do OpenStreetMap.
+
+**Publicação.** O sistema está no ar em <https://desapegauai.duckdns.org>. Ele roda em uma máquina virtual da AWS (EC2, no plano gratuito), com Ubuntu 24.04. O site, a API e o banco MySQL ficam no mesmo servidor. Em produção a própria API entrega o site, então tudo fica no mesmo endereço e o login e o chat em tempo real funcionam. O Caddy recebe os acessos em HTTPS, com certificado gratuito do Let's Encrypt que se renova sozinho, e o endereço vem do DuckDNS. No Google Cloud, o endereço publicado foi cadastrado e o login foi liberado para qualquer conta Google.
+
+Foi escolhida uma máquina virtual porque o chat precisa do servidor sempre ligado, as fotos ficam em disco e a busca por distância usa o MySQL 8. Hospedagens que desligam quando ninguém está usando não servem para o projeto.
+
+O servidor baixa o código direto da `main` do GitHub. Para atualizar o site, basta juntar a mudança na `main` e rodar o script `servidor/atualizar.sh` no servidor: o banco, as fotos e as senhas ficam como estão. O passo a passo da publicação está em `docs/publicacao.md`.
 
 **Diferença em relação à modelagem.** O diagrama de estados prevê a pausa de anúncio. Na versão entregue, o anúncio pode ser um rascunho, estar ativo, ser marcado como reservado (continua na busca, com a etiqueta) ou como vendido (sai da busca); a pausa ficou para uma próxima versão.
 
@@ -293,16 +301,17 @@ _Figura 23 – O sistema no celular: Home, busca e chat._
 
 ## 5. Testes
 
-Resultados da versão final, conferidos em 21/11/2026.
+Resultados da versão final, conferidos em 21 e 22/11/2026.
 
 | O que foi testado | Como | Resultado |
 | --- | --- | --- |
-| Funcionalidades da API (login, perfil, anúncios, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, segurança e exclusão de imagens e de conta) | 232 testes automáticos, em 21 arquivos (`npm test` na pasta `backend`) | 232 de 232 aprovados |
+| Funcionalidades da API (login, perfil, anúncios, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, segurança, exclusão de imagens e de conta e entrega do site em produção) | 239 testes automáticos, em 22 arquivos (`npm test` na pasta `backend`) | 239 de 239 aprovados |
 | Fluxos no navegador (buscar por proximidade, trocar a distância, usar sem GPS, publicar anúncio, chat entre duas contas, avisos, perda de conexão, Procura-se e anúncio reservado) | 16 testes automáticos com Playwright, no Chrome (`npm run e2e` na pasta `frontend`) | 16 de 16 aprovados |
 | Outros navegadores | Os mesmos 16 testes no Edge, no Firefox, no WebKit (motor do Safari), em tela de tablet e em tela de celular (Android e iPhone) | 16 de 16 no Edge, no Firefox, no WebKit e no tablet. No celular, 13 de 16: os outros 3 usam botões do cabeçalho de computador, e esses caminhos foram conferidos à parte |
 | Segurança (autenticação, autorização e IDOR, XSS, CSRF e CORS, validação, upload e exclusão de imagens, privacidade, geolocalização, cabeçalhos HTTP, limite de requisições e carga) | Auditoria com 103 cenários, cada um com objetivo, requisição, resultado esperado, resultado obtido e evidência (`docs/seguranca/auditoria-de-seguranca.md`) | 103 de 103 aprovados |
 | SQL injection | 1.441 pedidos de ataque em 42 parâmetros de consulta e 18 rotas de gravação | Nenhuma injeção funcionou |
 | Tempo de resposta | 24 rotas da API, 29 telas e 13 ações medidas (chat em tempo real, publicação com fotos, favoritos, exclusão de conta) | Rotas em até 23 ms, telas prontas em até 1,2 s e mensagem do chat na tela da outra pessoa em 143 ms |
+| Site publicado | Conferência no endereço <https://desapegauai.duckdns.org>: endereço com http, certificado, cabeçalhos de segurança, cookie de login, login de teste e rotas da conta sem login | O endereço com http vai sozinho para o https; certificado do Let's Encrypt válido até 20/02/2027; cookie só por HTTPS e fora do alcance do JavaScript; login de teste desligado; rotas da conta respondem 401 sem login; a API responde em cerca de 0,6 s, contando a conexão até o servidor nos Estados Unidos |
 | Requisições da API durante o desenvolvimento | Testes manuais com Postman e Insomnia | Rotas conferidas pela equipe |
 | Responsividade | 17 telas abertas em 360, 768 e 1280 px de largura, conferindo erros, imagens quebradas e rolagem lateral | Nenhum problema encontrado |
 | Qualidade do código do front-end | Verificação automática (`npm run lint`) e geração da versão final (`npm run build`) | Sem erros |
@@ -322,16 +331,19 @@ A partir dessa documentação, a Sprint 5 entregou uma versão operacional do si
 - Quem não acha o que quer publica um pedido no Procura-se e é avisado quando aparece um anúncio compatível na cidade; quem anuncia fica sabendo que já tem gente procurando.
 - Cada anúncio informa como o item pode ser levado, e o vendedor marca como reservado enquanto combina a entrega.
 - Quem entra com o e-mail da UFV ou da Univiçosa ganha o selo de vínculo acadêmico, e o perfil mostra a taxa de compromisso nas entregas.
+- O usuário pode excluir a própria conta, e os anúncios, as conversas e as fotos saem junto.
 - O site se adapta ao computador, ao tablet e ao celular.
+- O sistema está publicado na internet, com HTTPS, e pode ser usado de qualquer lugar.
 
-Em relação ao escopo inicial do MVP, a versão entregue foi ampliada com a localização por proximidade, o mapa, as notificações, a avaliação do vendedor, a denúncia de usuário, o perfil público do vendedor, o Procura-se, a tag de transporte, o status reservado, os pontos de encontro seguros, o selo de vínculo acadêmico e o compromisso nas entregas. O projeto também foi apresentado em sala (pitch), e o grupo produziu o vídeo de apresentação do sistema e o banner do projeto.
+Em relação ao escopo inicial do MVP, a versão entregue foi ampliada com a localização por proximidade, o mapa, as notificações, a avaliação do vendedor, a denúncia de usuário, o perfil público do vendedor, o Procura-se, a tag de transporte, o status reservado, os pontos de encontro seguros, o selo de vínculo acadêmico, o compromisso nas entregas e a exclusão de conta. O projeto também foi apresentado em sala (pitch), e o grupo produziu o vídeo de apresentação do sistema e o banner do projeto.
 
-O sistema roda em ambiente local (XAMPP com MySQL). A publicação em um endereço na internet é o próximo passo.
+O sistema está publicado em <https://desapegauai.duckdns.org> e pode ser acessado pelo computador ou pelo celular. No desenvolvimento, cada integrante roda o sistema no próprio computador, com o MySQL do XAMPP.
 
 ## 7. Dificuldades encontradas
 
 - **Problemas técnicos:** dificuldades na configuração do ambiente de desenvolvimento, na execução da API e na correção de erros no código.
 - **Desafios relacionados ao banco de dados:** dificuldades na conexão com o banco de dados e na integração dos dados com a API.
+- **Publicação gratuita:** a Railway já não tinha período grátis para a conta do projeto, o Azure para Estudantes não aceitou o e-mail da faculdade e a Oracle Cloud passou a exigir CNPJ no plano gratuito. A solução foi o plano gratuito da AWS, que aceita CPF e não cobra no cartão.
 - **Organização e divisão de tarefas:** necessidade de organizar as responsabilidades de cada integrante, acompanhar o andamento das atividades e cumprir os prazos estabelecidos para cada Sprint.
 
 Os problemas foram solucionados por meio de pesquisas, testes, correções no código, reuniões e colaboração entre os integrantes, buscando melhorar o desenvolvimento e o funcionamento do sistema.
@@ -348,7 +360,7 @@ As contribuições de cada integrante foram fundamentais para o desenvolvimento 
 | João Pedro Fonseca Elias | Elaborou o diagrama de estados do sistema e os Termos de Uso e a Política de Privacidade. |
 | Marina Vieira de Abreu | Elaborou o termo de aceite e os requisitos do sistema; participou do desenvolvimento do back-end (anúncios e favoritos); contribuiu com o repositório Git; participou da elaboração dos relatórios das Sprints e do relatório geral; desenvolveu o banner do projeto. |
 | Rayanne Fernandes Fideles | Participou da elaboração dos gráficos de Burndown; elaborou o diagrama de atividades; contribuiu para o desenvolvimento do front-end; desenvolveu o protótipo de baixa fidelidade. |
-| Rhayane de Freitas Eloi | Contribuiu com a ideia principal do projeto; elaborou as personas e o diagrama de casos de uso; participou do desenvolvimento do front-end e do back-end; realizou a integração entre as duas partes; criou o banco de dados e o repositório Git; organizou o repositório; realizou os testes de implementação e a finalização da versão entregue. |
+| Rhayane de Freitas Eloi | Contribuiu com a ideia principal do projeto; elaborou as personas e o diagrama de casos de uso; participou do desenvolvimento do front-end e do back-end; realizou a integração entre as duas partes; criou o banco de dados e o repositório Git; organizou o repositório; realizou os testes de implementação e a finalização da versão entregue; publicou o sistema na AWS. |
 
 ## 9. Tecnologias e ferramentas utilizadas
 
@@ -358,7 +370,8 @@ As contribuições de cada integrante foram fundamentais para o desenvolvimento 
 | Front-end | React 19 e Vite, com React Router; Leaflet para o mapa |
 | Back-end | Node.js com Express 5 |
 | Tempo real | Socket.IO (chat, avisos e atualização dos anúncios) |
-| Banco de dados | MySQL, com gerenciamento pelo phpMyAdmin e ambiente local com XAMPP |
+| Banco de dados | MySQL, com gerenciamento pelo phpMyAdmin e ambiente local com XAMPP; MySQL 8 no servidor |
+| Hospedagem | AWS (máquina virtual EC2, no plano gratuito) com Ubuntu 24.04; Caddy (HTTPS, com certificado do Let's Encrypt); DuckDNS (endereço do site) |
 | Login | Google (Google Identity Services), com sessão em cookie protegido (JWT) |
 | Imagens | Multer (envio) e Sharp (conversão para WebP em vários tamanhos) |
 | Segurança | Helmet, limite de pedidos por tempo, CORS restrito ao endereço do site e conferência de origem nos pedidos que alteram dados |
@@ -384,12 +397,13 @@ A proposta tem foco local e facilita a reutilização e a negociação de produt
 
 Próximos passos:
 
-- **Publicar a plataforma** em um endereço com HTTPS. Isso é necessário para o login com Google, a câmera e a localização por GPS funcionarem no celular fora do ambiente de desenvolvimento.
+- **Hospedagem depois do plano gratuito da AWS**, que termina em maio de 2027, e um endereço próprio (.com.br).
+- **Cópia de segurança automática** do banco e das fotos do servidor.
 - **Tela de administração** para a equipe analisar as denúncias registradas.
 - **Avisos de mensagem nova com o site fechado** (notificação no aparelho), que hoje existem para anúncios novos e avaliações.
 - **Pausa de anúncio**, prevista no diagrama de estados.
 - **Bazar de Mudança:** um anúncio-vitrine com vários itens da mesma casa, data limite e baixa item por item, pensado para o fim de semestre.
-- **Testes em aparelhos reais da Apple** e com usuários da comunidade.
+- **Testes em aparelhos reais da Apple** e com usuários da comunidade, agora pelo endereço publicado.
 
 ## 12. Referências e materiais do projeto
 
@@ -402,6 +416,8 @@ Materiais produzidos pelo grupo:
 - Quadro de acompanhamento do projeto no Trello: <https://trello.com/b/duOSoj3f/ads-300-2026-02-desapegauai>.
 - Mapa de empatia, protótipos de baixa fidelidade, diagramas e gráficos de Burndown.
 - Auditoria de segurança e testes da versão final (`docs/seguranca/auditoria-de-seguranca.md`).
+- Passo a passo da publicação (`docs/publicacao.md`).
+- Site publicado: <https://desapegauai.duckdns.org>.
 - Repositório do projeto no GitHub: <https://github.com/DesapegaUai/DesapegaUai>.
 
 Referências:
@@ -414,3 +430,7 @@ Referências:
 - Documentação do Socket.IO. Disponível em: <https://socket.io>.
 - Documentação do Leaflet. Disponível em: <https://leafletjs.com>.
 - GOOGLE. Google Identity Services. Disponível em: <https://developers.google.com/identity>.
+- AMAZON WEB SERVICES. Plano gratuito da AWS. Disponível em: <https://aws.amazon.com/free/>.
+- Documentação do Caddy. Disponível em: <https://caddyserver.com/docs/>.
+- LET'S ENCRYPT. Certificados HTTPS gratuitos. Disponível em: <https://letsencrypt.org>.
+- DUCKDNS. Endereço gratuito para o site. Disponível em: <https://www.duckdns.org>.
