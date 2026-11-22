@@ -60,6 +60,10 @@
   stroke-width: 1.8;
 }
 
+.card-anuncio__fav.ativo {
+  color: var(--cor-favorito);
+}
+
 .card-anuncio__fav.ativo svg {
   fill: var(--cor-favorito);
 }

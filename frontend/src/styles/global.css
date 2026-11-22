@@ -45,7 +45,7 @@
   --cor-icone-busca: #8b8f8b; /* lupa da busca */
   --cor-link: #4a9a2b;
   --cor-link-hover: #3a7a20;
-  --cor-favorito: #e4483c; /* coração do anúncio favoritado */
+  --cor-favorito: var(--cor-principal); /* coração do anúncio favoritado: verde, igual aos outros corações do site */
 
   /* Fundos e traços */
   --cor-fundo-pagina: #fefefe; /* fundo da página inicial */
