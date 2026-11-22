@@ -7,7 +7,8 @@ import { abrirConversa, listarConversas, contarConversasNaoLidas, ocultarConvers
 import { erroHttp } from '../utils/erroHttp.js'
 import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, pastaDaConversa } from '../utils/fotos.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
-import { buscarMensagens, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
+import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
+import { apagarDoDisco } from '../utils/arquivos.js'
 import { avisarUsuarios, estaOnline } from '../socket.js'
 
 // POST /api/conversas (A2)
@@ -103,6 +104,42 @@ export async function enviarMensagem(req, res) {
   res.status(201).json({
     mensagem: { ...resultado.mensagem, minha: true },
   })
+}
+
+// PATCH /api/conversas/:id/mensagens/:mensagemId  { texto }
+// Editar a própria mensagem até 15 minutos depois de enviar (como no WhatsApp).
+export async function editarMensagem(req, res) {
+  const resultado = await editarNoBanco(req.params.id, req.params.mensagemId, req.usuario.id, req.body?.texto)
+  avisarUsuarios(resultado.participantes, 'mensagem_editada', resultado.mensagem)
+  res.json({ mensagem: { ...resultado.mensagem, minha: true } })
+}
+
+// DELETE /api/conversas/:id/mensagens/:mensagemId?para=mim|todos
+// "para=todos": a própria mensagem, até 2 dias depois; texto e foto saem para as duas pessoas.
+// "para=mim" (padrão): qualquer mensagem da conversa some só para quem apagou.
+export async function apagarMensagem(req, res) {
+  const para = req.query.para === undefined ? 'mim' : lerOpcao(req.query.para, 'para', ['mim', 'todos'])
+  const usuarioId = req.usuario.id
+
+  if (para === 'mim') {
+    const resultado = await apagarParaMim(req.params.id, req.params.mensagemId, usuarioId)
+    // os outros aparelhos da mesma pessoa também tiram a mensagem da tela
+    avisarUsuarios([usuarioId], 'mensagem_oculta', { conversa_id: resultado.conversaId, id: resultado.mensagemId })
+    return res.status(204).end()
+  }
+
+  const resultado = await apagarParaTodos(req.params.id, req.params.mensagemId, usuarioId)
+  if (resultado.fotoAntiga) {
+    for (const largura of LARGURAS_FOTO_DO_CHAT) {
+      await apagarDoDisco(caminhoDaFotoDoChat(resultado.mensagem.conversa_id, resultado.fotoAntiga, largura), {
+        tipo: 'foto_chat',
+        conversa_id: resultado.mensagem.conversa_id,
+        mensagem_id: resultado.mensagem.id,
+      })
+    }
+  }
+  avisarUsuarios(resultado.participantes, 'mensagem_apagada', resultado.mensagem)
+  res.json({ mensagem: { ...resultado.mensagem, minha: true } })
 }
 
 // ---------------------------------------------------------------- fotos no chat

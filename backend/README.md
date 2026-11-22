@@ -56,6 +56,8 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 | `DELETE /api/conversas/:id` | participante (some só para quem excluiu) | Rhayane |
 | `GET /api/conversas/:id/mensagens` | participante | Anthony |
 | `POST /api/conversas/:id/mensagens` | participante | Anthony |
+| `PATCH /api/conversas/:id/mensagens/:mensagemId` (editar até 15 min) | quem enviou | Rhayane |
+| `DELETE /api/conversas/:id/mensagens/:mensagemId?para=mim` ou `para=todos` (até 2 dias) | participante; para todos, só quem enviou | Rhayane |
 | `POST /api/conversas/:id/fotos` | participante | Rhayane |
 | `GET /api/conversas/:id/fotos/:arquivo` | participante | Rhayane |
 | `GET /api/conversas/:id/denuncia` | participante | Rhayane |
@@ -105,6 +107,7 @@ routes/  -> controllers/  -> models/
 | `npm run banco` | Apaga e recria as tabelas do banco do `.env` com os dados de teste. Só em desenvolvimento |
 | `npm run atualizar` | Adiciona tabelas e colunas novas em um banco que já tem dados, sem apagar nada |
 | `npm run fotos` | Confere as fotos do disco com o banco e mostra arquivo sem registro e registro sem arquivo. Com `npm run fotos -- --apagar`, corrige |
+| `npm run remover-demonstracao` | Mostra as contas de exemplo do seed (Diego, Larissa e Usuário Teste). Com `npm run remover-demonstracao -- --confirmar`, apaga essas contas com os anúncios, as conversas e as fotos delas. Só para o site publicado: os testes usam essas contas |
 | `npm test` | Roda os testes automáticos. Use um banco só para os testes |
 
 ## Exclusão de fotos

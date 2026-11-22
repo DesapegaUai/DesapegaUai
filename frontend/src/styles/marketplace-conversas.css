@@ -217,3 +217,21 @@
   .conv-anuncio { flex-wrap: wrap; }
   .conv-anuncio .btn-ver { min-height: 38px; padding: 0 14px; font-size: 13.5px; }
 }
+
+/* Opções da mensagem: tocar na bolha abre editar, apagar para mim e apagar para todos */
+.bolha[role="button"] { cursor: pointer; }
+.bolha[role="button"]:focus-visible { outline: 3px solid var(--marca-clara); outline-offset: 2px; }
+.bolha .editada { font-style: italic; }
+/* mensagem apagada: só o aviso, em cinza e itálico, nos dois lados */
+.bolha.apagada, .linha-msg.eu .bolha.apagada { background: var(--sup); border: 1px dashed var(--linha-forte); box-shadow: none; }
+.bolha.apagada .texto-apagada, .linha-msg.eu .bolha.apagada .texto-apagada { font-style: italic; color: var(--texto-2); }
+.linha-msg.eu .bolha.apagada .meta { color: #9AA39B; }
+.menu-mensagem { width: 210px; }
+
+/* "Editando mensagem" em cima da caixa de texto */
+.editando-barra { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: var(--marca-suave); color: var(--tinta); font-size: 14px; line-height: 1.3; }
+.editando-barra span { flex: 1; min-width: 0; }
+.editando-barra b { font-weight: 700; color: var(--marca-escura); }
+.editando-barra button { flex: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.editando-barra button:hover { background: rgba(0, 0, 0, .06); }
+@media (max-width: 600px) { .editando-dica { display: none; } }

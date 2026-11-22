@@ -44,6 +44,12 @@ export async function buscarProximos(filtros, { sinal } = {}) {
   return { ...resultado, itens: resultado.itens.map(cardDaApi) }
 }
 
+// anúncios além do raio escolhido, do mais perto para o mais longe (seção "Em outras cidades da região")
+export async function buscarAlemDoRaio(filtros, raioKm, { sinal } = {}) {
+  const resultado = await api.get(`/anuncios${parametros({ ...filtros, ordenar: 'proximos', por_pagina: 24 })}`, { sinal })
+  return resultado.itens.map(cardDaApi).filter((anuncio) => typeof anuncio.distancia_km === 'number' && anuncio.distancia_km > raioKm)
+}
+
 // os mais recentes da região inteira, sem raio (cards da seção "Conectando pessoas" da home)
 export async function listarRecentes(quantidade = 12, { sinal } = {}) {
   const resultado = await api.get(`/anuncios${parametros({ ordenar: 'recentes', por_pagina: quantidade })}`, { sinal })
@@ -164,6 +170,9 @@ export async function listarMensagens(conversaId, meuId) {
 
 export const abrirConversa = (anuncioId) => api.post('/conversas', { anuncio_id: anuncioId })
 export const enviarMensagemPelaApi = (conversaId, texto) => api.post(`/conversas/${conversaId}/mensagens`, { texto })
+// editar a própria mensagem (até 15 min) e apagar: para = "mim" ou "todos" (a própria, até 2 dias)
+export const editarMensagemPelaApi = (conversaId, mensagemId, texto) => api.patch(`/conversas/${conversaId}/mensagens/${mensagemId}`, { texto })
+export const apagarMensagemPelaApi = (conversaId, mensagemId, para) => api.delete(`/conversas/${conversaId}/mensagens/${mensagemId}?para=${para}`)
 export const contarConversasNaoLidas = () => api.get('/conversas/nao-lidas')
 
 // compromisso nas entregas: depois da venda, digo se a outra pessoa apareceu no combinado

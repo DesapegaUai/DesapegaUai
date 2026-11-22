@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # Prepara um servidor Ubuntu 24.04 novo para rodar o DesapegaUai inteiro: site, API e MySQL.
 #
-#   sudo DOMINIO=desapegauai.duckdns.org GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com bash instalar.sh
+#   sudo DOMINIO=desapegauai.com.br GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com bash instalar.sh
+#
+# REDIRECIONAR (opcional): outros endereços que levam para o DOMINIO, separados por espaço.
+#   sudo DOMINIO=desapegauai.com.br REDIRECIONAR="www.desapegauai.com.br desapegauai.duckdns.org" bash instalar.sh
 #
 # Pode rodar de novo sem medo: o que já está pronto fica como está (as senhas, as chaves e os dados
 # do banco não mudam). O passo a passo está em docs/publicacao.md.
 set -euo pipefail
 
-DOMINIO="${DOMINIO:?Informe o endereço do site. Exemplo: sudo DOMINIO=desapegauai.duckdns.org bash instalar.sh}"
+DOMINIO="${DOMINIO:?Informe o endereço do site. Exemplo: sudo DOMINIO=desapegauai.com.br bash instalar.sh}"
+REDIRECIONAR="${REDIRECIONAR:-}"
 REPOSITORIO="${REPOSITORIO:-https://github.com/DesapegaUai/DesapegaUai.git}"
 RAMO="${RAMO:-main}"
 GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
@@ -202,6 +206,15 @@ $DOMINIO {
 	reverse_proxy 127.0.0.1:3333
 }
 FIM
+# os outros endereços (www, endereço antigo) levam para o principal, mantendo o caminho da página
+if [ -n "$REDIRECIONAR" ]; then
+  cat >> /etc/caddy/Caddyfile <<FIM
+
+$(echo "$REDIRECIONAR" | xargs | sed 's/ /, /g') {
+	redir https://$DOMINIO{uri} permanent
+}
+FIM
+fi
 systemctl reload caddy || systemctl restart caddy
 
 # monta o site e liga a API

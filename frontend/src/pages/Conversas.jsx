@@ -2,17 +2,18 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import { Link, useNavigate, useParams } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import CaixaMensagem from '../components/CaixaMensagem.jsx';
+import MenuMensagem from '../components/MenuMensagem.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
 import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
 import CartaoCompromisso from '../components/CartaoCompromisso.jsx';
 import DenunciarUsuario from '../components/DenunciarUsuario.jsx';
 import MenuConversa from '../components/MenuConversa.jsx';
-import { lerArquivadas, salvarArquivadas } from '../services/conversas.js';
+import { lerArquivadas, salvarArquivadas, posicaoDoMenu } from '../services/conversas.js';
 import { carregarMinhasAvaliacoes, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { formatarPreco } from '../services/formatar.js';
 import {
-  enviarFotosPelaApi, enviarMensagemPelaApi, excluirConversa, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
+  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, excluirConversa, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
 } from '../services/mercadoApi.js';
 import { useSessao } from '../services/sessao.js';
 import { avisar as avisarSocket, emitir, ouvir, quandoReconectar, useTempoReal } from '../services/tempoReal.js';
@@ -30,6 +31,7 @@ const FILTROS = [
 function previa(conversa) {
   const ultima = conversa.mensagens.at(-1);
   if (!ultima) return 'Conversa iniciada';
+  if (ultima.apagada) return ultima.autor === 'eu' ? 'Você apagou esta mensagem' : 'Mensagem apagada';
   const texto = ultima.texto || (ultima.temFoto ? '📷 Foto' : '');
   return ultima.autor === 'eu' ? `Você: ${texto}` : texto;
 }
@@ -70,6 +72,28 @@ export default function Conversas() {
   const conversasRef = useRef([]);
   useLayoutEffect(() => { conversasRef.current = conversas; }, [conversas]);
   const avisar = useCallback((tipo, titulo, texto) => setToast({ tipo, titulo, texto, chave: Date.now() }), []);
+
+  // opções de uma mensagem (editar, apagar para mim, apagar para todos) e a mensagem que está sendo editada
+  const [menuMensagem, setMenuMensagem] = useState(null); // { mensagem, posicao, origem }
+  const [editando, setEditando] = useState(null);
+  const fecharMenuDaMensagem = useCallback((devolverFoco) => {
+    setMenuMensagem((atual) => {
+      if (devolverFoco === true) atual?.origem?.focus();
+      return null;
+    });
+  }, []);
+  // troca uma mensagem pela versão nova (editada ou apagada para todos), nas duas telas
+  const trocarMensagem = useCallback((conversaId, nova) => {
+    setConversas((lista) => lista.map((c) => (c.id === conversaId
+      ? { ...c, mensagens: c.mensagens.map((m) => (m.id === nova.id ? nova : m)) }
+      : c)));
+  }, []);
+  // tira a mensagem da tela ("apagar para mim")
+  const tirarMensagem = useCallback((conversaId, mensagemId) => {
+    setConversas((lista) => lista.map((c) => (c.id === conversaId
+      ? { ...c, mensagens: c.mensagens.filter((m) => m.id !== mensagemId) }
+      : c)));
+  }, []);
 
   // arquivadas saem da lista principal e ficam no filtro "Arquivadas" (guardado neste navegador)
   const [arquivadas, setArquivadas] = useState(() => lerArquivadas(meuId));
@@ -257,6 +281,9 @@ export default function Conversas() {
         if (!conhecida) recarregarLista();
         if (aberta && !mensagem.minha && !document.hidden) emitir('marcar_lidas', { conversa_id: dados.conversa_id }).catch(() => {});
       }),
+      ouvir('mensagem_editada', (dados) => trocarMensagem(dados.conversa_id, mensagemDaApi(dados, meuId))),
+      ouvir('mensagem_apagada', (dados) => trocarMensagem(dados.conversa_id, mensagemDaApi(dados, meuId))),
+      ouvir('mensagem_oculta', ({ conversa_id: conversaId, id: mensagemId }) => tirarMensagem(conversaId, mensagemId)),
       ouvir('mensagens_lidas', ({ conversa_id: conversaId, leitor_id: leitorId }) => {
         if (leitorId === meuId) return;
         setConversas((lista) => lista.map((c) => (c.id === conversaId
@@ -286,7 +313,7 @@ export default function Conversas() {
       quandoReconectar(() => recarregarLista()),
     ];
     return () => parares.forEach((parar) => parar());
-  }, [meuId, recarregarLista, mudarArquivadas]);
+  }, [meuId, recarregarLista, mudarArquivadas, trocarMensagem, tirarMensagem]);
 
   // voltou para a aba com a conversa aberta: o que chegou enquanto ela estava escondida passa a contar como lido
   useEffect(() => {
@@ -319,6 +346,17 @@ export default function Conversas() {
 
   async function enviar({ texto, anexos }) {
     if (!selecionada) return false;
+    if (editando) {
+      try {
+        const { mensagem } = await editarMensagemPelaApi(selecionada.id, editando.id, texto);
+        trocarMensagem(selecionada.id, mensagemDaApi(mensagem, meuId));
+        setEditando(null);
+        return true;
+      } catch (erro) {
+        avisar('erro', 'Não foi possível editar a mensagem', erro.message);
+        return false;
+      }
+    }
     try {
       let enviadas;
       if (anexos.length > 0) {
@@ -342,6 +380,28 @@ export default function Conversas() {
       avisar('erro', 'Mensagem não enviada', erro.message);
       return false;
     }
+  }
+
+  async function apagarMensagem(mensagem, para) {
+    if (!selecionada) return;
+    try {
+      if (para === 'todos') {
+        const { mensagem: apagada } = await apagarMensagemPelaApi(selecionada.id, mensagem.id, 'todos');
+        trocarMensagem(selecionada.id, mensagemDaApi(apagada, meuId));
+      } else {
+        await apagarMensagemPelaApi(selecionada.id, mensagem.id, 'mim');
+        tirarMensagem(selecionada.id, mensagem.id);
+      }
+      if (editando?.id === mensagem.id) setEditando(null);
+    } catch (erro) {
+      avisar('erro', 'Não foi possível apagar a mensagem', erro.message);
+    }
+  }
+
+  // tocar na mensagem abre as opções (no link da foto, abre a foto)
+  function abrirMenuDaMensagem(evento, mensagem) {
+    if (evento.target.closest('a')) return;
+    setMenuMensagem({ mensagem, posicao: posicaoDoMenu(evento.currentTarget, mensagem.minha), origem: evento.currentTarget });
   }
 
   const statusDoContato = (c) => (digitando[c.id] ? 'digitando…' : c.online ? 'Online agora' : textoDoUltimoAcesso(c.ultimoAcesso));
@@ -459,7 +519,16 @@ export default function Conversas() {
                 <Fragment key={m.id}>
                   {m.dia !== selecionada.mensagens[i - 1]?.dia && <div className="dia"><span>{m.dia}</span></div>}
                   <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}`}>
-                    <div className="bolha">
+                    <div
+                      className={`bolha${m.apagada ? ' apagada' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-haspopup="menu"
+                      aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || 'Foto'}. Abrir opções da mensagem`}
+                      onClick={(e) => abrirMenuDaMensagem(e, m)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirMenuDaMensagem(e, m); } }}
+                    >
+                      {m.apagada && <p className="texto-apagada">{m.autor === 'eu' ? 'Você apagou esta mensagem' : 'Mensagem apagada'}</p>}
                       {m.foto && (
                         <div className="bolha-anexos">
                           <a className="bolha-img" href={m.foto.grande} target="_blank" rel="noreferrer" aria-label="Abrir a foto em tamanho grande">
@@ -469,6 +538,7 @@ export default function Conversas() {
                       )}
                       {m.texto && <p>{m.texto}</p>}
                       <div className="meta">
+                        {m.editada && <span className="editada">editada</span>}
                         <span>{m.hora}</span>
                         {m.autor === 'eu' && (
                           <span aria-label={m.lida ? 'Lida' : 'Enviada'} title={m.lida ? 'Lida' : 'Enviada'}>
@@ -497,8 +567,20 @@ export default function Conversas() {
               )}
             </div>
 
+            {menuMensagem && (
+              <MenuMensagem
+                mensagem={menuMensagem.mensagem}
+                posicao={menuMensagem.posicao}
+                onEditar={(m) => setEditando(m)}
+                onApagarParaMim={(m) => apagarMensagem(m, 'mim')}
+                onApagarParaTodos={(m) => apagarMensagem(m, 'todos')}
+                onFechar={fecharMenuDaMensagem}
+              />
+            )}
             <CaixaMensagem
-              key={selecionada.id}
+              key={`${selecionada.id}-${editando?.id ?? 'nova'}`}
+              edicao={editando ? { texto: editando.texto, temFoto: editando.temFoto } : null}
+              onCancelarEdicao={() => setEditando(null)}
               nomeContato={selecionada.nome}
               onEnviar={enviar}
               onDigitar={avisarQueEstouDigitando}

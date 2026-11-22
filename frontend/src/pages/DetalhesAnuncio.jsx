@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import MapaAnuncios from '../components/MapaAnuncios.jsx';
@@ -54,7 +54,6 @@ function Galeria({ titulo, fotos, categoria }) {
 
 function Conteudo({ anuncio: inicial }) {
   const navegar = useNavigate();
-  const rota = useLocation();
   const { usuario } = useSessao();
   const local = useLocalizacao();
   const [anuncio, setAnuncio] = useState(inicial);
@@ -110,7 +109,7 @@ function Conteudo({ anuncio: inicial }) {
 
   async function conversar() {
     if (!usuario) {
-      navegar('/entrar', { state: { voltar: rota.pathname } });
+      navegar('/entrar');
       return;
     }
     try {

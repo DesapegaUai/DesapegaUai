@@ -2,7 +2,9 @@
 import { expect, test } from '@playwright/test'
 import { CENTRO_VICOSA, FOTO_PNG, criarAnuncioPelaApi, entrarComo, negarGps, semMapaDaInternet, vigiarErros } from './ajuda.js'
 
-const distancias = async (page) => (await page.locator('.card-distancia').allInnerTexts())
+// anúncios de perto: a primeira grade da busca (embaixo dela fica a seção "Em outras cidades da região")
+const dePerto = (page) => page.locator('.bus-grade').first()
+const distancias = async (page) => (await dePerto(page).locator('.card-distancia').allInnerTexts())
   .map((texto) => (texto.includes('menos de') ? 0 : Number(texto.replace(/[^\d,]/g, '').replace(',', '.'))))
 
 test.describe('Comprador procurando anúncios próximos', () => {
@@ -19,12 +21,14 @@ test.describe('Comprador procurando anúncios próximos', () => {
     await page.getByRole('radio', { name: '5 km', exact: true }).click()
     await expect(page.locator('.raio-ref i')).toContainText('em até 5 km')
 
-    await expect(page.locator('.card').first()).toBeVisible()
+    await expect(dePerto(page).locator('.card').first()).toBeVisible()
     const kms = await distancias(page)
     expect(kms.length).toBeGreaterThan(0)
     for (const km of kms) expect(km).toBeLessThanOrEqual(5)
     expect(kms).toEqual([...kms].sort((a, b) => a - b))
-    await expect(page.locator('body')).not.toContainText('Bicicleta aro 29') // está em Ponte Nova, a 37 km
+    // a bicicleta está em Ponte Nova, a 37 km: não entra nos de perto, aparece embaixo, em outras cidades
+    await expect(dePerto(page)).not.toContainText('Bicicleta aro 29')
+    await expect(page.locator('.outras-cidades')).toContainText('Bicicleta aro 29')
     expect(erros).toEqual([])
   })
 
@@ -111,13 +115,17 @@ test.describe('Vendedor e comprador ao mesmo tempo', () => {
     const anuncio = await criarAnuncioPelaApi(vendedor, { titulo })
     await expect(comprador.getByText(titulo)).toBeVisible({ timeout: 15_000 })
 
-    // o vendedor muda a localização do anúncio para Ubá: sai do raio de 5 km do comprador
+    // o vendedor muda a localização do anúncio para Ubá: sai do raio de 5 km do comprador e passa para
+    // "Em outras cidades da região", sem aparecer duas vezes
     const mudou = await vendedor.request.patch(`/api/localizacao/anuncios/${anuncio.id}`, { data: { origem: 'bairro', bairro_id: 24 } })
     expect(mudou.ok()).toBeTruthy()
-    await expect(comprador.getByText(titulo)).toHaveCount(0, { timeout: 15_000 })
+    await expect(dePerto(comprador).getByText(titulo)).toHaveCount(0, { timeout: 15_000 })
+    await expect(comprador.locator('.outras-cidades').getByText(titulo)).toBeVisible({ timeout: 15_000 })
+    await expect(comprador.getByText(titulo)).toHaveCount(1)
 
     await vendedor.request.patch(`/api/localizacao/anuncios/${anuncio.id}`, { data: { origem: 'bairro', bairro_id: 1 } })
-    await expect(comprador.getByText(titulo)).toBeVisible({ timeout: 15_000 })
+    await expect(dePerto(comprador).getByText(titulo)).toBeVisible({ timeout: 15_000 })
+    await expect(comprador.getByText(titulo)).toHaveCount(1, { timeout: 15_000 })
     expect((await vendedor.request.delete(`/api/anuncios/${anuncio.id}`)).status()).toBe(204)
     await expect(comprador.getByText(titulo)).toHaveCount(0, { timeout: 15_000 })
     await doComprador.close()
@@ -175,7 +183,8 @@ test.describe('Conexão', () => {
     test.setTimeout(200_000)
     await semMapaDaInternet(page)
     await page.goto('/busca')
-    await expect(page.locator('.card').first()).toBeVisible()
+    await expect(dePerto(page).locator('.card').first()).toBeVisible()
+    await expect(page.locator('.outras-cidades')).toBeVisible()
     const antes = await page.locator('.card').count()
 
     await context.setOffline(true)

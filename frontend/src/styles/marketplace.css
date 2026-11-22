@@ -262,3 +262,8 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
 .titulo-selo.alerta { background: #FEF3E2; color: #9A3412; }
 .titulo-acao { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--linha); border-radius: var(--r-pill); background: var(--sup); font-family: inherit; font-weight: 600; font-size: 14.5px; line-height: 1; color: var(--marca); white-space: nowrap; transition: border-color .15s ease, background-color .15s ease; }
 .titulo-acao:hover { border-color: var(--marca); background: var(--marca-suave); color: var(--marca); }
+
+/* Anúncios além da distância escolhida, embaixo dos de perto (categoria e busca) */
+.outras-cidades { margin-top: var(--e8); padding-top: var(--e7); border-top: 1px solid var(--linha); }
+.outras-cidades-sub { margin: 6px 0 var(--e5); font-size: 15px; color: var(--texto-2); }
+.outras-cidades .bus-grade { margin-top: 0; }

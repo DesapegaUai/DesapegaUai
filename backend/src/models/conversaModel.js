@@ -105,6 +105,7 @@ export async function listarConversas(usuarioId, filtro) {
        ultima.foto AS mensagem_foto,
        ultima.remetente_id AS mensagem_remetente_id,
        ultima.enviada_em AS mensagem_enviada_em,
+       ultima.apagada_em AS mensagem_apagada_em,
        (
          SELECT COUNT(*)
          FROM mensagem m
@@ -127,12 +128,13 @@ export async function listarConversas(usuarioId, filtro) {
        SELECT m.id
        FROM mensagem m
        WHERE m.conversa_id = c.id
+         AND NOT EXISTS (SELECT 1 FROM mensagem_oculta o WHERE o.mensagem_id = m.id AND o.usuario_id = ?)
        ORDER BY m.enviada_em DESC, m.id DESC
        LIMIT 1
      )
      WHERE c.comprador_id = ? OR a.usuario_id = ?
      ORDER BY c.atualizada_em DESC, c.id DESC`,
-    [usuarioId, usuarioId, usuarioId],
+    [usuarioId, usuarioId, usuarioId, usuarioId],
   )
 
   const conversas = []
@@ -180,8 +182,9 @@ export async function listarConversas(usuarioId, filtro) {
     if (ultimaVisivel) {
       ultimaMensagem = {
         id: resultado.mensagem_id,
-        texto: resultado.mensagem_texto,
+        texto: resultado.mensagem_apagada_em ? '' : resultado.mensagem_texto,
         tem_foto: resultado.mensagem_foto !== null,
+        apagada: resultado.mensagem_apagada_em !== null,
         remetente_id: resultado.mensagem_remetente_id,
         enviada_em: resultado.mensagem_enviada_em,
         minha: resultado.mensagem_remetente_id === usuarioId,

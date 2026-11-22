@@ -5,13 +5,12 @@ import sharp from 'sharp'
 
 // telefone e e-mail só aparecem aqui, para o próprio dono (LGPD)
 import * as usuarioModel from '../models/usuarioModel.js'
-import { publicarParaTodos } from '../socket.js'
+import { excluirContaComFotos } from '../services/exclusaoDeConta.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { erroHttp } from '../utils/erroHttp.js'
-import { registrar } from '../utils/log.js'
 import { apagarCookieDeLogin } from '../utils/token.js'
 import { lerTexto } from '../utils/validacao.js'
-import { caminhoDaFotoDePerfil, pastaDaConversa, pastaDoAnuncio, pastaDoPerfil } from '../utils/fotos.js'
+import { caminhoDaFotoDePerfil, pastaDoPerfil } from '../utils/fotos.js'
 
 const FORMATOS_DE_FOTO = ['jpeg', 'png', 'webp']
 const MAXIMO_DE_PIXELS = 40_000_000
@@ -120,21 +119,7 @@ export async function excluirConta(req, res) {
     throw erroHttp(400, 'Para excluir a conta, envie o campo confirmar com o valor EXCLUIR.')
   }
 
-  const usuarioId = req.usuario.id
-  // a lista vem antes: depois de apagar a conta o banco não sabe mais de quem eram as pastas
-  const { anuncios, conversas } = await usuarioModel.pastasDaConta(usuarioId)
-  await usuarioModel.excluirConta(usuarioId)
-
-  await apagarDoDisco(pastaDoPerfil(usuarioId), { tipo: 'pasta_perfil', usuario_id: usuarioId })
-  for (const anuncioId of anuncios) {
-    await apagarDoDisco(pastaDoAnuncio(anuncioId), { tipo: 'pasta_anuncio', anuncio_id: anuncioId })
-    publicarParaTodos('anuncio_removido', { id: anuncioId, motivo: 'excluido' })
-  }
-  for (const conversaId of conversas) {
-    await apagarDoDisco(pastaDaConversa(conversaId), { tipo: 'pasta_conversa', conversa_id: conversaId })
-  }
-
-  registrar('conta.excluida', { usuario_id: usuarioId, anuncios: anuncios.length, conversas: conversas.length })
+  await excluirContaComFotos(req.usuario.id)
   apagarCookieDeLogin(res)
   res.status(204).end()
 }
