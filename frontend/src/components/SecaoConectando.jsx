@@ -104,6 +104,8 @@ export default function SecaoConectando() {
     function agendar(espera = TEMPO_ENTRE_TROCAS_MS) {
       clearTimeout(relogio)
       relogio = setTimeout(() => {
+        // "Pausar animações" do menu de acessibilidade: os cards param de trocar sozinhos
+        if (document.documentElement.classList.contains('sem-animacao')) return agendar()
         const entrada = proximoAnuncio()
         const lugar = entrada && lugarParaTrocar(entrada.novo ? LUGARES_DO_CELULAR : emUso)
         if (entrada && lugar !== null) substituir(lugar, entrada)

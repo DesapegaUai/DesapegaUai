@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
+import Acessibilidade from './components/Acessibilidade.jsx'
 import RotaPrivada from './components/RotaPrivada.jsx'
 import TelasMarketplace from './components/TelasMarketplace.jsx'
 import { NotificacoesAnunciosProvider } from './components/NotificacoesAnuncios.jsx'
@@ -79,6 +80,7 @@ export default function App() {
 
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
+      <Acessibilidade />
     </NotificacoesAnunciosProvider>
   )
 }
