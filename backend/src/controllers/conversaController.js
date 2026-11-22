@@ -7,7 +7,7 @@ import { abrirConversa, listarConversas, contarConversasNaoLidas, ocultarConvers
 import { erroHttp } from '../utils/erroHttp.js'
 import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, caminhoDoVideoDoChat, pastaDaConversa } from '../utils/fotos.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
-import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
+import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, liberarMidiasQueNinguemVe, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { avisarUsuarios, estaOnline, marcarEntregueSeOnline } from '../socket.js'
 import { avisarMensagemNova } from '../services/notificacaoService.js'
@@ -128,6 +128,7 @@ export async function apagarMensagem(req, res) {
     const resultado = await apagarParaMim(req.params.id, req.params.mensagemId, usuarioId)
     // os outros aparelhos da mesma pessoa também tiram a mensagem da tela
     avisarUsuarios([usuarioId], 'mensagem_oculta', { conversa_id: resultado.conversaId, id: resultado.mensagemId })
+    await apagarArquivosQueNinguemVe(resultado.conversaId) // a outra pessoa também já tinha apagado: o arquivo sai
     return res.status(204).end()
   }
 
@@ -335,5 +336,22 @@ export async function excluir(req, res) {
   await ocultarConversa(conversaId, req.usuario.id)
   // as outras abas e aparelhos da mesma pessoa tiram a conversa da lista na hora
   avisarUsuarios([req.usuario.id], 'conversa_excluida', { conversa_id: conversaId })
+  await apagarArquivosQueNinguemVe(conversaId) // a outra pessoa também já tinha excluído: as fotos e os vídeos saem
   res.status(204).end()
+}
+
+// Foto ou vídeo que nenhuma das duas pessoas consegue mais ver (cada uma apagou "para mim" ou excluiu a
+// conversa depois que ele chegou) não serve para mais ninguém: sai do banco e do disco, para não ocupar espaço.
+async function apagarArquivosQueNinguemVe(conversaId) {
+  const liberadas = await liberarMidiasQueNinguemVe(conversaId)
+  for (const mensagem of liberadas) {
+    const detalhes = { conversa_id: conversaId, mensagem_id: mensagem.id }
+    if (mensagem.foto) {
+      for (const largura of LARGURAS_FOTO_DO_CHAT) {
+        await apagarDoDisco(caminhoDaFotoDoChat(conversaId, mensagem.foto, largura), { tipo: 'foto_chat', ...detalhes })
+      }
+    }
+    const video = mensagem.video ? caminhoDoVideoDoChat(conversaId, mensagem.video) : null
+    if (video) await apagarDoDisco(video, { tipo: 'video_chat', ...detalhes })
+  }
 }

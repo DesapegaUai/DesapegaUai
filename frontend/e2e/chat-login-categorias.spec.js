@@ -1,5 +1,6 @@
 // Editar e apagar mensagem no chat (como no WhatsApp), login indo para a tela inicial e anúncios de
 // outras cidades na categoria. Conversa 1 do seed: Larissa (2) comprando a air fryer do Diego (1).
+import { Buffer } from 'node:buffer'
 import { expect, test } from '@playwright/test'
 import { entrarComo, semMapaDaInternet, vigiarErros } from './ajuda.js'
 
@@ -370,6 +371,32 @@ test.describe('Categorias', () => {
     await expect(secao.getByRole('heading', { name: 'Em outras cidades da região' })).toBeVisible()
     await expect(secao).toContainText('Ubá')
     await expect(secao).toContainText(/a \d+(,\d)? km/)
+    expect(erros).toEqual([])
+  })
+
+  test('a barra de distância dos filtros muda os anúncios na hora, mesmo sem a localização da pessoa', async ({ page }) => {
+    await semMapaDaInternet(page)
+    const erros = vigiarErros(page)
+    await page.goto('/categoria/casa')
+    // no celular e no tablet os filtros ficam numa gaveta
+    const abrirFiltros = page.locator('.abre-filtros')
+    if (await abrirFiltros.isVisible()) await abrirFiltros.click()
+    const barra = page.getByRole('slider', { name: 'Distância' })
+    await expect(barra).toBeVisible()
+    // sem GPS e sem cidade escolhida, mede a partir do centro de Viçosa
+    await expect(page.locator('.filtro-distancia-ref')).toContainText('A partir de Viçosa, MG')
+
+    const resumo = page.locator('.raio-barra')
+    const quantos = async () => Number((await resumo.textContent()).match(/(\d+) anúncios? em até/)?.[1] ?? -1)
+    await barra.fill('100')
+    await expect(resumo).toContainText('em até 100 km')
+    const longe = await quantos()
+    await barra.fill('1')
+    await expect(resumo).toContainText('em até 1 km')
+    const perto = await quantos()
+    expect(longe).toBeGreaterThan(0)
+    expect(perto).toBeLessThanOrEqual(longe)
+    await expect(page.locator('.filtro-distancia')).toContainText('até 1 km')
     expect(erros).toEqual([])
   })
 })
