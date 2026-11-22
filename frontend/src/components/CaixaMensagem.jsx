@@ -4,6 +4,7 @@ import SeletorEmoji from './SeletorEmoji.jsx';
 import CameraFoto from './CameraFoto.jsx';
 import MenuRapido from './MenuRapido.jsx';
 import { ANEXOS, PONTOS_DE_ENCONTRO, RESPOSTAS_RAPIDAS } from '../services/conversas.js';
+import { prepararEmojis } from '../services/emojis.js';
 import { formatarPreco, formatarTamanho } from '../services/formatar.js';
 import useMediaQuery, { CELULAR } from '../hooks/useMediaQuery.js';
 
@@ -39,6 +40,12 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
 
   // Libera as prévias que não foram enviadas
   useEffect(() => () => anexosRef.current.forEach((a) => URL.revokeObjectURL(a.url)), []);
+
+  // os emojis vão sendo preparados enquanto a pessoa lê a conversa, para o painel abrir na hora
+  useEffect(() => {
+    const espera = setTimeout(() => prepararEmojis(), 1500);
+    return () => clearTimeout(espera);
+  }, []);
 
   // Campo cresce até ~5 linhas
   useLayoutEffect(() => {

@@ -17,6 +17,8 @@
     "e2e:todos": "playwright test"
   },
   "dependencies": {
+    "emoji-picker-element": "^1.29.1",
+    "emoji-picker-element-data": "^1.8.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "react": "^19.3.1",
