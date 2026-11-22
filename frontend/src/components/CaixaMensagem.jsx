@@ -12,7 +12,8 @@ let proximoId = 1;
 
 /**
  * Caixa de mensagem do chat:
- * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar]. As dicas de segurança ficam no escudo do topo da conversa.
+ * [Respostas rápidas] (abre a lista) · [+] (foto ou vídeo, câmera) [texto + emoji + enviar], como no iPhone.
+ * As dicas de segurança ficam no escudo do topo da conversa.
  * - Anexos: fotos JPG, PNG ou WebP (8 MB cada) e vídeos MP4, MOV ou WebM (25 MB cada), até 5 por
  *   mensagem, com prévia antes de enviar. As fotos também entram
  *   colando um print (Ctrl+V) ou arrastando a imagem para cima da conversa.
@@ -30,6 +31,19 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [cameraAberta, setCameraAberta] = useState(false);
   const [soltando, setSoltando] = useState(false); // arrastando uma imagem por cima da conversa
+  const [rapidasAbertas, setRapidasAbertas] = useState(false); // respostas rápidas escondidas atrás de um botão
+  const [maisAberto, setMaisAberto] = useState(false); // menu do "+": foto ou vídeo e câmera
+  const maisRef = useRef(null);
+
+  // o menu do "+" fecha tocando fora dele ou com Esc
+  useEffect(() => {
+    if (!maisAberto) return undefined;
+    const fora = (e) => { if (!maisRef.current?.contains(e.target)) setMaisAberto(false); };
+    const tecla = (e) => { if (e.key === 'Escape') setMaisAberto(false); };
+    document.addEventListener('pointerdown', fora);
+    document.addEventListener('keydown', tecla);
+    return () => { document.removeEventListener('pointerdown', fora); document.removeEventListener('keydown', tecla); };
+  }, [maisAberto]);
   const ehCelular = useMediaQuery(CELULAR);
   const raizRef = useRef(null);
   const campoRef = useRef(null);
@@ -115,6 +129,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
 
   function usarRespostaRapida(frase) {
     setTexto((atual) => (atual.trim() ? `${atual.trimEnd()} ${frase}` : frase));
+    setRapidasAbertas(false); // escolheu: a lista volta a ficar escondida
     campoRef.current?.focus();
   }
 
@@ -290,21 +305,30 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
           </button>
         </div>
       )}
+      {/* respostas rápidas escondidas atrás de um botão, para sobrar espaço para as mensagens */}
       {!edicao && (
-      <div className="rapidas" role="group" aria-label="Respostas rápidas">
-        {RESPOSTAS_RAPIDAS.map((frase) => (
-          <button key={frase} type="button" className="rapida" onClick={() => usarRespostaRapida(frase)}>
-            {frase}
-          </button>
-        ))}
-        <MenuRapido
-          rotulo="Ponto de encontro"
-          icone="local"
-          itens={PONTOS_DE_ENCONTRO.map((ponto) => ({ rotulo: ponto, frase: `Podemos nos encontrar em: ${ponto}?` }))}
-          onEscolher={(item) => usarRespostaRapida(item.frase)}
-        />
-        {podeOfertar && Number(preco) > 0 && (
-          <MenuRapido rotulo="Fazer oferta" icone="etiqueta" itens={ofertas} onEscolher={(item) => usarRespostaRapida(item.frase)} />
+      <div className="rapidas-topo">
+        <button type="button" className={`rapidas-abrir${rapidasAbertas ? ' on' : ''}`} aria-expanded={rapidasAbertas} aria-controls="respostas-rapidas" onClick={() => setRapidasAbertas((a) => !a)}>
+          <Icone nome="raio" tamanho={16} cor={rapidasAbertas ? '#fff' : '#3E8B22'} espessura={2} />
+          Respostas rápidas
+        </button>
+        {rapidasAbertas && (
+          <div className="rapidas" id="respostas-rapidas" role="group" aria-label="Respostas rápidas">
+            {RESPOSTAS_RAPIDAS.map((frase) => (
+              <button key={frase} type="button" className="rapida" onClick={() => usarRespostaRapida(frase)}>
+                {frase}
+              </button>
+            ))}
+            <MenuRapido
+              rotulo="Ponto de encontro"
+              icone="local"
+              itens={PONTOS_DE_ENCONTRO.map((ponto) => ({ rotulo: ponto, frase: `Podemos nos encontrar em: ${ponto}?` }))}
+              onEscolher={(item) => usarRespostaRapida(item.frase)}
+            />
+            {podeOfertar && Number(preco) > 0 && (
+              <MenuRapido rotulo="Fazer oferta" icone="etiqueta" itens={ofertas} onEscolher={(item) => usarRespostaRapida(item.frase)} />
+            )}
+          </div>
         )}
       </div>
       )}
@@ -353,16 +377,29 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
 
       <div className="linha-envio">
         {!edicao && (
-        <>
+        <div className="mais-anexos" ref={maisRef}>
+        {/* "+" como no iPhone: abre foto ou vídeo e câmera */}
         <button
           type="button"
-          className="circ"
-          aria-label="Anexar foto"
-          title="Anexar foto ou vídeo (também dá para colar um print com Ctrl+V ou arrastar para a conversa)"
-          onClick={() => arquivoRef.current?.click()}
+          className={`btn-mais${maisAberto ? ' on' : ''}`}
+          aria-label="Anexar foto ou vídeo"
+          aria-haspopup="menu"
+          aria-expanded={maisAberto}
+          title="Foto, vídeo ou câmera (também dá para colar um print com Ctrl+V ou arrastar para a conversa)"
+          onClick={() => setMaisAberto((a) => !a)}
         >
-          <Icone nome="clipe" tamanho={22} cor="#3E8B22" espessura={1.7} />
+          <Icone nome="mais" tamanho={20} cor="#5C655E" espessura={2} />
         </button>
+        {maisAberto && (
+          <div className="mais-menu" role="menu" aria-label="Anexar">
+            <button type="button" role="menuitem" onClick={() => { setMaisAberto(false); arquivoRef.current?.click(); }}>
+              <Icone nome="clipe" tamanho={20} cor="#3E8B22" espessura={1.7} />Foto ou vídeo
+            </button>
+            <button type="button" role="menuitem" aria-haspopup="dialog" onClick={() => { setMaisAberto(false); abrirCamera(); }}>
+              <Icone nome="camera" tamanho={20} cor="#3E8B22" espessura={1.7} />Câmera
+            </button>
+          </div>
+        )}
         <input
           ref={arquivoRef}
           type="file"
@@ -373,17 +410,6 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
           onChange={escolherArquivos}
           aria-hidden="true"
         />
-
-        <button
-          type="button"
-          className="circ"
-          aria-label="Tirar foto com a câmera"
-          aria-haspopup="dialog"
-          title="Tirar foto"
-          onClick={abrirCamera}
-        >
-          <Icone nome="camera" tamanho={22} cor="#3E8B22" espessura={1.7} />
-        </button>
         <input
           ref={cameraRef}
           type="file"
@@ -397,7 +423,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
         {cameraAberta && (
           <CameraFoto onUsar={usarFoto} onFechar={fecharCamera} onEscolherArquivo={escolherFotoNoLugar} />
         )}
-        </>
+        </div>
         )}
 
         <div className="campo-msg">
@@ -406,7 +432,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
             id="campo-mensagem"
             ref={campoRef}
             rows={1}
-            placeholder={ehCelular ? 'Mensagem…' : 'Escreva uma mensagem…'} // celular: 3 botões redondos deixam pouco espaço
+            placeholder={ehCelular ? 'Mensagem' : 'Escreva uma mensagem…'}
             value={texto}
             onChange={(e) => { setTexto(e.target.value); onDigitar?.(); }}
             onKeyDown={aoTeclar}
@@ -432,17 +458,17 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
               ignorarRef={botaoEmojiRef}
             />
           )}
+          {/* enviar dentro do campo, no canto, como no iPhone */}
+          <button
+            type="button"
+            className="btn-enviar"
+            aria-label={edicao ? 'Salvar edição' : 'Enviar mensagem'}
+            disabled={!podeEnviar || enviando}
+            onClick={enviar}
+          >
+            {edicao ? <Icone nome="check" tamanho={18} cor="#fff" espessura={2.4} /> : <Icone nome="seta-link" tamanho={18} cor="#fff" espessura={2.4} className="seta-para-cima" />}
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="circ enviar"
-          aria-label={edicao ? 'Salvar edição' : 'Enviar mensagem'}
-          disabled={!podeEnviar || enviando}
-          onClick={enviar}
-        >
-          <Icone nome={edicao ? 'check' : 'enviar'} tamanho={22} cor="#fff" />
-        </button>
       </div>
     </div>
   );

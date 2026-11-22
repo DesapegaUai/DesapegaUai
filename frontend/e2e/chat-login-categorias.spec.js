@@ -78,6 +78,47 @@ test.describe('Mensagens do chat', () => {
   })
 })
 
+test.describe('Caixa de escrever', () => {
+  test('respostas rápidas ficam escondidas até tocar no botão; o "+" abre foto ou vídeo e câmera; o enviar fica dentro do campo', async ({ page }) => {
+    await entrarComo(page, 2)
+    await page.goto('/conversas/1')
+    const rapidas = page.getByRole('group', { name: 'Respostas rápidas' })
+    await expect(rapidas).toHaveCount(0)
+    await page.getByRole('button', { name: 'Respostas rápidas' }).click()
+    await expect(rapidas).toBeVisible()
+    await rapidas.getByRole('button', { name: 'Aceita retirada hoje?' }).click()
+    await expect(page.locator('#campo-mensagem')).toHaveValue('Aceita retirada hoje?')
+    await expect(rapidas).toHaveCount(0) // escolheu: a lista volta a ficar escondida
+
+    await page.getByRole('button', { name: 'Anexar foto ou vídeo' }).click()
+    const menu = page.getByRole('menu', { name: 'Anexar' })
+    await expect(menu.getByRole('menuitem')).toHaveText(['Foto ou vídeo', 'Câmera'])
+    await page.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0)
+
+    const enviar = page.locator('.campo-msg').getByRole('button', { name: 'Enviar mensagem' })
+    await expect(enviar).toBeEnabled()
+    await page.locator('#campo-mensagem').fill('')
+    await expect(enviar).toBeDisabled()
+  })
+})
+
+test.describe('Conversa sem barra para o lado', () => {
+  test('em qualquer largura de tela, os balões (com o rabinho) cabem na conversa e nada rola para o lado', async ({ page }) => {
+    await entrarComo(page, 1)
+    expect((await page.request.post('/api/conversas/1/mensagens', { data: { texto: 'Mensagem bem comprida para encostar na borda da conversa e conferir que o rabinho do balão não passa da margem' } })).ok()).toBeTruthy()
+    for (const largura of [320, 360, 390, 412, 600, 768, 1024, 1366]) {
+      await page.setViewportSize({ width: largura, height: 800 })
+      await page.goto('/conversas/1')
+      const msgs = page.locator('.msgs')
+      await expect(msgs.locator('.linha-msg.eu.ultima .bolha').last()).toBeVisible()
+      const medida = await msgs.evaluate((m) => ({ conteudo: m.scrollWidth, visivel: m.clientWidth, pagina: document.documentElement.scrollWidth, janela: window.innerWidth }))
+      expect(medida.conteudo, `largura ${largura}: as mensagens passam da conversa`).toBeLessThanOrEqual(medida.visivel)
+      expect(medida.pagina, `largura ${largura}: a página rola para o lado`).toBeLessThanOrEqual(medida.janela)
+    }
+  })
+})
+
 test.describe('Segurar a mensagem no celular', () => {
   test('tocar rápido não abre nada; apertar e segurar abre Editar, Apagar para mim e Apagar para todos', async ({ page }) => {
     await entrarComo(page, 2)
