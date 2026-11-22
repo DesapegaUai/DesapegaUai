@@ -97,6 +97,20 @@ sudo NOVO=desapegauai.com.br bash /opt/desapegauai/servidor/trocar-dominio.sh
 
 Ele confere se o domínio novo já aponta para o servidor. Se não aponta, para sem mexer em nada. Se aponta, troca o endereço, pega o certificado HTTPS do domínio novo e faz o `www` e o endereço antigo levarem para o novo. Depois, cadastre o endereço novo no Google Cloud (veja "Login com o Google").
 
+## Aparecer no Google
+
+O site já entrega o que o Google precisa: o `robots.txt` (o que ele pode ler), o `sitemap.xml` (a lista de páginas e anúncios ativos, que se atualiza sozinha) e, em cada página, o título, a descrição e a foto dela. As telas da conta e os perfis das pessoas ficam fora do Google.
+
+Para o Google começar a mostrar o site:
+
+1. Entre em search.google.com/search-console com a conta Google do grupo.
+2. Clique em **Adicionar propriedade**, escolha **Domínio** e digite `desapegauai.com.br`.
+3. Copie o código **TXT** que o Google mostrar. No Registro.br, abra o **DNS** do domínio e adicione um registro **TXT** com esse código. Volte ao Search Console e clique em **Verificar** (às vezes leva alguns minutos).
+4. Em **Sitemaps**, envie `https://desapegauai.com.br/sitemap.xml`.
+5. Em **Inspeção de URL**, cole `https://desapegauai.com.br` e clique em **Solicitar indexação**.
+
+O Google leva de alguns dias a algumas semanas para mostrar o site. Para ver o que ele já guardou, pesquise `site:desapegauai.com.br` no Google.
+
 ## Tirar os anúncios de exemplo
 
 O instalador coloca no banco as contas de exemplo do `seed.sql` (Diego, Larissa e Usuário Teste) e os anúncios delas, para o site não abrir vazio. Para deixar no ar só os anúncios de verdade:

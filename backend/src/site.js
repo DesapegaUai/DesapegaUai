@@ -45,9 +45,11 @@ function politicaDeConteudo(frontendUrl) {
 }
 
 // Devolve o middleware que entrega o site, ou null se o build não existe (API sozinha).
-export function entregarSite({ pasta = PASTA_DO_SITE, frontendUrl = env.frontendUrl } = {}) {
+// metas: função que dá o título, a descrição e a foto de cada página (seo.js); sem ela, o index.html vai como está.
+export function entregarSite({ pasta = PASTA_DO_SITE, frontendUrl = env.frontendUrl, metas = null } = {}) {
   const paginaInicial = path.join(pasta, 'index.html')
   if (!fs.existsSync(paginaInicial)) return null
+  const html = fs.readFileSync(paginaInicial, 'utf8')
 
   const politica = politicaDeConteudo(frontendUrl)
   const arquivos = express.static(pasta, {
@@ -73,7 +75,11 @@ export function entregarSite({ pasta = PASTA_DO_SITE, frontendUrl = env.frontend
       // arquivo que não existe (/img/nada.png) é 404; o resto é tela do site (React Router)
       if (path.extname(req.path)) return next()
       res.set('Cache-Control', 'no-cache')
-      res.sendFile(paginaInicial)
+      if (!metas) return res.sendFile(paginaInicial)
+      // cada página já sai com o título, a descrição e a foto dela (Google e prévia do link no WhatsApp)
+      metas.daPagina(req.path, frontendUrl)
+        .then((m) => res.type('html').send(metas.aplicar(html, m, req.path, frontendUrl)))
+        .catch(() => res.type('html').send(html))
     })
   }
 }

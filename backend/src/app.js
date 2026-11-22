@@ -6,6 +6,7 @@ import { rotaNaoEncontrada, tratarErros } from './middlewares/erros.js'
 import { exigirOrigemDoFront, recusarLinkDeOutroSite, registrarRequisicoes } from './middlewares/seguranca.js'
 import { rotas } from './routes/index.js'
 import { entregarSite } from './site.js'
+import { aplicarMetas, metasDaPagina, rotasDoGoogle } from './seo.js'
 import { PASTA_UPLOADS } from './utils/fotos.js'
 
 export const app = express()
@@ -17,7 +18,9 @@ app.use(helmet())
 
 // em produção, tudo o que não é /api é o site (frontend/dist); fica antes das travas da API
 // para que o link do site possa ser aberto a partir de qualquer lugar (WhatsApp, Instagram...)
-const site = env.producao ? entregarSite() : null
+const site = env.producao ? entregarSite({ metas: { daPagina: metasDaPagina, aplicar: aplicarMetas } }) : null
+// robots.txt, sitemap.xml e a imagem de prévia dos anúncios vêm antes do site
+if (site) app.use(rotasDoGoogle())
 if (site) app.use(site)
 
 app.use(cors({ origin: env.origensDoFront, credentials: true })) // só o front pode chamar a API
