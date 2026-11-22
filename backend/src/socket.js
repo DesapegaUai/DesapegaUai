@@ -4,7 +4,7 @@
 //   sininho, avaliações e atualizações do perfil. A localização das pessoas nunca passa por aqui.
 import { Server } from 'socket.io'
 import { env } from './config/env.js'
-import { listarParceirosDeConversa, marcarComoLidas, participantesDaConversa, salvarMensagem } from './models/mensagemModel.js'
+import { listarParceirosDeConversa, marcarComoLidas, participantesDaConversa, salvarMensagem, marcarComoEntregues } from './models/mensagemModel.js'
 import * as usuarioModel from './models/usuarioModel.js'
 import { registrar } from './utils/log.js'
 import { usuarioDoCookie } from './middlewares/autenticacao.js'
@@ -79,6 +79,8 @@ export function iniciarSocket(servidor) {
     const antes = conexoesPorUsuario.get(usuarioId) ?? 0
     conexoesPorUsuario.set(usuarioId, antes + 1)
     registrarAcessoAgora(usuarioId).catch((erro) => console.error('Erro ao registrar acesso:', erro.message))
+    // abriu o site: o que chegou enquanto estava fora passa a "entregue" (dois tiques para quem enviou)
+    entregarPendentes(usuarioId).catch((erro) => console.error('Erro ao marcar mensagens como entregues:', erro.message))
     if (antes === 0) avisarPresenca(usuarioId, true).catch(() => {})
 
     socket.on('disconnect', () => {
@@ -97,6 +99,7 @@ export function iniciarSocket(servidor) {
       if (!podeMandarMensagem()) return responder({ ok: false, erro: 'Muitas mensagens em pouco tempo. Aguarde alguns segundos.' })
       try {
         const resultado = await salvarMensagem(dados?.conversa_id, usuarioId, dados?.texto)
+        await marcarEntregueSeOnline(resultado.mensagem, resultado.participantes)
         avisarUsuarios(resultado.participantes, 'nova_mensagem', resultado.mensagem)
         responder({ ok: true, mensagem: resultado.mensagem })
       } catch (erro) {
@@ -145,6 +148,25 @@ export async function encerrarSocket() {
 }
 
 // manda um evento para as abas/aparelhos dessas pessoas (o REST funciona mesmo sem o socket)
+// marca como entregue o que chegou para essa pessoa e avisa cada remetente (os dois tiques cinza)
+export async function entregarPendentes(usuarioId, opcoes) {
+  const entregues = await marcarComoEntregues(usuarioId, opcoes)
+  for (const { conversaId, remetenteId, ateId } of entregues) {
+    avisarUsuarios([remetenteId], 'mensagens_entregues', { conversa_id: conversaId, ate_id: ateId })
+  }
+  return entregues
+}
+
+// mensagem nova: se quem recebe está com o site aberto, ela já chega como entregue
+export async function marcarEntregueSeOnline(mensagem, participantes) {
+  const destinatario = participantes.find((id) => id !== mensagem.remetente_id)
+  if (destinatario && estaOnline(destinatario)) {
+    await marcarComoEntregues(destinatario, { mensagemId: mensagem.id })
+    mensagem.entregue = true
+  }
+  return mensagem
+}
+
 export function avisarUsuarios(ids, evento, dados) {
   if (!io || !ids?.length) return
   io.to([...new Set(ids)].map((id) => `usuario:${id}`)).emit(evento, dados)
