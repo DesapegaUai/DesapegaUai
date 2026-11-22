@@ -8,7 +8,7 @@ SET NAMES utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS comparecimento, procura, denuncia, inscricao_push, notificacao, preferencia_localizacao, localizacao_usuario, localizacao_anuncio,
-  avaliacao, mensagem, conversa, favorito, foto_anuncio, anuncio, subcategoria, categoria, usuario,
+  avaliacao, mensagem_oculta, mensagem, conversa, favorito, foto_anuncio, anuncio, subcategoria, categoria, usuario,
   rua, bairro, cidade;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -283,12 +283,25 @@ CREATE TABLE mensagem (
   foto         CHAR(32)       NULL,                                  -- nome do arquivo da foto (sem tamanho e sem .webp)
   enviada_em   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   lida         BOOLEAN        NOT NULL DEFAULT FALSE,
+  editada_em   DATETIME       NULL,                                  -- quando o texto foi editado (até 15 min depois de enviar)
+  apagada_em   DATETIME       NULL,                                  -- "apagar para todos": o texto e a foto saem
   PRIMARY KEY (id),
   KEY ix_mensagem_conversa (conversa_id, id),
   CONSTRAINT fk_mensagem_conversa  FOREIGN KEY (conversa_id)  REFERENCES conversa (id) ON DELETE CASCADE,
   CONSTRAINT fk_mensagem_remetente FOREIGN KEY (remetente_id) REFERENCES usuario (id) ON DELETE CASCADE,
-  CONSTRAINT ck_mensagem_texto CHECK (TRIM(texto) <> '' OR foto IS NOT NULL),   -- precisa ter texto ou foto
+  CONSTRAINT ck_mensagem_texto CHECK (TRIM(texto) <> '' OR foto IS NOT NULL OR apagada_em IS NOT NULL),   -- precisa ter texto ou foto (a apagada fica vazia)
   CONSTRAINT ck_mensagem_foto  CHECK (foto IS NULL OR foto REGEXP '^[a-f0-9]{32}$')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- "Apagar para mim": a mensagem some só para quem apagou; a outra pessoa continua vendo.
+CREATE TABLE mensagem_oculta (
+  mensagem_id  INT UNSIGNED   NOT NULL,
+  usuario_id   INT UNSIGNED   NOT NULL,
+  ocultada_em  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (mensagem_id, usuario_id),
+  KEY ix_mensagem_oculta_usuario (usuario_id),
+  CONSTRAINT fk_mensagem_oculta_mensagem FOREIGN KEY (mensagem_id) REFERENCES mensagem (id) ON DELETE CASCADE,
+  CONSTRAINT fk_mensagem_oculta_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuario (id)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Avaliação do vendedor, feita por quem comprou. Fica guardada mesmo se o anúncio for excluído

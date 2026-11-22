@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import BarraDeRaio from '../components/BarraDeRaio.jsx'
 import CardAnuncio from '../components/CardAnuncioMarketplace.jsx'
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx'
+import OutrasCidades from '../components/OutrasCidades.jsx'
 import Paginacao from '../components/Paginacao.jsx'
 import SeletorOrdem from '../components/SeletorOrdem.jsx'
 import Icone from '../components/IconeMarketplace.jsx'
@@ -83,6 +84,15 @@ export default function Busca() {
         </div>
       ))}
       {dados && dados.total_paginas > 1 && <Paginacao pagina={pagina} totalPaginas={dados.total_paginas} onMudar={setPagina} />}
+      {/* depois da última página de perto, os anúncios da busca que estão mais longe */}
+      {dados && pagina >= Math.max(1, dados.total_paginas) && (
+        <OutrasCidades
+          filtros={{ busca: termo || undefined }}
+          idsDePerto={dados.itens.map((anuncio) => anuncio.id)}
+          classeGrade="bus-grade"
+          onErroFavorito={(erro) => setToast({ tipo: 'erro', titulo: 'Não foi possível salvar o favorito', texto: erro.message, chave: Date.now() })}
+        />
+      )}
     </LayoutMarketplace>
   )
 }

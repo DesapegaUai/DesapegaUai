@@ -43,3 +43,22 @@ export const PONTOS_DE_ENCONTRO = [
   'Terminal Rodoviário',
   'Portaria da Univiçosa',
 ];
+
+// Editar e "apagar para todos" seguem os prazos do WhatsApp (a API confere de novo)
+export const PRAZO_PARA_EDITAR_MS = 15 * 60 * 1000;
+export const PRAZO_PARA_APAGAR_PARA_TODOS_MS = 2 * 24 * 60 * 60 * 1000;
+const idade = (mensagem) => Date.now() - new Date(mensagem.enviada_em).getTime();
+export const podeEditar = (mensagem) => mensagem.minha && !mensagem.apagada && idade(mensagem) < PRAZO_PARA_EDITAR_MS;
+export const podeApagarParaTodos = (mensagem) => mensagem.minha && !mensagem.apagada && idade(mensagem) < PRAZO_PARA_APAGAR_PARA_TODOS_MS;
+
+const ALTURA_MENU_DA_MENSAGEM = 160;
+
+// Lugar do menu na tela: embaixo da mensagem (ou em cima, se não couber), do lado de quem enviou
+export function posicaoDoMenu(elemento, minha) {
+  const caixa = elemento.getBoundingClientRect();
+  const abreParaCima = caixa.bottom + ALTURA_MENU_DA_MENSAGEM > window.innerHeight;
+  return {
+    ...(minha ? { right: Math.max(8, window.innerWidth - caixa.right) } : { left: Math.max(8, caixa.left) }),
+    ...(abreParaCima ? { bottom: window.innerHeight - caixa.top + 6 } : { top: caixa.bottom + 6 }),
+  };
+}

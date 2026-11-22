@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import SeloVinculo from '../components/SeloVinculo.jsx';
@@ -21,7 +21,6 @@ const textoParaPreco = (texto) => Number(String(texto).replace(/\./g, '').replac
  */
 export default function ProcuraSe() {
   const navegar = useNavigate();
-  const rota = useLocation();
   const { usuario } = useSessao();
   const local = useLocalizacao();
   const [pedidos, setPedidos] = useState(null);
@@ -59,7 +58,7 @@ export default function ProcuraSe() {
 
   async function publicar(evento) {
     evento.preventDefault();
-    if (!usuario) { navegar('/entrar', { state: { voltar: rota.pathname } }); return; }
+    if (!usuario) { navegar('/entrar'); return; }
     const encontrados = {};
     if (form.titulo.trim().length < 3) encontrados.titulo = 'Diga o que você procura (de 3 a 80 letras).';
     if (!form.bairroId) encontrados.bairroId = 'Escolha a cidade e o bairro.';

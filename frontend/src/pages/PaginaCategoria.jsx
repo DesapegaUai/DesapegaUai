@@ -5,6 +5,7 @@ import BarraChips from '../components/BarraChips.jsx';
 import BarraDeRaio from '../components/BarraDeRaio.jsx';
 import PainelFiltros from '../components/PainelFiltros.jsx';
 import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
+import OutrasCidades from '../components/OutrasCidades.jsx';
 import Paginacao from '../components/Paginacao.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
@@ -158,6 +159,14 @@ export default function PaginaCategoria({ slug }) {
             </div>
           )}
           {dados && <Paginacao pagina={pagina} totalPaginas={Math.max(1, dados.total_paginas)} onMudar={mudarPagina} />}
+          {/* depois da última página de perto, os anúncios da categoria que estão mais longe */}
+          {dados && dadosCategoria && pagina >= Math.max(1, dados.total_paginas) && (
+            <OutrasCidades
+              filtros={{ categoria_id: dadosCategoria.id, ...filtrosParaApi(aplicados) }}
+              idsDePerto={dados.itens.map((anuncio) => anuncio.id)}
+              onErroFavorito={(erro) => setToast({ tipo: 'erro', titulo: 'Não foi possível salvar o favorito', texto: erro.message, chave: Date.now() })}
+            />
+          )}
         </div>
       </div>
     </LayoutMarketplace>

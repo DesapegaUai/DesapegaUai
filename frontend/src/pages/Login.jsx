@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import LogoAnimado from '../components/LogoAnimado.jsx'
 import Toast from '../components/Toast.jsx'
 import { api } from '../services/api.js'
-import { entrou, sair as sairDaConta } from '../services/sessao.js'
+import { entrou } from '../services/sessao.js'
 import './Login.css'
 
 // Tela de login. O visual segue o protótipo 00-login.html da pasta de design.
@@ -81,10 +81,9 @@ function iniciarGoogle() {
 
 export default function Login() {
   const location = useLocation()
-  // para onde voltar depois de entrar (a tela de onde a pessoa veio)
-  const [voltar] = useState(() => location.state?.voltar ?? '/')
+  // depois de entrar, a pessoa vai sempre para a tela inicial (Home)
   const navegar = useNavigate()
-  const [usuario, setUsuario] = useState(null)
+  const [entrando, setEntrando] = useState(false) // entrou e está indo para a Home
   const [verificando, setVerificando] = useState(true)
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -102,7 +101,7 @@ export default function Login() {
   const termosRef = useRef(null)
   const googleRef = useRef(null)
 
-  const mostrarFormulario = !verificando && !usuario
+  const mostrarFormulario = !verificando && !entrando
 
   // Mostra um aviso rápido no alto da tela (veja src/components/Toast.jsx).
   // A chave muda a cada aviso, assim a animação recomeça mesmo se o aviso for igual ao anterior.
@@ -127,9 +126,9 @@ export default function Login() {
     setCarregando(true)
     try {
       const dados = await api.post('/auth/teste', { usuario_id: usuarioId })
-      setUsuario(dados.usuario)
+      setEntrando(true)
       entrou(dados.usuario)
-      navegar(voltar, { replace: true })
+      navegar('/', { replace: true })
     } catch (e) {
       mostrarErro(e.message)
     } finally {
@@ -143,9 +142,9 @@ export default function Login() {
     try {
       const dados = await api.post('/auth/google', { credential })
       if (!dados?.usuario) throw new Error('Não foi possível entrar. Tente novamente.')
-      setUsuario(dados.usuario)
+      setEntrando(true)
       entrou(dados.usuario)
-      navegar(voltar, { replace: true })
+      navegar('/', { replace: true })
     } catch (e) {
       mostrarErro(e.message)
     } finally {
@@ -179,11 +178,11 @@ export default function Login() {
       .then((dados) => {
         if (!ativo) return
         if (dados?.usuario) {
+          setEntrando(true)
           entrou(dados.usuario)
-          navegar(voltar, { replace: true })
+          navegar('/', { replace: true })
           return
         }
-        setUsuario(null)
         entrarPeloEndereco() // atalho de teste do npm run celular (não faz nada fora dele)
       })
       .catch(() => {}) // se não tem sessão ou a API está fora do ar, só mostra o login
@@ -193,7 +192,7 @@ export default function Login() {
     return () => {
       ativo = false
     }
-  }, [navegar, voltar])
+  }, [navegar])
 
   // Desenha o botão do Google. Ele tem que ser o botão do próprio Google,
   // porque só ele devolve o "credential" que a API usa para conferir o login.
@@ -265,20 +264,6 @@ export default function Login() {
     if (e.target.checked) limparErroDo('termos')
   }
 
-  async function sair() {
-    setCarregando(true)
-    try {
-      await sairDaConta()
-      window.google?.accounts?.id?.disableAutoSelect()
-      setUsuario(null)
-      avisar(AVISO.saiu)
-    } catch (e) {
-      mostrarErro(e.message)
-    } finally {
-      setCarregando(false)
-    }
-  }
-
   // O espaço do erro fica sempre na página, mesmo vazio.
   // Assim o leitor de tela (usado por quem não enxerga) lê o erro quando ele aparece.
   const avisos = (
@@ -295,7 +280,7 @@ export default function Login() {
 
   return (
     <main className="login-tela">
-      <title>{usuario ? 'Minha conta | DesapegaUai' : 'Entrar | DesapegaUai'}</title>
+      <title>Entrar | DesapegaUai</title>
       <div className="login-brilho" aria-hidden="true" />
 
       {/* Aviso rápido no alto da tela ("Você saiu da sua conta", "Apple em breve"...) */}
@@ -305,7 +290,7 @@ export default function Login() {
         <h1 className="login-logo">
           {/* Logo com a animação da bolinha que vira o pingo do i. Ela já vem verde desde o primeiro pulo. */}
           <LogoAnimado bolinha="verde" />
-          {!usuario && <span className="login-sr"> Entrar</span>}
+          <span className="login-sr"> Entrar</span>
         </h1>
 
         {verificando && (
@@ -314,24 +299,10 @@ export default function Login() {
           </p>
         )}
 
-        {/* Se a pessoa já entrou, mostra o nome dela no lugar do formulário */}
-        {usuario && (
-          <section className="login-cartao" aria-labelledby="login-ola">
-            {usuario.foto_url && (
-              <img className="login-foto" src={usuario.foto_url} alt="" width="72" height="72" referrerPolicy="no-referrer" />
-            )}
-            <h2 id="login-ola">Olá, {usuario.nome?.split(' ')[0] || 'tudo bem'}!</h2>
-            <p>
-              Você entrou como <strong>{usuario.email}</strong>.
-            </p>
-            <Link className="login-entrar" to="/">
-              Ir para o início
-            </Link>
-            <button type="button" className="login-soc login-sair" onClick={sair} disabled={carregando}>
-              {carregando ? 'Saindo...' : 'Sair da conta'}
-            </button>
-            <div className="login-avisos">{avisos}</div>
-          </section>
+        {entrando && (
+          <p className="login-carregando" role="status">
+            Entrando...
+          </p>
         )}
 
         {/* Formulário de login */}

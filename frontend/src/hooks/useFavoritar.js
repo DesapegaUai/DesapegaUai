@@ -1,17 +1,16 @@
 import { useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { desfavoritar, favoritar } from '../services/mercadoApi.js';
 import { useSessao } from '../services/sessao.js';
 
-/** Favoritar pela API. Sem login, leva para o login e volta para a mesma tela. */
+/** Favoritar pela API. Sem login, leva para o login. */
 export default function useFavoritar({ aoMudar, aoErrar } = {}) {
   const { usuario } = useSessao();
   const navegar = useNavigate();
-  const local = useLocation();
 
   return useCallback(async (anuncio) => {
     if (!usuario) {
-      navegar('/entrar', { state: { voltar: local.pathname + local.search } });
+      navegar('/entrar');
       return;
     }
     const novo = !anuncio.favoritado;
@@ -23,5 +22,5 @@ export default function useFavoritar({ aoMudar, aoErrar } = {}) {
       aoMudar?.(anuncio.id, !novo);
       aoErrar?.(erro);
     }
-  }, [usuario, navegar, local, aoMudar, aoErrar]);
+  }, [usuario, navegar, aoMudar, aoErrar]);
 }

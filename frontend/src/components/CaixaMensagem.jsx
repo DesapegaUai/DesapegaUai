@@ -18,8 +18,9 @@ let proximoId = 1;
  * - Emoji: painel com 4 grupos; insere onde o cursor está.
  * - Enter envia · Shift+Enter quebra linha.
  */
-export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco = null, podeOfertar = false }) {
-  const [texto, setTexto] = useState('');
+// edicao: { texto, temFoto } quando a pessoa está editando uma mensagem já enviada (os anexos somem)
+export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco = null, podeOfertar = false, edicao = null, onCancelarEdicao }) {
+  const [texto, setTexto] = useState(edicao?.texto ?? '');
   const [anexos, setAnexos] = useState([]);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -46,7 +47,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
     campo.style.height = `${Math.min(campo.scrollHeight, 132)}px`;
   }, [texto]);
 
-  const podeEnviar = texto.trim().length > 0 || anexos.length > 0;
+  // editando uma foto, a legenda pode ficar vazia
+  const podeEnviar = edicao ? texto.trim().length > 0 || edicao.temFoto : texto.trim().length > 0 || anexos.length > 0;
 
   async function enviar() {
     if (!podeEnviar) return;
@@ -66,7 +68,20 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
     }
   }
 
+  // editando: o cursor já vai para o fim do texto
+  useEffect(() => {
+    if (!edicao) return;
+    const campo = campoRef.current;
+    campo?.focus();
+    campo?.setSelectionRange(campo.value.length, campo.value.length);
+  }, [edicao]);
+
   function aoTeclar(e) {
+    if (e.key === 'Escape' && edicao) {
+      e.preventDefault();
+      onCancelarEdicao?.();
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       enviar();
@@ -172,6 +187,16 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
 
   return (
     <div className="composer">
+      {edicao && (
+        <div className="editando-barra" role="status">
+          <Icone nome="lapis" tamanho={18} cor="#3E8B22" />
+          <span><b>Editando mensagem</b><span className="editando-dica"> · Enter salva, Esc cancela</span></span>
+          <button type="button" aria-label="Cancelar edição" title="Cancelar edição" onClick={onCancelarEdicao}>
+            <Icone nome="fechar" tamanho={18} cor="#6B726C" />
+          </button>
+        </div>
+      )}
+      {!edicao && (
       <div className="rapidas" role="group" aria-label="Respostas rápidas">
         {RESPOSTAS_RAPIDAS.map((frase) => (
           <button key={frase} type="button" className="rapida" onClick={() => usarRespostaRapida(frase)}>
@@ -188,6 +213,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
           <MenuRapido rotulo="Fazer oferta" icone="etiqueta" itens={ofertas} onEscolher={(item) => usarRespostaRapida(item.frase)} />
         )}
       </div>
+      )}
 
       {erro && <p className="erro-anexo" role="alert">{erro}</p>}
 
@@ -223,6 +249,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
       )}
 
       <div className="linha-envio">
+        {!edicao && (
+        <>
         <button
           type="button"
           className="circ"
@@ -266,6 +294,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
         {cameraAberta && (
           <CameraFoto onUsar={usarFoto} onFechar={fecharCamera} onEscolherArquivo={escolherFotoNoLugar} />
         )}
+        </>
+        )}
 
         <div className="campo-msg">
           <label htmlFor="campo-mensagem" className="oculto">Mensagem para {nomeContato}</label>
@@ -304,11 +334,11 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
         <button
           type="button"
           className="circ enviar"
-          aria-label="Enviar mensagem"
+          aria-label={edicao ? 'Salvar edição' : 'Enviar mensagem'}
           disabled={!podeEnviar || enviando}
           onClick={enviar}
         >
-          <Icone nome="enviar" tamanho={22} cor="#fff" />
+          <Icone nome={edicao ? 'check' : 'enviar'} tamanho={22} cor="#fff" />
         </button>
       </div>
 
