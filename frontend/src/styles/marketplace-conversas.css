@@ -122,14 +122,6 @@
 
 /* Painel de emojis */
 .emoji-painel { position: absolute; z-index: 20; left: 26px; bottom: calc(100% - 12px); width: 344px; max-width: calc(100% - 52px); background: var(--sup); border: 1px solid var(--linha); border-radius: 18px; box-shadow: 0 12px 32px rgba(20, 51, 31, .16); overflow: hidden; }
-.emoji-abas { display: flex; border-bottom: 1px solid var(--linha); padding: 6px 6px 0; gap: 2px; }
-.emoji-aba { flex: 1; min-height: 44px; border: 0; border-bottom: 3px solid transparent; background: none; font-size: 21px; line-height: 1; padding: 0; border-radius: 10px 10px 0 0; }
-.emoji-aba.on { border-bottom-color: var(--marca); background: var(--marca-suave); }
-.emoji-aba:focus-visible { outline-offset: -2px; }
-.emoji-titulo { margin: 0; padding: 10px 14px 4px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--texto-3); }
-.emoji-grade { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 4px 8px 10px; height: 214px; overflow-y: auto; align-content: start; }
-.emoji-grade button { height: 40px; border: 0; border-radius: 10px; background: none; font-size: 24px; line-height: 1; padding: 0; transition: background-color .1s ease, transform .1s ease; }
-.emoji-grade button:focus-visible { outline-offset: -2px; }
 
 /* Câmera (tirar foto no chat) */
 .camera-fundo { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: var(--e4); background: rgba(22, 40, 28, .56); animation: camera-surge .18s ease; }
@@ -164,7 +156,6 @@
   .circ:not(.enviar):hover { border-color: var(--linha-forte); }
   .circ.enviar:not(:disabled):hover { background: var(--marca-clara); }
   .btn-ver:hover { border-color: var(--marca-clara); color: var(--marca); }
-  .emoji-grade button:hover { background: var(--sup-3); transform: scale(1.12); }
 }
 
 /* ================= TABLET · 834 ================= */
@@ -304,4 +295,19 @@
   .pag-conversas .itens-conv { overflow-y: auto; }
   .conv-reconectando { margin: 8px var(--e4) 0; }
   .composer { padding-bottom: var(--e3); }
+}
+
+/* Painel de emojis completo (emoji-picker-element) com as cores do site */
+.emoji-painel emoji-picker {
+  display: block; width: 100%; height: 380px;
+  --background: var(--sup); --border-color: transparent; --border-size: 0;
+  --indicator-color: var(--marca); --indicator-height: 3px;
+  --input-border-color: var(--linha); --input-border-radius: 12px; --input-font-color: var(--tinta); --input-font-size: 15px; --input-padding: 10px 12px;
+  --button-hover-background: var(--marca-suave); --button-active-background: #DCEBD3;
+  --outline-color: var(--marca); --category-font-color: var(--texto-3); --category-font-size: 13px;
+  --emoji-size: 1.55rem; --emoji-padding: 0.4rem; --num-columns: 8;
+}
+.emoji-erro { margin: 0; padding: 16px; font-size: 14px; color: var(--erro); }
+@media (max-width: 600px) {
+  .emoji-painel emoji-picker { height: 330px; --num-columns: 7; --emoji-size: 1.5rem; }
 }

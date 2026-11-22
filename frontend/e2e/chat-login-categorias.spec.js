@@ -272,6 +272,25 @@ test.describe('Foto no chat colando ou arrastando', () => {
   })
 })
 
+test.describe('Emojis no chat', () => {
+  test('o painel tem todos os emojis por categoria, busca em português e põe o emoji escolhido na mensagem', async ({ page }) => {
+    const erros = vigiarErros(page)
+    await entrarComo(page, 2)
+    await page.goto('/conversas/1')
+    await page.getByRole('button', { name: 'Inserir emoji' }).click()
+    const painel = page.getByRole('dialog', { name: 'Escolher emoji' })
+    // as categorias do WhatsApp, até as bandeiras
+    for (const categoria of ['Carinhas e emoticons', 'Animais e natureza', 'Alimentos e bebidas', 'Objetos', 'Bandeiras']) {
+      await expect(painel.getByRole('tab', { name: categoria })).toBeVisible()
+    }
+    // busca em português
+    await painel.getByRole('combobox', { name: 'Procurar' }).fill('pizza')
+    await painel.getByRole('option', { name: /pizza/i }).first().click()
+    await expect(page.locator('#campo-mensagem')).toHaveValue('🍕')
+    expect(erros).toEqual([])
+  })
+})
+
 test.describe('Mensagem antiga', () => {
   test('depois do prazo, Editar e Apagar para todos continuam no menu, apagados e com o aviso', async ({ page }) => {
     await entrarComo(page, 2)
