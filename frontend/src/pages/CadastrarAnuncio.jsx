@@ -13,6 +13,7 @@ import {
   adicionarFotos, definirCapa, editarAnuncio, mudarStatus, obterCategorias, publicarAnuncio, removerFoto, verAnuncio,
 } from '../services/mercadoApi.js';
 import { PONTOS_DE_ENCONTRO } from '../services/conversas.js';
+import { pedirAvisosDeMensagem } from '../services/push.js';
 import { CONDICOES, ENTREGAS, LIMITES, TRANSPORTES, validarAnuncio } from '../services/meusAnuncios.js';
 import '../styles/marketplace-cadastro.css';
 
@@ -361,6 +362,8 @@ function Formulario({ existente }) {
       document.getElementById(primeiro === 'fotos' ? 'cad-enviar-fotos' : `cad-${primeiro}`)?.focus();
       return;
     }
+    // quem publica precisa saber quando alguém chamar: o navegador pergunta se pode mostrar notificações
+    pedirAvisosDeMensagem().catch(() => {});
     salvar('ativo', { tipo: 'sucesso', titulo: editandoPublicado ? 'Alterações salvas' : 'Anúncio publicado' }, 'ativos');
   }
 

@@ -366,7 +366,7 @@ export default function Perfil() {
             {notas.lista.slice(0, 3).map((a) => (
               <li key={a.id}>
                 <div className="rec-cab">
-                  <span className="rec-av" aria-hidden="true">{a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>
+                  <span className="rec-av" aria-hidden="true">{a.autorFoto ? <img src={a.autorFoto} alt="" referrerPolicy="no-referrer" /> : a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>
                   <span className="rec-nm"><b>{a.autor}</b><small>{a.anuncio} · {a.quando}</small></span>
                   <Estrelas nota={a.nota} tamanho={14} /><span className="oculto">Nota {a.nota} de 5</span>
                 </div>

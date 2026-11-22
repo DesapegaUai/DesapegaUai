@@ -242,3 +242,50 @@
 .menu-mensagem-texto small { font-weight: 400; font-size: 12.5px; color: var(--texto-2); }
 .acoes-menu.menu-mensagem button:disabled { color: var(--texto-3); cursor: default; padding-top: 8px; padding-bottom: 8px; }
 .acoes-menu.menu-mensagem button:disabled:hover { background: none; color: var(--texto-3); }
+
+/* Barra do anúncio recolhida: uma faixa fina com a foto, o nome e o preço, para sobrar espaço para a
+   conversa. Tocar (ou puxar para baixo) abre a barra inteira; a setinha para cima recolhe de novo. */
+.conv-anuncio.recolhida { padding-top: 6px; padding-bottom: 6px; }
+.conv-anuncio-faixa { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.conv-anuncio .conv-anuncio-faixa .mini { width: 34px; height: 34px; border-radius: 8px; }
+.conv-anuncio .conv-anuncio-faixa .mini img { border-radius: 8px; }
+.conv-anuncio .conv-anuncio-faixa .t { flex: 0 1 auto; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-anuncio .conv-anuncio-faixa .p { flex: none; display: flex; align-items: center; gap: 8px; margin-top: 0; font-size: 15px; }
+.conv-anuncio-faixa > svg:last-child { flex: none; margin-left: auto; }
+.conv-anuncio-faixa:focus-visible, .conv-anuncio-recolher:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; border-radius: 10px; }
+.conv-anuncio-recolher { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 0; border-radius: 20px; background: none; cursor: pointer; }
+.conv-anuncio-recolher:hover { background: var(--marca-suave); }
+.conv-anuncio-recolher svg { transform: rotate(180deg); }
+@media (max-width: 600px) {
+  .conv-anuncio.recolhida { flex-wrap: nowrap; }
+  .conv-anuncio .conv-anuncio-faixa .t, .conv-anuncio .conv-anuncio-faixa .p { font-size: 14px; }
+}
+
+/* Celular com a conversa aberta: a conversa ocupa a tela toda abaixo do cabeçalho do site, como no
+   WhatsApp (sem o título "Conversas" e sem o rodapé), e o espaço fica para as mensagens */
+@media (max-width: 600px) {
+  .shell:has(.conversa-aberta) { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .shell:has(.conversa-aberta) > .mkt-rodape { display: none; }
+  .conteudo.pag-conversas.conversa-aberta { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--e2) var(--e2) var(--e2); }
+  .pag-conversas.conversa-aberta .titulo-pagina { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .pag-conversas.conversa-aberta .conv-corpo.aberta { flex: 1; min-height: 0; height: auto; margin-top: 0; }
+  .conv-topo { gap: 10px; }
+  .conv-topo .conv-voltar { width: 38px; height: 38px; }
+  .conv-topo .avatar.g { width: 40px; height: 40px; font-size: 15px; }
+  .conv-nome { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv-status { margin-top: 3px; }
+  .conv-status span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rapidas { margin-bottom: 10px; }
+  .aviso-seg { margin-top: 6px; font-size: 12px; }
+}
+
+/* Computador e tablet: a página de conversas funciona como um aplicativo de chat (referência: o chat da
+   OLX). A lista e a conversa vão até o fim da janela, sem o rodapé e com o título menor; só as mensagens
+   rolam, e a conversa nunca fica espremida. */
+@media (min-width: 601px) {
+  .shell:has(.pag-conversas) { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 620px; }
+  .shell:has(.pag-conversas) > .mkt-rodape { display: none; }
+  .conteudo.pag-conversas { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-top: 18px; padding-bottom: 18px; }
+  .pag-conversas .t-titulo-1 { font-size: 26px; }
+  .pag-conversas .conv-corpo { flex: 1; min-height: 0; height: auto; margin-top: 14px; }
+}

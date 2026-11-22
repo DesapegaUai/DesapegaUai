@@ -173,6 +173,105 @@ test.describe('Confirmação de leitura no celular', () => {
   })
 })
 
+// troca o "site na tela" da aba, como trocar de aba ou bloquear o celular e depois voltar
+const mudarTela = (pagina, escondida) => pagina.evaluate((valor) => {
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => valor })
+  document.dispatchEvent(new Event('visibilitychange'))
+}, escondida)
+
+test.describe('Aviso de mensagem nova no site', () => {
+  test('quem abre o site com mensagem esperando é avisado, sem ativar nada; o número aparece no título da aba e a mensagem que chega com a aba escondida é avisada na volta', async ({ browser }) => {
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+
+    // a compradora escreve antes de o vendedor abrir o site
+    expect((await compradora.request.post('/api/conversas/1/mensagens', { data: { texto: `Oi, ainda tem? ${Date.now()}` } })).ok()).toBeTruthy()
+    await vendedor.goto('/')
+    await expect(vendedor.getByRole('status').getByText('Você tem mensagem nova')).toBeVisible()
+    await expect(vendedor).toHaveTitle(/^\(\d+\) /)
+
+    // o vendedor troca de aba: nada aparece enquanto ele está fora, e o aviso aparece quando ele volta
+    await mudarTela(vendedor, true)
+    const texto = `Chegou com a aba escondida ${Date.now()}`
+    expect((await compradora.request.post('/api/conversas/1/mensagens', { data: { texto } })).ok()).toBeTruthy()
+    await vendedor.waitForTimeout(800)
+    await expect(vendedor.getByRole('status').getByText(texto)).toHaveCount(0)
+    await mudarTela(vendedor, false)
+    await expect(vendedor.getByRole('status').getByText(texto)).toBeVisible()
+    // como no WhatsApp: o nome e a foto de quem mandou (a Larissa não tem foto: aparecem as iniciais do perfil)
+    const aviso = vendedor.locator('.toast').filter({ hasText: texto })
+    await expect(aviso).toContainText('Larissa Andrade')
+    await expect(aviso.locator('.toast-foto')).toHaveText('LA')
+
+    // tocar no aviso abre a conversa; leu, o número sai do título
+    await aviso.getByRole('link').click()
+    await expect(vendedor).toHaveURL(/\/conversas\/1$/)
+    await expect(vendedor.locator('.msgs').getByText(texto)).toBeVisible()
+    await expect(vendedor).not.toHaveTitle(/^\(\d+\) /)
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+})
+
+test.describe('Foto no chat colando ou arrastando', () => {
+  test('colar um print (Ctrl+V) e arrastar uma imagem para a conversa viram anexos, e as fotos chegam para a outra pessoa', async ({ browser, browserName }) => {
+    // o Firefox apaga o arquivo de um colar ou arrastar criado pelo teste, e o Firefox de teste não divide a
+    // área de transferência; lá isso só dá para conferir com a pessoa colando de verdade
+    test.skip(browserName === 'firefox', 'o Firefox não deixa o teste simular colar ou arrastar arquivo');
+    const daCompradora = await browser.newContext()
+    const doVendedor = await browser.newContext()
+    const compradora = await daCompradora.newPage()
+    const vendedor = await doVendedor.newPage()
+    await entrarComo(compradora, 2)
+    await entrarComo(vendedor, 1)
+    await vendedor.goto('/conversas/1')
+    await compradora.goto('/conversas/1')
+    await expect(vendedor.locator('.msgs')).toBeVisible()
+    const fotosAntes = await vendedor.locator('.msgs .bolha-img').count()
+
+    // print colado no campo da mensagem (como Win+Shift+S e depois Ctrl+V)
+    await compradora.getByRole('textbox').last().click()
+    await compradora.evaluate(async () => {
+      const imagem = await (await fetch('/icon-192.png')).blob()
+      const dados = new DataTransfer()
+      dados.items.add(new File([imagem], 'image.png', { type: 'image/png' }))
+      document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dados, bubbles: true, cancelable: true }))
+    })
+    const anexos = compradora.getByRole('list', { name: 'Anexos para enviar' }).locator('img')
+    await expect(anexos).toHaveCount(1)
+    await expect(anexos.first()).toHaveAttribute('alt', 'print.png')
+
+    // imagem arrastada do computador: enquanto passa por cima da conversa aparece "Solte a imagem para anexar"
+    const avisouParaSoltar = await compradora.evaluate(async () => {
+      const imagem = await (await fetch('/icon-512.png')).blob()
+      const dados = new DataTransfer()
+      dados.items.add(new File([imagem], 'foto-do-produto.png', { type: 'image/png' }))
+      const conversa = document.querySelector('.conversa .msgs')
+      conversa.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dados, bubbles: true, cancelable: true }))
+      conversa.dispatchEvent(new DragEvent('dragover', { dataTransfer: dados, bubbles: true, cancelable: true }))
+      await new Promise((pronto) => { requestAnimationFrame(() => requestAnimationFrame(pronto)) })
+      const avisou = document.body.innerText.includes('Solte a imagem para anexar')
+      conversa.dispatchEvent(new DragEvent('drop', { dataTransfer: dados, bubbles: true, cancelable: true }))
+      return avisou
+    })
+    expect(avisouParaSoltar).toBe(true)
+    await expect(anexos).toHaveCount(2)
+    await expect(compradora.getByText('Solte a imagem para anexar')).toHaveCount(0)
+
+    await compradora.getByRole('button', { name: 'Enviar mensagem' }).click()
+    await expect(anexos).toHaveCount(0)
+    await expect(vendedor.locator('.msgs .bolha-img')).toHaveCount(fotosAntes + 2)
+
+    await daCompradora.close()
+    await doVendedor.close()
+  })
+})
+
 test.describe('Mensagem antiga', () => {
   test('depois do prazo, Editar e Apagar para todos continuam no menu, apagados e com o aviso', async ({ page }) => {
     await entrarComo(page, 2)

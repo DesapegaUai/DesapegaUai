@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import ContextoNotificacoes from './NotificacoesAnunciosContext.js';
+import { urlDaApi } from '../services/api.js';
 import '../styles/marketplace-notificacoes.css';
 
 const RAIOS_DOS_AVISOS = [
@@ -109,7 +110,9 @@ export default function CaixaNotificacoes() {
               {pendentes.map((aviso) => (
                 <li key={aviso.id} className={aviso.lida ? undefined : 'nova'}>
                   <Link to={aviso.anuncio_id ? `/anuncio/${aviso.anuncio_id}` : '/perfil'} onClick={() => { n.marcarLida(aviso.id); setAberta(false); }}>
-                    <Icone nome={{ nova_avaliacao: 'estrela', procura_atendida: 'busca' }[aviso.tipo] ?? 'etiqueta'} tamanho={18} cor="#3E8B22" />
+                    {aviso.foto
+                      ? <img className="notif-foto" src={urlDaApi(aviso.foto)} alt="" loading="lazy" />
+                      : <Icone nome={{ nova_avaliacao: 'estrela', procura_atendida: 'busca' }[aviso.tipo] ?? 'etiqueta'} tamanho={18} cor="#3E8B22" />}
                     <span>
                       <b>{aviso.titulo}</b>
                       <i>{aviso.texto}</i>

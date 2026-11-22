@@ -55,3 +55,5 @@
 @media (prefers-reduced-motion: reduce) {
   .notif-sino-ic.tocando, .notif-qtd.chegou { animation: none; }
 }
+/* aviso de anúncio: a foto de capa do que foi publicado */
+.notif-lista .notif-foto { flex: none; width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: var(--sup-foto, #EFF2EC); }

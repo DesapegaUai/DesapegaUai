@@ -7,6 +7,7 @@ import { Estrelas } from '../components/Estrelas.jsx';
 import SeloVinculo from '../components/SeloVinculo.jsx';
 import { carregarAvaliacoesUsuario, reputacao, resumoDe, rotuloDaQualidade, textoDaMedia, useAvaliacoes } from '../services/avaliacoes.js';
 import { textoDoUltimoAcesso, verPerfilPublico } from '../services/mercadoApi.js';
+import { ouvir } from '../services/tempoReal.js';
 import { useSessao } from '../services/sessao.js';
 import '../styles/marketplace-avaliacao.css';
 import '../styles/marketplace-perfil-publico.css';
@@ -26,6 +27,9 @@ export default function PerfilPublico() {
   const [todosDe, setTodosDe] = useState(null); // id do perfil em que a pessoa pediu para ver todos os anúncios
   const usuarioId = Number(id);
   const notas = resumoDe(useAvaliacoes(), usuarioId);
+  // a pessoa deste perfil mudou nome ou foto: lê o perfil de novo, sem precisar recarregar a página
+  const [versao, setVersao] = useState(0);
+  useEffect(() => ouvir('perfil_atualizado', ({ id: quem }) => { if (Number(quem) === usuarioId) setVersao((v) => v + 1); }), [usuarioId]);
 
   useEffect(() => {
     if (!valido) return undefined;
@@ -37,7 +41,7 @@ export default function PerfilPublico() {
       .catch(() => {})
       .finally(() => { if (ativo) setAvaliacoesDe(id); });
     return () => { ativo = false; };
-  }, [id, valido]);
+  }, [id, valido, versao]);
 
   const atual = resultado?.id === id ? resultado : null;
   const carregando = valido && !atual;
@@ -147,7 +151,7 @@ export default function PerfilPublico() {
               {notas.lista.map((a) => (
                 <li key={a.id}>
                   <div className="pub-aval-cab">
-                    <span className="pub-aval-av" aria-hidden="true">{a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>
+                    <span className="pub-aval-av" aria-hidden="true">{a.autorFoto ? <img src={a.autorFoto} alt="" referrerPolicy="no-referrer" /> : a.autor.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span>
                     <span className="pub-aval-nm"><b>{a.autor}</b><small>{a.anuncio} · {a.quando}</small></span>
                     <Estrelas nota={a.nota} tamanho={14} /><span className="oculto">Nota {a.nota} de 5</span>
                   </div>

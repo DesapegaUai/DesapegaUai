@@ -179,3 +179,17 @@ test('lida também conta como entregue', async () => {
   assert.ok(daLarissa.length > 0)
   assert.ok(daLarissa.every((m) => m.lida && m.entregue))
 })
+
+test('quem muda o nome ou a foto avisa na hora todo mundo com o site aberto (perfil_atualizado)', async () => {
+  const visitante = conectarSocket(origemSocket, { path: '/api/socket.io', transports: ['websocket'], reconnection: false })
+  sockets.push(visitante)
+  await new Promise((ok, falha) => { visitante.once('connect', ok); visitante.once('connect_error', falha) })
+  const chegou = esperar(visitante, 'perfil_atualizado')
+  const r = await fetch(`${base}/perfil`, { method: 'PUT', headers: { Cookie: vendedor, 'Content-Type': 'application/json' }, body: JSON.stringify({ bio: 'Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento.' }) })
+  assert.equal(r.status, 200)
+  const aviso = await chegou
+  assert.equal(aviso.id, 1)
+  assert.equal(aviso.nome, 'Diego Martins')
+  assert.ok('foto_url' in aviso)
+  assert.equal('email' in aviso || 'telefone' in aviso, false, 'só vai o que é público')
+})

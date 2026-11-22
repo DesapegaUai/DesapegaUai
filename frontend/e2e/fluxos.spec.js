@@ -153,7 +153,7 @@ test.describe('Vendedor e comprador ao mesmo tempo', () => {
     await doVendedor.close()
   })
 
-  test('o sininho recebe o aviso de anúncio novo de quem ativou', async ({ browser }) => {
+  test('o sininho recebe o aviso de anúncio novo de quem ativou, com a foto do anúncio', async ({ browser }) => {
     const doComprador = await browser.newContext()
     const doVendedor = await browser.newContext()
     const comprador = await doComprador.newPage()
@@ -169,6 +169,8 @@ test.describe('Vendedor e comprador ao mesmo tempo', () => {
     const titulo = `Mesa do sininho ${Date.now()}`
     const anuncio = await criarAnuncioPelaApi(vendedor, { titulo })
     await expect(comprador.locator('.notif-lista')).toContainText(titulo, { timeout: 15_000 })
+    // o aviso mostra a foto de capa do que foi publicado
+    await expect(comprador.locator('.notif-lista li').filter({ hasText: titulo }).locator('img.notif-foto')).toHaveAttribute('src', new RegExp('/api/uploads/anuncios/' + anuncio.id + '/'))
     await expect(comprador.locator('.notif-qtd')).toBeVisible()
 
     await comprador.getByRole('switch', { name: /^(Ativar|Desativar) avisos$/ }).click()

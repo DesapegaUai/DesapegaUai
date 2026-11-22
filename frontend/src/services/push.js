@@ -50,6 +50,18 @@ export async function desinscreverAparelho() {
   await inscricao.unsubscribe()
 }
 
+// Notificação de mensagem nova sem precisar ativar nada no sininho: quando a pessoa manda uma
+// mensagem ou publica um anúncio, o navegador pergunta uma vez se pode mostrar notificações.
+// Precisa ser chamada direto no clique (o navegador só pergunta depois de uma ação da pessoa).
+// Devolve true quando a pessoa acabou de permitir; null quando não precisava perguntar.
+export async function pedirAvisosDeMensagem() {
+  if (motivoSemPush() || Notification.permission !== 'default') return null
+  const permissao = await Notification.requestPermission()
+  if (permissao !== 'granted') return false
+  await reinscreverSePermitido()
+  return true
+}
+
 // depois do login: se a pessoa já tinha permitido, o aparelho volta a receber sem perguntar
 export async function reinscreverSePermitido() {
   if (motivoSemPush() || Notification.permission !== 'granted') return

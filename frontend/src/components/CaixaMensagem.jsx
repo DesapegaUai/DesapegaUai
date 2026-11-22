@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import Icone from './IconeMarketplace.jsx';
 import SeletorEmoji from './SeletorEmoji.jsx';
 import CameraFoto from './CameraFoto.jsx';
@@ -12,7 +12,8 @@ let proximoId = 1;
 /**
  * Caixa de mensagem do chat:
  * respostas rápidas · [anexar] [câmera] [texto + emoji] [enviar] · aviso de segurança.
- * - Anexos: fotos JPG, PNG ou WebP (até 5, 8 MB cada), com prévia antes de enviar.
+ * - Anexos: fotos JPG, PNG ou WebP (até 5, 8 MB cada), com prévia antes de enviar. Também entram
+ *   colando um print (Ctrl+V) ou arrastando a imagem para cima da conversa.
  * - Câmera: tira uma foto na hora e ela entra nos anexos (mesmos limites).
  *   Computador: janela com a webcam ao vivo · celular/tablet: câmera do próprio aparelho.
  * - Emoji: painel com 4 grupos; insere onde o cursor está.
@@ -26,7 +27,9 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
   const [enviando, setEnviando] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [cameraAberta, setCameraAberta] = useState(false);
+  const [soltando, setSoltando] = useState(false); // arrastando uma imagem por cima da conversa
   const ehCelular = useMediaQuery(CELULAR);
+  const raizRef = useRef(null);
   const campoRef = useRef(null);
   const arquivoRef = useRef(null);
   const cameraRef = useRef(null);
@@ -172,6 +175,81 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
     setErro(problemas.length ? `Não deu para anexar: ${[...new Set(problemas)].join('; ')}.` : '');
   }
 
+  // imagem que chegou colando (print) ou arrastando: entra nos anexos, com a mesma prévia e os mesmos limites
+  const receberImagens = useEffectEvent((arquivos) => {
+    if (!arquivos.length) return;
+    if (edicao) {
+      setErro('Termine ou cancele a edição para anexar foto.');
+      return;
+    }
+    adicionarArquivos(arquivos);
+    campoRef.current?.focus();
+  });
+
+  // Ctrl+V com um print ou uma imagem copiada. Vale com o cursor no campo ou em qualquer lugar da tela,
+  // menos em outro campo de texto (a busca de conversas, por exemplo).
+  useEffect(() => {
+    const colar = (e) => {
+      const alvo = e.target;
+      const outroCampo = alvo instanceof Element && alvo !== campoRef.current && alvo.closest('input, textarea, [contenteditable="true"]');
+      const dados = e.clipboardData;
+      if (outroCampo || !dados) return;
+      // a imagem pode vir na lista de arquivos ou só na lista de itens (depende do navegador)
+      const dosItens = Array.from(dados.items ?? []).filter((item) => item.kind === 'file').map((item) => item.getAsFile()).filter(Boolean);
+      const imagens = (dados.files?.length ? Array.from(dados.files) : dosItens).filter((arquivo) => arquivo.type.startsWith('image/'));
+      // texto copiado (até do Word, que manda uma imagem junto) continua colando como texto
+      if (!imagens.length || dados.getData('text/plain')) return;
+      e.preventDefault();
+      const extensao = { 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+      // o print colado chega como "image.png": ganha um nome que a pessoa reconhece na prévia
+      receberImagens(imagens.map((arquivo) => (arquivo.name && arquivo.name !== 'image.png' ? arquivo
+        : new File([arquivo], `print.${extensao[arquivo.type] ?? 'png'}`, { type: arquivo.type }))));
+    };
+    document.addEventListener('paste', colar);
+    return () => document.removeEventListener('paste', colar);
+  }, []);
+
+  // arrastar a imagem para cima da conversa: a conversa ganha uma borda e, ao soltar, a imagem vira anexo
+  useEffect(() => {
+    const area = raizRef.current?.closest('.conversa') ?? raizRef.current;
+    if (!area) return undefined;
+    let espera = null;
+    const temArquivo = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
+    const passando = (e) => {
+      if (!temArquivo(e)) return;
+      e.preventDefault(); // deixa soltar aqui (sem isso o navegador abre a imagem em outra aba)
+      e.dataTransfer.dropEffect = 'copy';
+      setSoltando(true);
+      clearTimeout(espera); // o navegador repete esse aviso enquanto a imagem está em cima da conversa
+      espera = setTimeout(() => setSoltando(false), 250);
+    };
+    const soltar = (e) => {
+      if (!temArquivo(e)) return;
+      e.preventDefault();
+      clearTimeout(espera);
+      setSoltando(false);
+      const dados = e.dataTransfer;
+      const dosItens = Array.from(dados.items ?? []).filter((item) => item.kind === 'file').map((item) => item.getAsFile()).filter(Boolean);
+      receberImagens(dados.files?.length ? Array.from(dados.files) : dosItens);
+    };
+    area.addEventListener('dragenter', passando);
+    area.addEventListener('dragover', passando);
+    area.addEventListener('drop', soltar);
+    return () => {
+      clearTimeout(espera);
+      area.removeEventListener('dragenter', passando);
+      area.removeEventListener('dragover', passando);
+      area.removeEventListener('drop', soltar);
+    };
+  }, []);
+
+  // a borda tracejada fica na conversa inteira, que é onde dá para soltar
+  useEffect(() => {
+    const area = raizRef.current?.closest('.conversa');
+    area?.classList.toggle('soltando', soltando);
+    return () => area?.classList.remove('soltando');
+  }, [soltando]);
+
   function removerAnexo(id) {
     setAnexos((atual) => {
       const alvo = atual.find((a) => a.id === id);
@@ -186,7 +264,13 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
   }, []);
 
   return (
-    <div className="composer">
+    <div className="composer" ref={raizRef}>
+      {soltando && (
+        <div className="editando-barra" role="status">
+          <Icone nome="clipe" tamanho={18} cor="#3E8B22" />
+          <span><b>Solte a imagem para anexar</b></span>
+        </div>
+      )}
       {edicao && (
         <div className="editando-barra" role="status">
           <Icone nome="lapis" tamanho={18} cor="#3E8B22" />
@@ -255,7 +339,7 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
           type="button"
           className="circ"
           aria-label="Anexar foto"
-          title="Anexar foto"
+          title="Anexar foto (também dá para colar um print com Ctrl+V ou arrastar a imagem para a conversa)"
           onClick={() => arquivoRef.current?.click()}
         >
           <Icone nome="clipe" tamanho={22} cor="#3E8B22" espessura={1.7} />

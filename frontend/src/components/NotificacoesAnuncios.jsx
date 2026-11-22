@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Toast from './Toast.jsx';
 import ContextoNotificacoes from './NotificacoesAnunciosContext.js';
-import { api } from '../services/api.js';
+import { api, urlDaApi } from '../services/api.js';
+import { iniciais } from '../services/mercadoApi.js';
 import { desinscreverAparelho, inscreverAparelho, motivoSemPush, reinscreverSePermitido } from '../services/push.js';
 import { useSessao } from '../services/sessao.js';
 import { ouvir, quandoReconectar } from '../services/tempoReal.js';
@@ -27,7 +28,8 @@ export function NotificacoesAnunciosProvider({ children }) {
   const [aviso, setAviso] = useState(null);
   const [ocupado, setOcupado] = useState(false);
 
-  const informar = useCallback((tipo, titulo, texto) => setAviso({ tipo, titulo, texto, chave: Date.now() }), []);
+  // extra: { pessoa, link } no aviso de mensagem nova (foto de quem mandou e a conversa que abre ao tocar)
+  const informar = useCallback((tipo, titulo, texto, extra = {}) => setAviso({ tipo, titulo, texto, ...extra, chave: Date.now() }), []);
 
   const recarregar = useCallback(async () => {
     if (!usuario) return;
@@ -50,7 +52,8 @@ export function NotificacoesAnunciosProvider({ children }) {
   useEffect(() => {
     if (!usuario) return undefined;
     let ativo = true;
-    Promise.all([api.get('/notificacoes?por_pagina=20'), api.get('/notificacoes/preferencias')])
+    const pedidoDePreferencias = api.get('/notificacoes/preferencias');
+    Promise.all([api.get('/notificacoes?por_pagina=20'), pedidoDePreferencias])
       .then(([lista, prefs]) => {
         if (!ativo) return;
         setItens(lista.itens);
@@ -66,7 +69,12 @@ export function NotificacoesAnunciosProvider({ children }) {
       setToque((vezes) => vezes + 1);
       // o aviso entra no histórico de qualquer jeito; só aparece na tela se a pessoa não desligou tudo
       const { anuncios, mensagens } = preferenciasRef.current;
-      if (!document.hidden && (anuncios || mensagens)) informar('info', nova.titulo, nova.texto);
+      if (!document.hidden && (anuncios || mensagens)) {
+        informar('info', nova.titulo, nova.texto, {
+          imagem: urlDaApi(nova.foto), // a foto de capa do anúncio publicado
+          link: nova.anuncio_id ? `/anuncio/${nova.anuncio_id}` : null,
+        });
+      }
     });
     const pararLidas = ouvir('notificacoes_lidas', ({ nao_lidas: total }) => setNaoLidas(total));
 
@@ -81,23 +89,81 @@ export function NotificacoesAnunciosProvider({ children }) {
         .catch(() => {});
     };
     contarMensagens();
+
+    // abriu o site (ou entrou na conta) com mensagem esperando: avisa na hora, sem precisar ativar nada.
+    // Na mesma aba, só avisa de novo se chegou mais mensagem desde o último aviso.
+    Promise.all([api.get('/conversas/nao-lidas'), pedidoDePreferencias])
+      .then(([{ total }, prefs]) => {
+        if (!ativo || !total || !prefs.mensagens || window.location.pathname.startsWith('/conversas')) return;
+        const chave = `desapegauai:mensagens-avisadas:${usuario.id}`;
+        try {
+          if (Number(sessionStorage.getItem(chave)) >= total) return;
+          sessionStorage.setItem(chave, String(total));
+        } catch {
+          // sem sessionStorage (aba anônima): avisa assim mesmo
+        }
+        informar('info', 'Você tem mensagem nova', total === 1 ? '1 conversa com mensagem não lida.' : `${total} conversas com mensagem não lida.`, { link: '/conversas' });
+      })
+      .catch(() => {});
+
+    // mensagem que chegou com o site fora da tela: o aviso aparece quando a pessoa voltar
+    let chegouForaDaTela = null;
     const pararMensagem = ouvir('nova_mensagem', (mensagem) => {
       if (Number(mensagem.remetente_id) === Number(usuario.id)) return; // fui eu que mandei
       contarMensagens();
-      // quem já está com essa conversa aberta vê a mensagem chegar na própria tela
-      const conversaAberta = window.location.pathname === `/conversas/${mensagem.conversa_id}`;
-      if (conversaAberta || document.hidden || !preferenciasRef.current.mensagens) return;
+      if (!preferenciasRef.current.mensagens) return;
       const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : '');
-      informar('info', 'Nova mensagem', texto.length > 90 ? `${texto.slice(0, 90)}…` : texto);
+      // como no WhatsApp: a foto e o nome de quem mandou (sem foto, as iniciais do perfil) e o texto
+      const nome = mensagem.remetente?.nome ?? '';
+      const aviso = {
+        conversaId: mensagem.conversa_id,
+        titulo: nome || 'Nova mensagem',
+        resumo: texto.length > 90 ? `${texto.slice(0, 90)}…` : texto,
+        extra: { pessoa: { nome, foto: urlDaApi(mensagem.remetente?.foto_url), iniciais: iniciais(nome) }, link: `/conversas/${mensagem.conversa_id}` },
+      };
+      if (document.hidden) {
+        chegouForaDaTela = aviso;
+        return;
+      }
+      // quem já está com essa conversa aberta vê a mensagem chegar na própria tela
+      if (window.location.pathname === `/conversas/${mensagem.conversa_id}`) return;
+      informar('info', aviso.titulo, aviso.resumo, aviso.extra);
     });
+    const aoVoltarParaOSite = () => {
+      if (document.hidden || !chegouForaDaTela) return;
+      const aviso = chegouForaDaTela;
+      chegouForaDaTela = null;
+      if (window.location.pathname !== `/conversas/${aviso.conversaId}`) informar('info', aviso.titulo, aviso.resumo, aviso.extra);
+    };
+    document.addEventListener('visibilitychange', aoVoltarParaOSite);
     const pararLeitura = ouvir('mensagens_lidas', ({ leitor_id: leitorId }) => {
       if (Number(leitorId) === Number(usuario.id)) contarMensagens();
     });
     const pararConversa = ouvir('conversa_criada', contarMensagens);
 
     const pararReconexao = quandoReconectar(() => { recarregar().catch(() => {}); contarMensagens(); });
-    return () => { ativo = false; pararNova(); pararLidas(); pararMensagem(); pararLeitura(); pararConversa(); pararReconexao(); };
+    return () => {
+      ativo = false;
+      pararNova(); pararLidas(); pararMensagem(); pararLeitura(); pararConversa(); pararReconexao();
+      document.removeEventListener('visibilitychange', aoVoltarParaOSite);
+    };
   }, [usuario, recarregar, informar]);
+
+  // número de conversas com mensagem não lida no título da aba, como "(2) DesapegaUai": dá para ver
+  // de outra aba. As telas trocam o título sozinhas, então o número volta sempre que o título muda.
+  useEffect(() => {
+    const prefixo = mensagensNaoLidas > 0 ? `(${mensagensNaoLidas}) ` : '';
+    const aplicar = () => {
+      const titulo = prefixo + document.title.replace(/^\(\d+\) /, '');
+      if (document.title !== titulo) document.title = titulo;
+    };
+    aplicar();
+    const elemento = document.querySelector('title');
+    if (!elemento) return undefined;
+    const observador = new MutationObserver(aplicar);
+    observador.observe(elemento, { childList: true, characterData: true, subtree: true });
+    return () => observador.disconnect();
+  }, [mensagensNaoLidas]);
 
   const ativar = useCallback(async (raioKm = preferencias.raio_km) => {
     if (!usuario) return informar('info', 'Entre na sua conta para receber avisos');

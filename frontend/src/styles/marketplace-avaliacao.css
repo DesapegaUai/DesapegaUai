@@ -89,3 +89,7 @@
 .aval-marcadas { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
 .aval-marcadas li { padding: 4px 11px; border-radius: 999px; background: var(--marca-suave, #EFF6EB); font-size: 13px; font-weight: 600; color: var(--marca, #3E8B22); }
 .aval-marcadas li b { margin-left: 5px; font-weight: 800; }
+
+/* foto de quem avaliou (sem foto, as iniciais) */
+.lista-aval .rec-av { overflow: hidden; }
+.lista-aval .rec-av img { width: 100%; height: 100%; object-fit: cover; }

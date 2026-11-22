@@ -15,18 +15,26 @@ function mudarEstado(parcial) {
   ouvintesDoEstado.forEach((avisar) => avisar())
 }
 
+// conta para o servidor se o site está na tela: quem está olhando não recebe a notificação de
+// mensagem no aparelho (a mensagem já aparece no site); quem saiu da aba ou bloqueou o celular recebe
+function avisarSeEstaNaTela() {
+  if (socket?.connected) socket.emit('na_tela', !document.hidden)
+}
+
 function criar() {
   const origem = import.meta.env.VITE_API_URL || window.location.origin
   socket = io(origem, { path: '/api/socket.io', withCredentials: true, transports: ['websocket', 'polling'] })
   socket.on('connect', () => {
     const voltou = estado.quedas > 0
     mudarEstado({ conectado: true, reconectando: false })
+    avisarSeEstaNaTela()
     if (voltou) aoReconectar.forEach((funcao) => funcao())
   })
   socket.on('disconnect', (motivo) => {
     mudarEstado({ conectado: false, reconectando: motivo !== 'io client disconnect', quedas: estado.quedas + 1 })
   })
   socket.on('connect_error', () => mudarEstado({ conectado: false, reconectando: true }))
+  document.addEventListener('visibilitychange', avisarSeEstaNaTela)
 }
 
 export function conectarTempoReal() {
