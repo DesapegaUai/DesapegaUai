@@ -25,8 +25,14 @@ function quando(data) {
 export default function CaixaNotificacoes() {
   const n = useContext(ContextoNotificacoes);
   const [aberta, setAberta] = useState(false);
+  const [topo, setTopo] = useState(null); // no celular a caixa abre na largura da tela, logo abaixo do sininho
   const caixaRef = useRef(null);
   const botaoRef = useRef(null);
+
+  function alternar() {
+    if (!aberta) setTopo(Math.round(botaoRef.current?.getBoundingClientRect().bottom ?? 64) + 8);
+    setAberta((a) => !a);
+  }
 
   useEffect(() => {
     if (!aberta) return undefined;
@@ -51,7 +57,7 @@ export default function CaixaNotificacoes() {
 
   return (
     <div className="notif">
-      <button type="button" ref={botaoRef} className="cab-icone notif-sino" aria-label={rotulo} aria-expanded={aberta} aria-haspopup="dialog" onClick={() => setAberta((a) => !a)}>
+      <button type="button" ref={botaoRef} className="cab-icone notif-sino" aria-label={rotulo} aria-expanded={aberta} aria-haspopup="dialog" onClick={alternar}>
         {/* a key muda a cada aviso que chega, então a animação de balançar recomeça */}
         <span key={n.toque} className={n.toque > 0 ? 'notif-sino-ic tocando' : 'notif-sino-ic'}>
           <Icone nome="sino" tamanho={24} cor="#3E8B22" espessura={1.7} />
@@ -60,7 +66,7 @@ export default function CaixaNotificacoes() {
       </button>
 
       {aberta && (
-        <div className="notif-caixa" role="dialog" aria-label="Notificações" ref={caixaRef}>
+        <div className="notif-caixa" role="dialog" aria-label="Notificações" ref={caixaRef} style={topo ? { '--notif-topo': `${topo}px` } : undefined}>
           <div className="notif-topo">
             <strong>Notificações</strong>
             {n.naoLidas > 0 && <button type="button" className="notif-link" onClick={n.marcarLidas}>Limpar tudo</button>}

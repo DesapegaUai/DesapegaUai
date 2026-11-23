@@ -79,6 +79,9 @@ test.describe('Sem GPS', () => {
   test('localização manual: escolhe Ponte Nova e vê os anúncios de lá', async ({ page }) => {
     await semMapaDaInternet(page)
     await page.goto('/busca')
+    // no celular e no tablet a cidade fica no menu que desce do ☰
+    const menu = page.getByRole('button', { name: 'Abrir menu', exact: true })
+    if (await menu.isVisible()) await menu.click()
     await page.getByRole('button', { name: /Localização:/ }).click()
     await page.getByLabel('Buscar cidade da Zona da Mata').fill('ponte')
     await page.getByRole('listbox', { name: 'Cidades da Zona da Mata mineira' }).getByRole('option', { name: 'Ponte Nova', exact: true }).click()

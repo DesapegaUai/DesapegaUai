@@ -5,6 +5,7 @@ import CaixaNotificacoes from './CaixaNotificacoes.jsx'
 import Icone from './Icone.jsx'
 import IconeAtalho from './IconeMarketplace.jsx'
 import MenuCidade from './MenuCidade.jsx'
+import MenuQueDesce from './MenuQueDesce.jsx'
 import SeloMensagens from './SeloMensagens.jsx'
 import { posicaoDoMenu, useCidade } from '../services/cidade.js'
 import './Cabecalho.css'
@@ -24,6 +25,14 @@ export default function Cabecalho({ busca, onBusca }) {
   const localRef = useRef(null)
   const [menuCidade, setMenuCidade] = useState(null)
   const fecharCidade = useCallback(() => setMenuCidade(null), [])
+  // celular e tablet: favoritos, conta, cidade, categorias e Anunciar descem do ☰
+  const [topoDoMenu, setTopoDoMenu] = useState(null)
+  const burgerRef = useRef(null)
+  const fecharMenu = useCallback(() => setTopoDoMenu(null), [])
+  function alternarMenu() {
+    if (topoDoMenu !== null) { fecharMenu(); return }
+    setTopoDoMenu(Math.round(burgerRef.current.closest('header').getBoundingClientRect().bottom))
+  }
 
   // Enter na busca abre a página de resultados
   function buscarAoTeclar(e) {
@@ -31,6 +40,7 @@ export default function Cabecalho({ busca, onBusca }) {
   }
 
   return (
+    <>
     <header className={encolhido ? 'cabecalho cabecalho--encolhido' : 'cabecalho'}>
       <div className="cabecalho__barra">
         <Link className="cabecalho__logo" to="/" aria-label="DesapegaUai, página inicial">
@@ -66,22 +76,35 @@ export default function Cabecalho({ busca, onBusca }) {
 
         <div className="cabecalho__acoes">
           {/* os mesmos atalhos, ícones e cores do cabeçalho das outras telas */}
-          <span className="cabecalho__so-desktop"><CaixaNotificacoes /></span>
-          <button type="button" className="cabecalho__icone" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
+          <CaixaNotificacoes />
+          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
             <IconeAtalho nome="favorito" tamanho={25} cor="#3E8B22" />
           </button>
-          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Mensagens" onClick={() => navegar('/conversas')}>
+          <button type="button" className="cabecalho__icone tem-selo" aria-label="Mensagens" onClick={() => navegar('/conversas')}>
             <IconeAtalho nome="mensagens" tamanho={25} cor="#3E8B22" />
             <SeloMensagens />
           </button>
-          <button type="button" className="cabecalho__icone" aria-label="Minha conta" onClick={() => navegar('/perfil')}>
+          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Minha conta" onClick={() => navegar('/perfil')}>
             <IconeAtalho nome="perfil" tamanho={25} cor="#3E8B22" />
           </button>
-          <button type="button" className="botao-anunciar" onClick={() => navegar('/anunciar')}>
+          <button type="button" className="botao-anunciar cabecalho__so-desktop" onClick={() => navegar('/anunciar')}>
             Anunciar
+          </button>
+          <button
+            type="button"
+            className="cabecalho__icone cabecalho__menu"
+            ref={burgerRef}
+            aria-label={topoDoMenu !== null ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={topoDoMenu !== null}
+            aria-controls="menu-que-desce"
+            onClick={alternarMenu}
+          >
+            <IconeAtalho nome={topoDoMenu !== null ? 'fechar' : 'menu'} tamanho={22} cor="#3E8B22" />
           </button>
         </div>
       </div>
     </header>
+    <MenuQueDesce topo={topoDoMenu} onFechar={fecharMenu} botaoRef={burgerRef} />
+    </>
   )
 }
