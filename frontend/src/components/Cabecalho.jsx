@@ -75,14 +75,18 @@ export default function Cabecalho({ busca, onBusca }) {
         {menuCidade && <MenuCidade posicao={menuCidade} ancoraRef={localRef} onFechar={fecharCidade} />}
 
         <div className="cabecalho__acoes">
-          {/* os mesmos atalhos, ícones e cores do cabeçalho das outras telas */}
-          <CaixaNotificacoes />
-          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
-            <IconeAtalho nome="favorito" tamanho={25} cor="#3E8B22" />
+          {/* a mesma ordem em todas as telas: Início, avisos, mensagens, favoritos, conta e Anunciar.
+              No celular e no tablet ficam Início, avisos, mensagens e o ☰ (o resto está no menu) */}
+          <button type="button" className="cabecalho__icone" aria-label="Início" onClick={() => navegar('/')}>
+            <IconeAtalho nome="inicio" tamanho={25} cor="#3E8B22" />
           </button>
+          <CaixaNotificacoes />
           <button type="button" className="cabecalho__icone tem-selo" aria-label="Mensagens" onClick={() => navegar('/conversas')}>
             <IconeAtalho nome="mensagens" tamanho={25} cor="#3E8B22" />
             <SeloMensagens />
+          </button>
+          <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Favoritos" onClick={() => navegar('/favoritos')}>
+            <IconeAtalho nome="favorito" tamanho={25} cor="#3E8B22" />
           </button>
           <button type="button" className="cabecalho__icone cabecalho__so-desktop" aria-label="Minha conta" onClick={() => navegar('/perfil')}>
             <IconeAtalho nome="perfil" tamanho={25} cor="#3E8B22" />

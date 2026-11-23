@@ -5,6 +5,7 @@ import RotaPrivada from './components/RotaPrivada.jsx'
 import TelasMarketplace from './components/TelasMarketplace.jsx'
 import { NotificacoesAnunciosProvider } from './components/NotificacoesAnuncios.jsx'
 import Busca from './pages/Busca.jsx'
+import TodosAnuncios from './pages/TodosAnuncios.jsx'
 import CadastrarAnuncio from './pages/CadastrarAnuncio.jsx'
 import Casa from './pages/Casa.jsx'
 import Conversas from './pages/Conversas.jsx'
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/categoria/servicos" element={<Servicos />} />
           <Route path="/categoria/outros" element={<Outros />} />
           <Route path="/busca" element={<Busca />} />
+          <Route path="/anuncios" element={<TodosAnuncios />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/procura-se" element={<ProcuraSe />} />
           <Route path="/anuncio/:id" element={<DetalhesAnuncio />} />

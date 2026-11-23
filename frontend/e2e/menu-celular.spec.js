@@ -10,7 +10,7 @@ test('no celular, o ☰ abre o menu que desce: cartão da pessoa, atalhos, cidad
 
   for (const caminho of ['/', '/busca', '/perfil']) {
     await page.goto(caminho)
-    // no alto: só o sininho, as mensagens e o ☰ (favoritos, conta e Anunciar ficam no menu)
+    // no alto: Início, o sininho, as mensagens e o ☰ (favoritos, conta e Anunciar ficam no menu)
     await expect(page.getByRole('banner').getByRole('button', { name: /^Notificações/ })).toBeVisible()
     await expect(page.getByRole('banner').getByRole('link', { name: 'Mensagens' }).or(page.getByRole('banner').getByRole('button', { name: 'Mensagens' }))).toBeVisible()
     await expect(page.getByRole('banner').getByRole('link', { name: 'Favoritos' })).toBeHidden()
@@ -19,7 +19,7 @@ test('no celular, o ☰ abre o menu que desce: cartão da pessoa, atalhos, cidad
     const caixa = page.locator('#menu-que-desce')
     await expect(caixa).toBeVisible()
     await expect(caixa.getByRole('link', { name: /Larissa/ })).toBeVisible()
-    for (const atalho of ['Favoritos', 'Meus anúncios', 'Procura-se', 'Anunciar']) await expect(caixa.getByRole('link', { name: atalho })).toBeVisible()
+    for (const atalho of ['Início', 'Anúncios', 'Meus anúncios', 'Favoritos', 'Procura-se', 'Anunciar']) await expect(caixa.getByRole('link', { name: atalho, exact: atalho !== 'Anunciar' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
     await page.keyboard.press('Escape')
     await expect(caixa).toHaveCount(0)

@@ -220,44 +220,6 @@
   color: var(--cor-texto-sobre-escuro);
 }
 
-.rodape-local {
-  flex: none;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.rodape-cidade {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font: 500 15px/1 var(--fonte);
-  color: var(--rd-texto);
-  white-space: nowrap;
-}
-
-.rodape-cidade .icone {
-  color: var(--rd-lima);
-}
-
-.rodape-social {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--rd-claro);
-}
-
-.rodape-social:hover {
-  border-color: var(--rd-lima);
-  color: var(--rd-claro);
-}
 
 /* Tablet: marca em cima (logo e texto à esquerda, botão à direita) e as 3 colunas embaixo */
 @media (max-width: 1024px) {
@@ -344,14 +306,14 @@
     font-size: 15px;
   }
 
-  /* barra final: links à esquerda, cidade e Instagram à direita, uma linha e o © por último */
+  /* barra final: os links, uma linha e o © por último */
   .rodape-base-in {
     padding: 24px 32px 28px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      'links local'
-      'copy copy';
+      'links'
+      'copy';
     align-items: center;
     gap: 0 24px;
   }
@@ -360,10 +322,6 @@
     grid-area: links;
   }
 
-  .rodape-local {
-    grid-area: local;
-    margin-left: 0;
-  }
 
   .rodape-copy {
     grid-area: copy;
@@ -495,27 +453,19 @@
     font-size: 15px;
   }
 
-  /* barra final: cidade e Instagram, uma linha, os links e o © por último */
+  /* barra final: os links e o © por último */
   .rodape-base-in {
-    padding: 22px 20px 30px;
+    padding: 18px 20px 30px;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      'local'
       'links'
       'copy';
     gap: 0;
   }
 
-  .rodape-local {
-    justify-content: space-between;
-    gap: 16px;
-  }
 
   .rodape-links {
-    margin-top: 18px;
-    padding-top: 18px;
     gap: 0 22px;
-    border-top: 1px solid var(--rd-borda);
   }
 
   .rodape-links a {
@@ -534,7 +484,4 @@
     line-height: 20px;
   }
 
-  .rodape-cidade {
-    font-size: 14px;
-  }
 }

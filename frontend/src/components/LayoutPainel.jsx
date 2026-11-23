@@ -119,15 +119,18 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
             autoComplete="off"
           />
         </form>
+        {/* a mesma ordem em todas as telas: Início, avisos, mensagens, favoritos, conta e Anunciar */}
         <div className="tacts">
-          <Link className="pub" to="/anunciar" aria-label="Anunciar">
-            <Icone nome="mais" tamanho={20} cor="#fff" espessura={2} />
-            <span className="rot">Anunciar</span>
+          <Link className="ic-topo" to="/" aria-label="Início">
+            <Icone nome="inicio" tamanho={24} cor="#3E8B22" espessura={1.7} />
           </Link>
           <CaixaNotificacoes />
           <Link className="ic-topo tem-selo" to="/conversas" aria-label="Mensagens">
             <Icone nome="mensagens" tamanho={24} cor="#3E8B22" espessura={1.7} />
             <SeloMensagens />
+          </Link>
+          <Link className="ic-topo" to="/favoritos" aria-label="Favoritos">
+            <Icone nome="favorito" tamanho={24} cor="#3E8B22" espessura={1.7} />
           </Link>
           <div className="me-wrap" ref={menuPerfilRef}>
             <button
@@ -186,6 +189,10 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
               </div>
             )}
           </div>
+          <Link className="pub" to="/anunciar" aria-label="Anunciar">
+            <Icone nome="mais" tamanho={20} cor="#fff" espessura={2} />
+            <span className="rot">Anunciar</span>
+          </Link>
         </div>
       </header>
 

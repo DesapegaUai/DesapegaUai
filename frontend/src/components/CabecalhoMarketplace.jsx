@@ -116,13 +116,14 @@ export default function CabecalhoMarketplace({ comCategorias = false }) {
           </Link>
           {/* nas telas sem a barra de abas, as categorias ficam a um clique daqui */}
           {comCategorias && <AtalhoCategorias />}
+          {/* a mesma ordem em todas as telas: Início, avisos, mensagens, favoritos, conta e Anunciar */}
           <CaixaNotificacoes />
-          <Link className="cab-icone" to="/favoritos" aria-label="Favoritos">
-            <Icone nome="favorito" tamanho={25} cor="#3E8B22" />
-          </Link>
           <Link className="cab-icone tem-selo" to="/conversas" aria-label="Mensagens">
             <Icone nome="mensagens" tamanho={25} cor="#3E8B22" />
             <SeloMensagens />
+          </Link>
+          <Link className="cab-icone" to="/favoritos" aria-label="Favoritos">
+            <Icone nome="favorito" tamanho={25} cor="#3E8B22" />
           </Link>
           <Link className="cab-icone" to="/perfil" aria-label="Perfil">
             <Icone nome="perfil" tamanho={25} cor="#3E8B22" />

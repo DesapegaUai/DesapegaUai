@@ -81,21 +81,6 @@ export default function Rodape() {
             <Link to="/ajuda/termos-de-uso">Termos de uso</Link>
             <Link to="/ajuda/politica-de-privacidade">Política de privacidade</Link>
           </nav>
-          <div className="rodape-local">
-            <span className="rodape-cidade">
-              <Icone nome="localizacao" tamanho={18} />
-              Viçosa e região
-            </span>
-            <a
-              className="rodape-social"
-              href="https://instagram.com/desapegauai"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram do DesapegaUai"
-            >
-              <Icone nome="instagram" tamanho={20} />
-            </a>
-          </div>
         </div>
       </div>
     </footer>

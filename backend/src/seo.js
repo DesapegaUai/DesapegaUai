@@ -97,6 +97,9 @@ export async function metasDaPagina(caminho, base = env.frontendUrl) {
 
   m = caminho.match(/^\/ajuda\/([a-z-]+)\/?$/)
   if (m && PAGINAS_DE_AJUDA[m[1]]) return { ...padrao, titulo: `${PAGINAS_DE_AJUDA[m[1]]} | ${NOME}` }
+  if (/^\/anuncios\/?$/.test(caminho)) {
+    return { ...padrao, titulo: `Todos os anúncios de usados em Viçosa e região | ${NOME}`, descricao: `Tudo o que foi publicado no ${NOME} em Viçosa e na Zona da Mata mineira, dos mais novos para os mais antigos, de qualquer distância.` }
+  }
   if (/^\/procura-se\/?$/.test(caminho)) {
     return { ...padrao, titulo: `Procura-se: pedidos de quem quer comprar em Viçosa e região | ${NOME}`, descricao: 'Veja o que as pessoas de Viçosa e região estão procurando e avise quando tiver para vender.' }
   }
@@ -160,6 +163,7 @@ export function rotasDoGoogle({ base = env.frontendUrl } = {}) {
       )
       const enderecos = [
         { caminho: '/', prioridade: '1.0' },
+        { caminho: '/anuncios', prioridade: '0.9' },
         ...categorias.map((c) => ({ caminho: `/categoria/${c.slug}`, prioridade: '0.8' })),
         { caminho: '/procura-se', prioridade: '0.6' },
         { caminho: '/mapa', prioridade: '0.5' },

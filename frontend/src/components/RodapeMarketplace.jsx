@@ -114,21 +114,6 @@ export default function RodapeMarketplace() {
             <Link to="/ajuda/termos-de-uso">Termos de uso</Link>
             <Link to="/ajuda/politica-de-privacidade">Política de privacidade</Link>
           </nav>
-          <div className="mkt-rodape-local">
-            <span className="mkt-rodape-cidade">
-              <Icone nome="local" tamanho={18} cor="#82C03A" espessura={1.7} />
-              Viçosa e região
-            </span>
-            <a
-              className="mkt-rodape-social"
-              href="https://instagram.com/desapegauai"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram do DesapegaUai (abre em nova aba)"
-            >
-              <Icone nome="instagram" tamanho={20} cor="#CCD2CA" espessura={1.7} />
-            </a>
-          </div>
         </div>
       </div>
     </footer>
