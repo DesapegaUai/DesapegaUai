@@ -69,7 +69,12 @@ google="$(grep '^GOOGLE_CLIENT_ID=' "$AMBIENTE" | cut -d= -f2-)"
   sudo -H -u "$USUARIO" env VITE_GOOGLE_CLIENT_ID="$google" npm run build
 )
 
+etapa "Cópia de segurança automática do banco e das fotos"
+bash "$PASTA/servidor/copia-de-seguranca.sh" --ligar
+
 etapa "Reiniciando a API"
+# servidores instalados antes dessa opção: a API passa a atender só por dentro da máquina (o Caddy)
+grep -q '^HOST=' "$AMBIENTE" || echo 'HOST=127.0.0.1' >> "$AMBIENTE"
 systemctl restart desapegauai
 for _ in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:3333/api/saude 2>/dev/null; then

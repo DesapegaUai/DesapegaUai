@@ -27,9 +27,9 @@ Um aviso importante: os números abaixo mostram que os cenários definidos passa
 | Outras conferências | Resultado |
 | --- | --- |
 | SQL injection | 1.441 pedidos de ataque, nenhuma injeção funcionou |
-| Testes automáticos da API (`npm test`) | 232 de 232 aprovados, em 21 arquivos |
-| Testes de navegador (`npm run e2e`, Chrome) | 16 de 16 aprovados |
-| Outros navegadores (seção 5) | 16 de 16 no Edge, no Firefox, no WebKit e no tablet; 13 de 16 nos dois celulares |
+| Testes automáticos da API (`npm test`) | 273 de 273 aprovados, em 27 arquivos |
+| Testes de navegador (`npm run e2e`, Chrome) | 40 de 40 aprovados |
+| Outros navegadores (seção 5) | 40 de 40 no Edge, no WebKit e no tablet; 39 de 40 no Firefox; 37 de 40 nos dois celulares |
 | Tempo de resposta (seção 7) | 24 rotas, 29 telas e 13 ações dentro do limite |
 | Verificação do código do site (`npm run lint` e `npm run build`) | Sem erros |
 | Dependências com falha conhecida (`npm audit`) | Nenhuma, na API e no site |
@@ -927,21 +927,21 @@ Os testes de navegador abrem o site de verdade, ligado em uma API de verdade, e 
 
 | Navegador | Resultado |
 | --- | --- |
-| Chrome | 16 de 16 |
-| Edge | 16 de 16 |
-| Firefox | 16 de 16 |
-| WebKit (motor do Safari) | 16 de 16 |
-| Tablet (Galaxy Tab S4) | 16 de 16 |
-| Celular Android (Pixel 7) | 13 de 16 |
-| Celular iPhone (iPhone 14, WebKit) | 13 de 16 |
+| Chrome | 40 de 40 |
+| Edge | 40 de 40 |
+| Firefox | 39 de 40 |
+| WebKit (motor do Safari) | 40 de 40 |
+| Tablet (Galaxy Tab S4) | 40 de 40 |
+| Celular Android (Pixel 7) | 37 de 40 |
+| Celular iPhone (iPhone 14, WebKit) | 37 de 40 |
 
-Os 3 testes que não passam no celular são os mesmos nos dois aparelhos: localização manual, aviso no sininho e Procura-se. Eles clicam em botões do cabeçalho de computador, que no celular ficam dentro do menu. O defeito é do teste, não do site. Esses três caminhos foram conferidos no tamanho de celular à parte, pelo menu e pela barra de baixo, e funcionam.
+Os 3 testes que não passam no celular são os mesmos nos dois aparelhos: localização manual, aviso no sininho e Procura-se. Eles clicam no botão da cidade e no sininho do cabeçalho. Na conferência de 23/11/2026 ficou claro que, em tela de celular (até 600 px de largura), esses dois botões não aparecem no cabeçalho, nem no menu, nem na barra de baixo: os avisos chegam pela notificação do aparelho, mas a lista do sininho não abre, e quem não usa o GPS não consegue escolher a cidade. É um ajuste do site, não do teste. No Firefox, o teste de colar print e arrastar imagem fica de fora, porque o Firefox não deixa um teste automático simular colar ou arrastar arquivo.
 
 Falhas reais que os outros navegadores mostraram e que foram corrigidas no site: no Firefox e no WebKit a conexão do tempo real era refeita na carga da página e derrubava o primeiro pedido, o interruptor de avisos ficava preso quando o navegador não respondia, e uma tela quebrava quando as categorias ainda não tinham chegado.
 
 ## 6. Testes automáticos da API
 
-São 232 testes em 21 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
+São 273 testes em 27 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
 
 Os testes de exclusão de imagens (`exclusao-de-imagens.test.js`) incluem dois casos que a auditoria por fora não consegue provocar:
 
@@ -1014,18 +1014,18 @@ Observações:
 
 Nenhum cenário ficou reprovado. Mesmo assim, estes pontos não foram cobertos ou dependem da publicação:
 
-1. **Tudo foi testado em ambiente local.** O modo de produção foi ligado no mesmo computador. HTTPS de verdade, o servidor da hospedagem e o proxy na frente da API ainda não foram testados. Depois de publicar, os cenários de cookie, cabeçalhos e limite de pedidos precisam ser repetidos no endereço real.
-2. **Login Google com conta real.** A auditoria confere que credencial inventada é recusada. O login com uma conta Google de verdade foi feito à mão, não por teste automático. No endereço publicado é preciso cadastrar a origem nova no Google Cloud e testar de novo.
+1. **Parte dos cenários só foi testada em ambiente local.** O site publicado foi conferido de fora e por dentro do servidor (seção 11): HTTPS, cabeçalhos, portas, injeção, arquivos escondidos e pedidos sem login. O cookie de sessão e o limite de pedidos não foram repetidos no endereço real: o cookie precisa de uma conta Google de verdade, e estourar o limite bloquearia por alguns minutos a internet de quem testa.
+2. **Login Google com conta real.** A auditoria confere que credencial inventada é recusada. O login com uma conta Google de verdade é feito à mão, não por teste automático.
 3. **Não houve teste de invasão feito por terceiros.** Os cenários foram definidos pela própria equipe. Uma revisão externa pode achar o que a equipe não pensou em testar.
 4. **O limite de pedidos fica na memória da API.** Reiniciar a API zera a contagem, e com mais de uma cópia da API rodando cada uma conta separado.
 5. **Cópia da foto no navegador de quem já viu.** A foto excluída some do servidor na hora (cenário IMG-09), mas o navegador de quem já abriu pode guardar a cópia dele por até 30 dias. O servidor não consegue apagar essa cópia.
 6. **A conferência de fotos é manual.** `npm run fotos -- --apagar` precisa ser rodado de tempos em tempos. Ela não roda sozinha de propósito: com o banco errado no `.env`, toda foto pareceria sem registro.
-7. **As fotos ficam no disco do servidor.** Sem cópia de segurança do banco e da pasta `uploads`, um problema no disco perde as fotos.
+7. **As fotos ficam no disco do servidor.** O servidor faz uma cópia do banco e das fotos todo dia (`servidor/copia-de-seguranca.sh`), mas ela fica na mesma máquina. Se a hospedagem cair, só se salva a cópia que tiver sido baixada para outro computador.
 8. **A documentação da API (`/api/docs`) é pública.** Ela mostra só as rotas, sem dados. Se a equipe preferir, dá para desligar em produção.
 9. **Denúncias sem tela de administração.** Elas ficam gravadas no banco, mas ninguém é avisado. Alguém precisa olhar a tabela.
 10. **Carga medida em um computador só.** 30 pedidos ao mesmo tempo, com os dados de exemplo. Não representa a hospedagem nem um banco com milhares de anúncios.
 11. **Aparelhos reais.** O Safari foi testado pelo motor WebKit no Windows. iPhone e Mac de verdade, e o GPS de um celular na rua, ainda não foram testados.
-12. **Três testes de navegador não rodam em tela de celular** (seção 5). Os caminhos foram conferidos à parte, mas não estão automatizados.
+12. **No celular falta o sininho e a troca de cidade** (seção 5). Em tela de até 600 px de largura, a lista de avisos e a escolha manual da cidade não aparecem; por isso três testes de navegador não passam nos celulares.
 13. **Sair da conta encerra a sessão em todos os aparelhos.** É o comportamento escolhido por segurança, mas o usuário pode estranhar.
 14. **Arquivar conversa fica só no navegador.** Em outro aparelho a conversa aparece de novo na lista.
 
@@ -1052,3 +1052,31 @@ Conferência de fotos, na pasta `backend`:
 npm run fotos
 npm run fotos -- --apagar
 ```
+
+## 11. Conferência do site publicado (Azure, 23/11/2026)
+
+Depois da mudança para a Azure, o site publicado (<https://desapegauai.com.br>) foi conferido de fora, como um visitante, e por dentro do servidor. Foi tudo só leitura: nenhum dado foi criado ou apagado.
+
+| Conferência | Resultado |
+| --- | --- |
+| Telas públicas em 7 navegadores (Chrome, Edge, Firefox, WebKit, celular Android, iPhone e tablet): início, acessibilidade, VLibras, categorias com filtros, busca, mapa, Procura-se, ajuda, termos, privacidade e página que não existe | Todas abriram, sem erro do site no navegador |
+| Telas da conta sem login (perfil, anunciar, conversas e favoritos) | Levam para a tela de entrar, com o botão do Google |
+| Chat em tempo real (wss) | Conecta nos 7 navegadores |
+| API: cidades, bairros, busca, anúncios perto de um ponto, mapa, endereço de um ponto, CEP de rua, Procura-se e chave dos avisos | Respondem certo |
+| Cabeçalhos de segurança | CSP, HSTS (1 ano), X-Content-Type-Options, X-Frame-Options, Referrer-Policy e Cross-Origin presentes |
+| HTTPS | Certificado do Let's Encrypt válido até fevereiro de 2027; TLS 1.2 e 1.3 aceitos, TLS 1.1 recusado; o endereço com http leva para o https |
+| Portas abertas para a internet | Só 22 (SSH), 80 e 443. O MySQL (3306) e a API (3333) ficam fechados |
+| SQL injection na busca e nos ids | Nenhum efeito: o texto vira busca comum e id inválido dá 400, sem erro do banco na resposta |
+| Arquivos escondidos (`.env`, `.git`, `package.json` e `../` no caminho das fotos) | Nada vazou |
+| Corpo gigante e JSON quebrado | 413 e 400 |
+| Login do Google falso, cookie de sessão falso e sessão sem assinatura | 401 |
+| Gravar sem login (anúncio, perfil, favorito e exclusão) | 401 |
+| Outro site chamando a API | Sem permissão (CORS) |
+| Login de teste | Desligado no site publicado (404) |
+| Servidor por dentro | API, Caddy e MySQL ligados; a API roda com usuário próprio, sem ser root; SSH só com chave; MySQL só em 127.0.0.1; arquivo de senhas legível só pelo root e pelo grupo da API (640), com todos os segredos preenchidos; atualizações de segurança automáticas ligadas; nenhum erro da API nas últimas 12 horas |
+| Fotos no servidor | A biblioteca de imagens (sharp) funciona na máquina nova |
+| Dependências com falha conhecida (`npm audit --omit=dev`) | Nenhuma, na API e no site |
+
+O VLibras tenta carregar um rastreador de estatísticas (PostHog) do jsDelivr. A CSP do site bloqueia de propósito, para os dados de quem visita não irem para terceiros. O VLibras funciona normalmente.
+
+**Ajuste feito nesse dia:** a API passou a escutar só por dentro da máquina (`HOST=127.0.0.1`), e quem vem da internet passa pelo Caddy. O firewall da Azure já fechava a porta 3333; agora ela também fica fechada por dentro. Também entrou a cópia de segurança automática do banco e das fotos, todo dia de madrugada, com um comando para baixar a cópia para o computador e outro para restaurar num servidor novo (`docs/publicacao.md`, "Cópia de segurança").
