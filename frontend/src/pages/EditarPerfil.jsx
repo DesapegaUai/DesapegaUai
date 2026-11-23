@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
+import AjustarFoto from '../components/AjustarFoto.jsx';
 import { atualizarFotoPerfil, carregarPerfil, salvarPerfil, usePerfil } from '../services/perfil.js';
 import '../styles/marketplace-cadastro.css';
 import '../styles/marketplace-editar-perfil.css';
@@ -40,6 +41,7 @@ export default function EditarPerfil() {
   const [erros, setErros] = useState({});
   const [toast, setToast] = useState(null);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [fotoParaAjustar, setFotoParaAjustar] = useState(null); // foto escolhida, esperando o ajuste
   const fotoRef = useRef(null);
 
   useEffect(() => {
@@ -77,7 +79,8 @@ export default function EditarPerfil() {
     }
   }
 
-  async function trocarFoto(e) {
+  // escolheu a foto: antes de enviar, abre o ajuste (arrastar e aproximar dentro do círculo)
+  function escolherFoto(e) {
     const arquivo = e.target.files?.[0];
     e.target.value = '';
     if (!arquivo) return;
@@ -85,11 +88,16 @@ export default function EditarPerfil() {
       setToast({ tipo: 'erro', titulo: 'Formato de foto inválido', texto: 'Escolha uma imagem JPG, PNG ou WebP.', chave: Date.now() });
       return;
     }
-    if (arquivo.size > 5 * 1024 * 1024) {
-      setToast({ tipo: 'erro', titulo: 'Foto muito grande', texto: 'A foto de perfil pode ter no máximo 5 MB.', chave: Date.now() });
+    // a foto sai do ajuste já recortada e leve; a original pode ser a do celular, mais pesada
+    if (arquivo.size > 25 * 1024 * 1024) {
+      setToast({ tipo: 'erro', titulo: 'Foto muito grande', texto: 'Escolha uma foto de até 25 MB.', chave: Date.now() });
       return;
     }
+    setFotoParaAjustar(arquivo);
+  }
 
+  async function trocarFoto(arquivo) {
+    setFotoParaAjustar(null);
     setEnviandoFoto(true);
     try {
       await atualizarFotoPerfil(arquivo);
@@ -128,7 +136,8 @@ export default function EditarPerfil() {
             <button type="button" className="ep-foto-botao" onClick={() => fotoRef.current?.click()} disabled={enviandoFoto}>
               {enviandoFoto ? 'Enviando foto...' : 'Escolher foto'}
             </button>
-            <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="oculto" tabIndex={-1} aria-hidden="true" disabled={enviandoFoto} onChange={trocarFoto} />
+            <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="oculto" tabIndex={-1} aria-hidden="true" disabled={enviandoFoto} onChange={escolherFoto} />
+            {fotoParaAjustar && <AjustarFoto arquivo={fotoParaAjustar} onUsar={trocarFoto} onCancelar={() => setFotoParaAjustar(null)} />}
           </div>
         </div>
 
