@@ -32,8 +32,9 @@ Até 23/11/2026 o site ficou no plano gratuito da AWS. A AWS suspendeu a conta p
 
 ### 1. Máquina virtual na Azure
 
-- No portal da Azure, em **Máquinas virtuais > Criar**, use a imagem **Ubuntu Server 24.04 LTS (x64)** e um tamanho que entre no gratuito (por exemplo, **B1s**). Com 1 GB de memória basta, porque o instalador cria uma memória extra no disco.
-- Em **Autenticação**, escolha **Chave pública SSH**, com o usuário `azureuser`, e guarde o arquivo `.pem` da chave.
+- No portal da Azure, em **Máquinas virtuais > Criar**, use a imagem **Ubuntu Server 24.04 LTS (x64)** e um tamanho que entre no gratuito. A nossa é a **B2ats v2** (2 processadores e 1 GB de memória), na região **West US 2**. Com 1 GB de memória basta, porque o instalador cria uma memória extra no disco.
+- No disco do sistema, use **SSD Premium de 64 GB (P6)**, o tamanho que entra no gratuito.
+- Em **Autenticação**, escolha **Chave pública SSH**, com o usuário `ubuntu`. Dá para usar uma chave que já existe no computador (a nossa é `~/.ssh/desapegauai_oracle`, a mesma da primeira publicação).
 - Em **Portas de entrada**, libere **SSH (22)**, **HTTP (80)** e **HTTPS (443)**.
 - Deixe o **IP público** como **Estático**. Assim o IP não muda quando a máquina reinicia.
 
@@ -54,7 +55,7 @@ Antes do domínio próprio, o site usou um endereço gratuito do [DuckDNS](https
 
 ### 3. Instalar
 
-Entre no servidor por SSH (usuário `azureuser`, com a chave `.pem`) e rode o instalador com o endereço e o ID do cliente OAuth do Google:
+Entre no servidor por SSH (usuário `ubuntu`, com a chave escolhida na criação da máquina) e rode o instalador com o endereço e o ID do cliente OAuth do Google:
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/DesapegaUai/DesapegaUai/main/servidor/instalar.sh
@@ -88,10 +89,10 @@ sudo bash /opt/desapegauai/servidor/atualizar.sh
 
 Ele baixa a última versão do mesmo ramo, monta o site e reinicia a API. O banco e as fotos ficam como estão.
 
-Do computador, dá para rodar sem entrar no servidor (no PowerShell, com o caminho da chave `.pem` e o IP público da máquina):
+Do computador, dá para rodar sem entrar no servidor (no PowerShell):
 
 ```powershell
-ssh -i CAMINHO-DA-CHAVE.pem azureuser@IP-DA-MAQUINA "sudo bash /opt/desapegauai/servidor/atualizar.sh"
+ssh -i $HOME\.ssh\desapegauai_oracle ubuntu@20.69.91.127 "sudo bash /opt/desapegauai/servidor/atualizar.sh"
 ```
 
 - Para trocar de ramo (por exemplo, para a `main` depois do merge): `sudo RAMO=main bash /opt/desapegauai/servidor/atualizar.sh`
@@ -135,7 +136,7 @@ O primeiro comando só mostra o que seria apagado. O segundo apaga essas três c
 
 ## Fim do período gratuito
 
-Na conta gratuita da Azure, o crédito inicial vale 30 dias. Para continuar com os serviços gratuitos de 12 meses, como a máquina pequena, a conta precisa ser convertida para **pagamento conforme o uso** antes desse prazo; o que passar do limite gratuito é cobrado no cartão. Os gastos aparecem no portal, em **Gerenciamento de Custos**. De tempos em tempos, e antes do fim dos 12 meses, guarde uma cópia do banco e das fotos:
+Na conta gratuita da Azure, o crédito inicial vale 30 dias. Enquanto a conta é de avaliação, o limite de gastos fica ligado e nada é cobrado no cartão. Para continuar com os serviços gratuitos de 12 meses, como a máquina pequena, a conta precisa ser convertida para **pagamento conforme o uso** antes desse prazo; o que passar do limite gratuito é cobrado no cartão. Os gastos aparecem no portal, em **Gerenciamento de Custos**. De tempos em tempos, e antes do fim dos 12 meses, guarde uma cópia do banco e das fotos:
 
 ```bash
 sudo mysqldump desapegauai > desapegauai.sql
