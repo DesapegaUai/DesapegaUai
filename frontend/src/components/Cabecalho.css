@@ -389,3 +389,36 @@
     transition: none;
   }
 }
+
+/* O ☰ só aparece no celular e no tablet */
+.cabecalho__menu {
+  display: none;
+}
+
+/* Celular e tablet (opção B): logo · sininho · mensagens · ☰ no alto e a busca embaixo.
+   Favoritos, conta, cidade, categorias e Anunciar descem do ☰ */
+@media (max-width: 900px) {
+  .cabecalho__barra {
+    grid-template-areas:
+      'logo acoes'
+      'busca busca';
+  }
+
+  .cabecalho__local {
+    display: none;
+  }
+
+  .cabecalho__menu {
+    display: grid;
+    border: 1px solid #e3e8e0;
+  }
+
+  .cabecalho__menu[aria-expanded='true'] {
+    background: #eaf4e4;
+    border-color: #4ca02b;
+  }
+
+  .cabecalho__acoes {
+    gap: 4px;
+  }
+}

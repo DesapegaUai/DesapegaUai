@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
 import MenuLateral from './MenuLateral.jsx';
+import MenuQueDesce from './MenuQueDesce.jsx';
 import Rodape from './RodapeMarketplace.jsx';
 import Icone from './IconeMarketplace.jsx';
 import CaixaNotificacoes from './CaixaNotificacoes.jsx';
@@ -34,6 +35,16 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
   const buscaRef = useRef(null);
   const menuPerfilRef = useRef(null);
   const fecharMenu = useCallback(() => setMenuAberto(false), []);
+  // celular e tablet: o menu desce abaixo do cabeçalho; entre 901 e 1024 px, a gaveta lateral
+  const [topoDoMenu, setTopoDoMenu] = useState(null);
+  const burgerRef = useRef(null);
+  const fecharMenuQueDesce = useCallback(() => setTopoDoMenu(null), []);
+  function alternarMenu() {
+    if (topoDoMenu !== null) { fecharMenuQueDesce(); return; }
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      setTopoDoMenu(Math.round(burgerRef.current.closest('header').getBoundingClientRect().bottom));
+    } else setMenuAberto(true);
+  }
   const fotoPerfil = foto ?? perfil.foto_url;
 
   // abriu direto em Meus anúncios ou no cadastro: o perfil ainda não veio e o avatar do topo ficava vazio
@@ -73,8 +84,15 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
   return (
     <div className="painel">
       <header className={`painel-topo${buscaAberta ? ' buscando' : ''}`}>
-        <button type="button" className="burger" aria-label="Abrir menu" aria-expanded={menuAberto} onClick={() => setMenuAberto(true)}>
-          <Icone nome="menu" tamanho={22} cor="#3E8B22" espessura={1.7} />
+        <button
+          type="button"
+          className="burger"
+          ref={burgerRef}
+          aria-label={topoDoMenu !== null ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={menuAberto || topoDoMenu !== null}
+          onClick={alternarMenu}
+        >
+          <Icone nome={topoDoMenu !== null ? 'fechar' : 'menu'} tamanho={22} cor="#3E8B22" espessura={1.7} />
         </button>
         <Link to="/" className="brand" aria-label="DesapegaUai — página inicial">
           <img src={logoPrincipal} alt="DesapegaUai" width="187" height="40" />
@@ -177,6 +195,7 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
         onFechar={fecharMenu}
         onSair={sair}
       />
+      <MenuQueDesce topo={topoDoMenu} onFechar={fecharMenuQueDesce} botaoRef={burgerRef} />
 
       <div className="painel-corpo">
         <MenuLateral
@@ -195,6 +214,7 @@ export default function LayoutPainel({ classeMain = '', foto = null, children })
               <>
                 <Icone nome={t.icone} tamanho={23} cor={isActive ? '#3E8B22' : '#8C918B'} espessura={1.7} />
                 <span>{t.rotulo}</span>
+                {t.para === '/conversas' && <SeloMensagens />}
               </>
             )}
           </NavLink>

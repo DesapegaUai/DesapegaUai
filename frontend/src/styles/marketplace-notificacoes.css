@@ -57,3 +57,7 @@
 }
 /* aviso de anúncio: a foto de capa do que foi publicado */
 .notif-lista .notif-foto { flex: none; width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: var(--sup-foto, #EFF2EC); }
+/* celular: a caixa abre logo abaixo do sininho, na largura da tela, sem sair pelas bordas */
+@media (max-width: 600px) {
+  .notif-caixa { position: fixed; top: var(--notif-topo, 72px); left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - var(--notif-topo, 72px) - 16px); }
+}

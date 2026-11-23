@@ -272,3 +272,23 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
 .filtro-distancia .slider { margin-top: var(--e3); }
 .filtro-distancia-ref { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: var(--e3); font-size: 13.5px; line-height: 1.4; color: var(--texto-2); }
 .filtro-distancia-ref b { color: var(--tinta); font-weight: 600; }
+
+/* Celular e tablet (opção B): logo · sininho · mensagens · ☰ no alto, com o número de novos à vista,
+   e a busca na linha de baixo. Favoritos, conta, cidade, categorias e Anunciar descem do ☰ */
+@media (max-width: 900px) {
+  .cab { flex-wrap: wrap; gap: 8px; padding: 12px 16px; }
+  .cab-logo { height: 32px; }
+  .cab-lupa, .local, .btn-anunciar { display: none; }
+  .cab-icones { display: flex; order: 2; margin-left: auto; gap: 2px; }
+  .cab-icones > :not(.notif):not([href="/conversas"]) { display: none; }
+  .cab-icones .cab-icone { width: 42px; height: 42px; }
+  .cab-burger { display: flex; order: 3; width: 42px; height: 42px; }
+  .cab-burger[aria-expanded="true"] { background: var(--marca-suave); border-color: var(--marca-clara); }
+  .busca { display: flex; order: 10; flex: 1 0 100%; max-width: none; height: 46px; margin: 4px 0 0; padding: 0 16px; }
+  .busca input { font-size: 16px; }
+}
+@media (max-width: 374px) {
+  .cab { padding: 12px; }
+  .cab-logo { height: 27px; }
+  .cab-icones .cab-icone, .cab-burger { width: 38px; height: 38px; }
+}

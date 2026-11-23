@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
-import MenuLateral from './MenuLateral.jsx';
+import MenuQueDesce from './MenuQueDesce.jsx';
 import AtalhoCategorias from './AtalhoCategorias.jsx';
 import MenuCidade from './MenuCidade.jsx';
 import CaixaNotificacoes from './CaixaNotificacoes.jsx';
@@ -15,9 +15,9 @@ const logoPrincipal = '/img/logo-principal.svg';
  * Cabeçalho do marketplace.
  * Computador: logo · busca · local · favoritos/mensagens/perfil · Anunciar
  * Tablet: igual, com busca menor e local só com ícone
- * Celular: ☰ · logo · lupa (o "Anunciar" vira o botão flutuante)
+ * Celular e tablet: logo · sininho · mensagens · ☰, com a busca na linha de baixo (o "Anunciar" também vira o botão flutuante)
  *
- * ☰ abre o menu lateral (gaveta). A lupa, no celular, abre a busca numa linha abaixo.
+ * ☰ abre o menu que desce (favoritos, conta, cidade, categorias e Anunciar).
  * O botão de localização abre o menu de localização (GPS, raio, cidade e bairro).
  */
 export default function CabecalhoMarketplace({ comCategorias = false }) {
@@ -28,10 +28,16 @@ export default function CabecalhoMarketplace({ comCategorias = false }) {
   const fecharCidade = useCallback(() => setMenuCidade(null), []);
   const navegar = useNavigate();
   const [termo, setTermo] = useState('');
-  const [menuAberto, setMenuAberto] = useState(false);
+  const [topoDoMenu, setTopoDoMenu] = useState(null); // onde o cabeçalho termina (null = menu fechado)
+  const burgerRef = useRef(null);
   const [buscaAberta, setBuscaAberta] = useState(false);
   const campoRef = useRef(null);
-  const fecharMenu = useCallback(() => setMenuAberto(false), []);
+  const fecharMenu = useCallback(() => setTopoDoMenu(null), []);
+
+  function alternarMenu() {
+    if (topoDoMenu !== null) { fecharMenu(); return; }
+    setTopoDoMenu(Math.round(burgerRef.current.closest('header').getBoundingClientRect().bottom));
+  }
 
   function buscar(evento) {
     evento.preventDefault();
@@ -51,11 +57,13 @@ export default function CabecalhoMarketplace({ comCategorias = false }) {
         <button
           type="button"
           className="cab-burger"
-          aria-label="Abrir menu"
-          aria-expanded={menuAberto}
-          onClick={() => setMenuAberto(true)}
+          ref={burgerRef}
+          aria-label={topoDoMenu !== null ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={topoDoMenu !== null}
+          aria-controls="menu-que-desce"
+          onClick={alternarMenu}
         >
-          <Icone nome="menu" tamanho={22} cor="#3E8B22" />
+          <Icone nome={topoDoMenu !== null ? 'fechar' : 'menu'} tamanho={22} cor="#3E8B22" />
         </button>
 
         <Link to="/" className="cab-logo-link" aria-label="DesapegaUai — página inicial">
@@ -124,7 +132,7 @@ export default function CabecalhoMarketplace({ comCategorias = false }) {
         <Link className="btn-anunciar" to="/anunciar">Anunciar</Link>
       </header>
 
-      <MenuLateral modo="gaveta" aberto={menuAberto} onFechar={fecharMenu} />
+      <MenuQueDesce topo={topoDoMenu} onFechar={fecharMenu} botaoRef={burgerRef} />
     </>
   );
 }
