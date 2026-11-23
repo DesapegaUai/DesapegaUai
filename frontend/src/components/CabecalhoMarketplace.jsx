@@ -2,7 +2,6 @@ import { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import MenuQueDesce from './MenuQueDesce.jsx';
-import AtalhoCategorias from './AtalhoCategorias.jsx';
 import MenuCidade from './MenuCidade.jsx';
 import CaixaNotificacoes from './CaixaNotificacoes.jsx';
 import SeloMensagens from './SeloMensagens.jsx';
@@ -20,7 +19,7 @@ const logoPrincipal = '/img/logo-principal.svg';
  * ☰ abre o menu que desce (favoritos, conta, cidade, categorias e Anunciar).
  * O botão de localização abre o menu de localização (GPS, raio, cidade e bairro).
  */
-export default function CabecalhoMarketplace({ comCategorias = false }) {
+export default function CabecalhoMarketplace() {
   const local = useLocalizacao();
   const cidade = `${nomeDaReferencia(local)} · ${local.raioKm} km`;
   const localRef = useRef(null);
@@ -114,8 +113,6 @@ export default function CabecalhoMarketplace({ comCategorias = false }) {
           <Link className="cab-icone" to="/" aria-label="Início" title="Início">
             <Icone nome="inicio" tamanho={25} cor="#3E8B22" />
           </Link>
-          {/* nas telas sem a barra de abas, as categorias ficam a um clique daqui */}
-          {comCategorias && <AtalhoCategorias />}
           {/* a mesma ordem em todas as telas: Início, avisos, mensagens, favoritos, conta e Anunciar */}
           <CaixaNotificacoes />
           <Link className="cab-icone tem-selo" to="/conversas" aria-label="Mensagens">
