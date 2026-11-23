@@ -119,13 +119,14 @@
   isolation: isolate;
 }
 
+/* A foto começa 20% acima da caixa: o alto do morro (casas soltas no meio do mato) fica de fora. */
 .rg-foto {
   position: absolute;
-  left: 20.718cqw;
-  top: -2.072cqw;
-  width: 79.282cqw;
+  left: 5.2cqw;
+  top: -10.9cqw;
+  width: 94.8cqw;
   max-width: none;
-  height: 45.58cqw;
+  height: 54.5cqw;
   object-fit: cover;
 }
 
@@ -360,7 +361,7 @@
   .rg-caixa { grid-column: 1 / -1; grid-row: 2; aspect-ratio: 802 / 486; margin-top: 36px; border-radius: 24px; }
   .rg-veu,
   .rg-p4 { display: none; }
-  .rg-foto { left: -25.275cqw; top: -5.495cqw; width: 126.154cqw; height: 72.527cqw; }
+  .rg-foto { left: -26.79cqw; top: -15.4cqw; width: 133.93cqw; height: 77cqw; }
   .rg-pino { width: 4.115cqw; height: 7.731cqw; }
   .rg-card { --rg-sobe: 0.85cqw; }
   .rg-novo { --rg-selo: 1.4cqw; }
@@ -416,7 +417,7 @@
   .rg-p1,
   .rg-sofa,
   .rg-mesa { display: none; }
-  .rg-foto { left: -42.592cqw; top: 0; width: 212.592cqw; height: 122.222cqw; }
+  .rg-foto { left: -52.88cqw; top: -30.4cqw; width: 264.39cqw; height: 152cqw; }
   .rg-pino { width: 6.983cqw; height: 12.849cqw; }
   .rg-card { --rg-sobe: 1.7cqw; }
   .rg-novo { --rg-selo: 2.9cqw; }

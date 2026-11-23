@@ -24,7 +24,7 @@ Até 23/11/2026 o site ficou no plano gratuito da AWS. A AWS suspendeu a conta p
 | `/opt/desapegauai` | O código |
 | `/var/lib/desapegauai` | As fotos enviadas pelo site |
 | `/etc/desapegauai.env` | Senhas e chaves (o `.env` da produção). Só o servidor tem esse arquivo |
-| Serviço `desapegauai` | A API, que também entrega o site, na porta 3333 |
+| Serviço `desapegauai` | A API, que também entrega o site, na porta 3333 (só por dentro da máquina: `HOST=127.0.0.1`) |
 | Caddy | Recebe os acessos em HTTPS (portas 80 e 443), renova o certificado sozinho e repassa para a API |
 | MySQL | Aceita conexão só de dentro do servidor |
 
@@ -136,12 +136,26 @@ O primeiro comando só mostra o que seria apagado. O segundo apaga essas três c
 
 ## Fim do período gratuito
 
-Na conta gratuita da Azure, o crédito inicial vale 30 dias. Enquanto a conta é de avaliação, o limite de gastos fica ligado e nada é cobrado no cartão. Para continuar com os serviços gratuitos de 12 meses, como a máquina pequena, a conta precisa ser convertida para **pagamento conforme o uso** antes desse prazo; o que passar do limite gratuito é cobrado no cartão. Os gastos aparecem no portal, em **Gerenciamento de Custos**. De tempos em tempos, e antes do fim dos 12 meses, guarde uma cópia do banco e das fotos:
+Na conta gratuita da Azure, o crédito inicial vale 30 dias. Enquanto a conta é de avaliação, o limite de gastos fica ligado e nada é cobrado no cartão. Para continuar com os serviços gratuitos de 12 meses, como a máquina pequena, a conta precisa ser convertida para **pagamento conforme o uso** antes desse prazo; o que passar do limite gratuito é cobrado no cartão. Os gastos aparecem no portal, em **Gerenciamento de Custos**. Antes do fim dos 12 meses, baixe uma cópia do banco e das fotos (veja "Cópia de segurança").
+
+## Cópia de segurança
+
+O servidor faz sozinho uma cópia do banco e das fotos todo dia, por volta das 3h, e guarda as 7 mais novas em `/var/backups/desapegauai`. Se a hospedagem cair ou suspender a conta, essas cópias somem junto com o servidor. Por isso, de vez em quando, baixe uma para o computador (no PowerShell):
+
+```powershell
+ssh -i $HOME\.ssh\desapegauai_oracle ubuntu@20.69.91.127 "sudo bash /opt/desapegauai/servidor/copia-de-seguranca.sh --para-baixar"
+scp -i $HOME\.ssh\desapegauai_oracle ubuntu@20.69.91.127:desapegauai-copia.tar.gz "$HOME\Documents\desapegauai-copia-$(Get-Date -Format yyyy-MM-dd).tar.gz"
+```
+
+Para fazer uma cópia na hora, no servidor: `sudo bash /opt/desapegauai/servidor/copia-de-seguranca.sh`.
+
+Para pôr uma cópia num servidor novo: instale com o `instalar.sh`, mande o arquivo para lá com `scp` e rode:
 
 ```bash
-sudo mysqldump desapegauai > desapegauai.sql
-sudo tar -czf fotos.tar.gz /var/lib/desapegauai
+sudo bash /opt/desapegauai/servidor/copia-de-seguranca.sh --restaurar /home/ubuntu/desapegauai-copia.tar.gz
 ```
+
+Antes de restaurar, ele guarda uma cópia do que estava no servidor. Depois, quem estava logado precisa entrar de novo e ligar os avisos no celular outra vez, porque as chaves do servidor novo são outras.
 
 ## Quando algo der errado
 

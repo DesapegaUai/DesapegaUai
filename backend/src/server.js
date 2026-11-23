@@ -3,7 +3,7 @@ import { env } from './config/env.js'
 import { aplicarRetencao } from './services/localizacaoService.js'
 import { iniciarSocket } from './socket.js'
 
-const servidor = app.listen(env.porta, (erro) => {
+const servidor = app.listen(env.porta, env.host, (erro) => {
   if (erro) {
     console.error(
       `Não foi possível iniciar a API na porta ${env.porta}:`,

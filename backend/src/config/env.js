@@ -24,6 +24,8 @@ export const env = {
   producao,
   emTeste,
   porta: Number(process.env.PORT ?? 3333),
+  // no servidor publicado, 127.0.0.1: a API só atende quem está na própria máquina (o Caddy); vazio = todos
+  host: process.env.HOST || undefined,
   frontendUrl,
   origensDoFront: origensDoFront(),
   db: {

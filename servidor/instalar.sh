@@ -120,6 +120,7 @@ if [ ! -f "$AMBIENTE" ]; then
   cat > "$AMBIENTE" <<FIM
 NODE_ENV=production
 PORT=3333
+HOST=127.0.0.1
 FRONTEND_URL=https://$DOMINIO
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -138,6 +139,8 @@ FIM
 else
   # o endereço e o ID do Google podem mudar; as senhas e as chaves ficam
   sed -i "s|^FRONTEND_URL=.*|FRONTEND_URL=https://$DOMINIO|" "$AMBIENTE"
+  # a API atende só por dentro da máquina; quem vem da internet passa pelo Caddy
+  grep -q '^HOST=' "$AMBIENTE" || echo 'HOST=127.0.0.1' >> "$AMBIENTE"
   if [ -n "$GOOGLE_CLIENT_ID" ]; then
     sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID|" "$AMBIENTE"
   fi
