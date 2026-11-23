@@ -127,9 +127,9 @@ export default function EditarPerfil() {
 
       <form className="cad-card ep-form" onSubmit={salvar} noValidate>
         <div className="ep-conta">
-          <span className="ep-avatar" aria-hidden="true">
+          <button type="button" className="ep-avatar" aria-label="Trocar a foto de perfil" onClick={() => fotoRef.current?.click()} disabled={enviandoFoto}>
             {perfil.foto_url ? <img src={perfil.foto_url} alt="" /> : perfil.iniciais}
-          </span>
+          </button>
           <div>
             <b>Foto de perfil</b>
             <p>Escolha uma foto para usar na plataforma. O e-mail da sua conta Google não pode ser alterado.</p>

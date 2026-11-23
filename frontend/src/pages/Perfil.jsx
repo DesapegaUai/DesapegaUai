@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router';
 import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
+import AjustarFoto from '../components/AjustarFoto.jsx';
 import useSair from '../hooks/useSair.js';
 import { listarConversas, listarMeusAnuncios } from '../services/mercadoApi.js';
 import { estaVisivel } from '../services/meusAnuncios.js';
@@ -36,6 +37,7 @@ export default function Perfil() {
   const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(true);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoMenuAberto, setFotoMenuAberto] = useState(false);
+  const [fotoParaAjustar, setFotoParaAjustar] = useState(null); // foto escolhida, esperando o ajuste
   const [preferenciasAbertas, setPreferenciasAbertas] = useState(false);
   const fecharPreferencias = useCallback(() => setPreferenciasAbertas(false), []);
   const [privacidadeAberta, setPrivacidadeAberta] = useState(false);
@@ -129,7 +131,8 @@ export default function Perfil() {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
   }, [hash]);
 
-  async function trocarFoto(e) {
+  // escolheu a foto: antes de enviar, abre o ajuste (arrastar e aproximar dentro do círculo)
+  function escolherFoto(e) {
     const arquivo = e.target.files?.[0];
     e.target.value = '';
     if (!arquivo) return;
@@ -137,15 +140,34 @@ export default function Perfil() {
       avisar({ tipo: 'erro', titulo: 'Formato de foto inválido', texto: 'Escolha uma imagem JPG, PNG ou WebP.' });
       return;
     }
-    if (arquivo.size > 5 * 1024 * 1024) {
-      avisar({ tipo: 'erro', titulo: 'Foto muito grande', texto: 'A foto de perfil pode ter no máximo 5 MB.' });
+    // a foto sai do ajuste já recortada e leve; a original pode ser a do celular, mais pesada
+    if (arquivo.size > 25 * 1024 * 1024) {
+      avisar({ tipo: 'erro', titulo: 'Foto muito grande', texto: 'Escolha uma foto de até 25 MB.' });
       return;
     }
+    setFotoMenuAberto(false);
+    setFotoParaAjustar(arquivo);
+  }
 
+  // "Ajustar imagem": abre o ajuste com a foto que a pessoa já usa
+  async function ajustarFotoAtual() {
+    if (!perfil.foto_url) return;
+    try {
+      const resposta = await fetch(perfil.foto_url);
+      if (!resposta.ok) throw new Error('A foto não abriu. Tente de novo.');
+      const blob = await resposta.blob();
+      setFotoMenuAberto(false);
+      setFotoParaAjustar(new File([blob], 'foto-de-perfil', { type: blob.type || 'image/webp' }));
+    } catch (erro) {
+      avisar({ tipo: 'erro', titulo: 'Não foi possível abrir a foto', texto: erro.message });
+    }
+  }
+
+  async function trocarFoto(arquivo) {
+    setFotoParaAjustar(null);
     setEnviandoFoto(true);
     try {
       await atualizarFotoPerfil(arquivo);
-      setFotoMenuAberto(false);
       avisar({ tipo: 'sucesso', titulo: 'Foto de perfil atualizada' });
     } catch (erro) {
       avisar({ tipo: 'erro', titulo: 'Não foi possível atualizar a foto', texto: erro.message });
@@ -231,7 +253,7 @@ export default function Perfil() {
             <button type="button" className="avbtn" aria-label="Opções da foto do perfil" disabled={enviandoFoto || removendoFoto} onClick={abrirOpcoesFoto}>
               <Icone nome="camera" tamanho={21} cor="#fff" espessura={1.8} />
             </button>
-            <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="oculto" tabIndex={-1} aria-hidden="true" disabled={enviandoFoto} onChange={trocarFoto} />
+            <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="oculto" tabIndex={-1} aria-hidden="true" disabled={enviandoFoto} onChange={escolherFoto} />
           </div>
           <div className="hero-txt">
             <h1 className="hname">{perfil.nome}</h1>
@@ -277,6 +299,12 @@ export default function Perfil() {
                   <Icone nome="camera" tamanho={19} cor="#3E8B22" />
                   <span>{enviandoFoto ? 'Enviando imagem...' : 'Adicionar imagem'}</span>
                 </button>
+                {perfil.foto_url && (
+                  <button type="button" className="foto-acao" disabled={enviandoFoto || removendoFoto} onClick={ajustarFotoAtual}>
+                    <Icone nome="imagem" tamanho={19} cor="#3E8B22" />
+                    <span>Ajustar imagem</span>
+                  </button>
+                )}
                 <button type="button" className="foto-acao remover" disabled={!perfil.foto_url || enviandoFoto || removendoFoto} onClick={removerFoto}>
                   <Icone nome="fechar" tamanho={18} cor="#A96A65" />
                   <span>{removendoFoto ? 'Removendo imagem...' : 'Remover imagem'}</span>
@@ -285,6 +313,7 @@ export default function Perfil() {
             </section>
           </div>
         )}
+        {fotoParaAjustar && <AjustarFoto arquivo={fotoParaAjustar} onUsar={trocarFoto} onCancelar={() => setFotoParaAjustar(null)} />}
 
         <section className="bloco kpis" aria-label="Seus números">
           {NUMEROS.map((n) => (
