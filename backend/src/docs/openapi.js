@@ -49,8 +49,14 @@ export const especificacao = {
   tags: [
     { name: 'Localização', description: 'Localização do comprador e dos anúncios, busca por proximidade e mapa' },
     { name: 'Locais', description: 'Cidades, bairros, ruas e CEPs da Zona da Mata (IBGE, Censo 2022)' },
-    { name: 'Anúncios' }, { name: 'Procura-se' }, { name: 'Notificações' }, { name: 'Conversas' }, { name: 'Avaliações' },
-    { name: 'Favoritos' }, { name: 'Perfil e login' },
+    { name: 'Anúncios', description: 'Busca, publicação, edição, fotos, status (disponível, reservado e vendido) e categorias' },
+    { name: 'Procura-se', description: 'Pedidos de quem quer comprar algo e o aviso quando aparece um anúncio compatível' },
+    { name: 'Notificações', description: 'Avisos do sininho, preferências e notificações no aparelho (push)' },
+    { name: 'Conversas', description: 'Chat entre quem compra e quem vende: mensagens, fotos, vídeos, denúncia e compromisso nas entregas' },
+    { name: 'Avaliações', description: 'Avaliação do vendedor por quem comprou' },
+    { name: 'Favoritos', description: 'Anúncios salvos pela pessoa' },
+    { name: 'Perfil e login', description: 'Login com Google, sessão, meu perfil, foto, exclusão da conta e o perfil público de outras pessoas' },
+    { name: 'Sistema', description: 'Situação da API e do banco' },
   ],
   components: {
     securitySchemes: { cookieLogin: { type: 'apiKey', in: 'cookie', name: 'token' } },
@@ -322,7 +328,7 @@ export const especificacao = {
       delete: { tags: ['Notificações'], summary: 'Desinscrever este aparelho', security: login, responses: { 204: { description: 'Removido' } } },
     },
     '/api/notificacoes/push/chave': { get: { tags: ['Notificações'], summary: 'Chave pública VAPID', responses: { 200: ok('Chave', { type: 'object' }) } } },
-    '/api/usuarios/{id}': { get: { tags: ['Perfil'], summary: 'Perfil público de um usuário (sem telefone e e-mail) com o selo vinculo_academico, a taxa de compromisso nas entregas e os anúncios ativos e reservados dele', parameters: [caminho('id', 'Id do usuário')], responses: { 200: ok('Perfil público', { type: 'object' }), 404: erro('Usuário não encontrado') } } },
+    '/api/usuarios/{id}': { get: { tags: ['Perfil e login'], summary: 'Perfil público de um usuário (sem telefone e e-mail) com o selo vinculo_academico, a taxa de compromisso nas entregas e os anúncios ativos e reservados dele', parameters: [caminho('id', 'Id do usuário')], responses: { 200: ok('Perfil público', { type: 'object' }), 404: erro('Usuário não encontrado') } } },
     '/api/conversas': { get: { tags: ['Conversas'], summary: 'Minhas conversas (com online agora e último acesso do outro)', security: login, responses: { 200: ok('Conversas', { type: 'object' }) } }, post: { tags: ['Conversas'], summary: 'Abrir conversa em um anúncio', security: login, responses: { 201: ok('Conversa', { type: 'object' }) } } },
     '/api/conversas/{id}/mensagens': { get: { tags: ['Conversas'], summary: 'Mensagens (marca as recebidas como lidas)', security: login, parameters: [caminho('id', 'Id')], responses: { 200: ok('Mensagens', { type: 'object' }) } }, post: { tags: ['Conversas'], summary: 'Enviar mensagem (também pelo Socket.IO: enviar_mensagem)', security: login, parameters: [caminho('id', 'Id')], responses: { 201: ok('Mensagem', { type: 'object' }) } } },
     '/api/conversas/{id}/mensagens/{mensagemId}': { patch: { tags: ['Conversas'], summary: 'Editar a própria mensagem até 15 minutos depois de enviar ({ texto })', security: login, parameters: [caminho('id', 'Id da conversa'), caminho('mensagemId', 'Id da mensagem')], responses: { 200: ok('Mensagem editada (editada: true)', { type: 'object' }), 403: erro('Mensagem de outra pessoa ou conversa de outras pessoas'), 404: erro('Mensagem não encontrada'), 409: erro('Passou dos 15 minutos ou a mensagem foi apagada') } }, delete: { tags: ['Conversas'], summary: 'Apagar mensagem: para=mim (some só para você, qualquer mensagem) ou para=todos (a sua, até 2 dias depois; texto e foto saem)', security: login, parameters: [caminho('id', 'Id da conversa'), caminho('mensagemId', 'Id da mensagem'), { in: 'query', name: 'para', schema: { type: 'string', enum: ['mim', 'todos'] }, description: 'Padrão: mim' }], responses: { 200: ok('Apagada para todos (apagada: true)', { type: 'object' }), 204: { description: 'Apagada só para você' }, 403: erro('Mensagem de outra pessoa (para todos) ou conversa de outras pessoas'), 404: erro('Mensagem não encontrada'), 409: erro('Passou dos 2 dias para apagar para todos') } } },
@@ -336,7 +342,49 @@ export const especificacao = {
     '/api/favoritos': { get: { tags: ['Favoritos'], summary: 'Meus favoritos', security: login, responses: { 200: ok('Favoritos', { type: 'object' }) } } },
     '/api/perfil': {
       get: { tags: ['Perfil e login'], summary: 'Meu perfil (com membro desde e último acesso)', security: login, responses: { 200: ok('Perfil', { type: 'object' }) } },
+      put: {
+        tags: ['Perfil e login'], summary: 'Editar nome (2 a 120 letras), telefone (com DDD, 10 ou 11 dígitos) e bio (até 300 letras); manda só o que mudou', security: login,
+        requestBody: corpo({ type: 'object', properties: { nome: { type: 'string' }, telefone: { type: 'string' }, bio: { type: 'string' } } }, { nome: 'Larissa Andrade', telefone: '31999999999', bio: 'Estudante da UFV.' }),
+        responses: { 200: ok('Perfil atualizado', { type: 'object' }), 400: E400, 401: E401 },
+      },
       delete: { tags: ['Perfil e login'], summary: 'Excluir a minha conta: saem a conta, os anúncios, as conversas, as avaliações e todas as fotos (do banco e do disco)', security: login, requestBody: corpo({ type: 'object', required: ['confirmar'], properties: { confirmar: { type: 'string', enum: ['EXCLUIR'] } } }), responses: { 204: { description: 'Conta excluída' }, 400: E400, 401: E401 } },
+    },
+    '/api/saude': {
+      get: {
+        tags: ['Sistema'], summary: 'A API e o banco estão no ar?',
+        responses: { 200: ok('Tudo certo', { type: 'object', example: { api: 'ok', banco: 'ok' } }), 503: ok('Banco fora do ar', { type: 'object', example: { api: 'ok', banco: 'sem conexão' } }) },
+      },
+    },
+    '/api/categorias': { get: { tags: ['Anúncios'], summary: 'As 8 categorias, cada uma com as subcategorias', responses: { 200: ok('Categorias', { type: 'array', items: { type: 'object' } }) } } },
+    '/api/meus-anuncios': { get: { tags: ['Anúncios'], summary: 'Meus anúncios em todos os status (disponível, reservado, rascunho e vendido), com visualizações e quantos favoritaram', security: login, responses: { 200: ok('Anúncios', { type: 'array', items: { type: 'object' } }), 401: E401 } } },
+    '/api/anuncios/{id}/fotos': {
+      post: {
+        tags: ['Anúncios'], summary: 'Acrescentar fotos (só o dono; multipart: fotos = JPG, PNG ou WebP de até 8 MB; no máximo 8 por anúncio)', security: login, parameters: [caminho('id', 'Id do anúncio')],
+        responses: { 200: ok('Anúncio com as fotos novas', { type: 'object' }), 400: E400, 401: E401, 403: E403, 404: E404 },
+      },
+    },
+    '/api/anuncios/{id}/fotos/{fotoId}': {
+      delete: {
+        tags: ['Anúncios'], summary: 'Tirar uma foto (só o dono; o anúncio fica com pelo menos 1). O arquivo sai do disco na hora', security: login, parameters: [caminho('id', 'Id do anúncio'), caminho('fotoId', 'Id da foto')],
+        responses: { 200: ok('Anúncio sem a foto', { type: 'object' }), 400: E400, 401: E401, 403: E403, 404: E404 },
+      },
+    },
+    '/api/anuncios/{id}/fotos/{fotoId}/capa': {
+      patch: {
+        tags: ['Anúncios'], summary: 'Escolher a foto de capa (só o dono)', security: login, parameters: [caminho('id', 'Id do anúncio'), caminho('fotoId', 'Id da foto')],
+        responses: { 200: ok('Anúncio com a capa nova', { type: 'object' }), 401: E401, 403: E403, 404: E404 },
+      },
+    },
+    '/api/favoritos/{anuncioId}': {
+      post: { tags: ['Favoritos'], summary: 'Favoritar um anúncio (201 na primeira vez, 200 se já era favorito)', security: login, parameters: [caminho('anuncioId', 'Id do anúncio')], responses: { 201: ok('Favoritado', { type: 'object' }), 200: ok('Já era favorito', { type: 'object' }), 401: E401, 404: E404 } },
+      delete: { tags: ['Favoritos'], summary: 'Tirar dos favoritos', security: login, parameters: [caminho('anuncioId', 'Id do anúncio')], responses: { 204: { description: 'Removido' }, 401: E401 } },
+    },
+    '/api/conversas/nao-lidas': { get: { tags: ['Conversas'], summary: 'Quantas conversas têm mensagem nova (o número no ícone de mensagens)', security: login, responses: { 200: ok('Total', { type: 'object', example: { total: 2 } }), 401: E401 } } },
+    '/api/conversas/{id}': { delete: { tags: ['Conversas'], summary: 'Excluir a conversa da minha lista (a outra pessoa continua com a dela; quando as duas excluem, as fotos e os vídeos saem do disco)', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 204: { description: 'Excluída' }, 401: E401, 403: E403, 404: E404 } } },
+    '/api/avaliacoes/minhas': { get: { tags: ['Avaliações'], summary: 'As avaliações que eu recebi e as que eu fiz', security: login, responses: { 200: ok('Avaliações', { type: 'object', properties: { usuario_id: { type: 'integer' }, recebidas: { type: 'array', items: { type: 'object' } }, feitas: { type: 'array', items: { type: 'object' } } } }), 401: E401 } } },
+    '/api/perfil/foto': {
+      put: { tags: ['Perfil e login'], summary: 'Trocar a foto de perfil (multipart: foto = JPG, PNG ou WebP de até 5 MB). A foto antiga sai do disco', security: login, responses: { 200: ok('Perfil com a foto nova', { type: 'object' }), 400: E400, 401: E401 } },
+      delete: { tags: ['Perfil e login'], summary: 'Tirar a foto de perfil (o arquivo sai do disco)', security: login, responses: { 200: ok('Perfil sem foto', { type: 'object' }), 401: E401 } },
     },
     '/api/auth/sessao': { get: { tags: ['Perfil e login'], summary: 'Sessão atual (registra o acesso ao entrar)', responses: { 200: ok('Usuário ou null', { type: 'object' }) } } },
     '/api/auth/google': { post: { tags: ['Perfil e login'], summary: 'Login com Google', requestBody: corpo({ type: 'object', properties: { credential: { type: 'string' } } }), responses: { 200: ok('Usuário', { type: 'object' }) } } },
