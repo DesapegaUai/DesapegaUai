@@ -28,8 +28,8 @@ Um aviso importante: os números abaixo mostram que os cenários definidos passa
 | --- | --- |
 | SQL injection | 1.441 pedidos de ataque, nenhuma injeção funcionou |
 | Testes automáticos da API (`npm test`) | 273 de 273 aprovados, em 27 arquivos |
-| Testes de navegador (`npm run e2e`, Chrome) | 40 de 40 aprovados |
-| Outros navegadores (seção 5) | 40 de 40 no Edge, no WebKit e no tablet; 39 de 40 no Firefox; 37 de 40 nos dois celulares |
+| Testes de navegador (`npm run e2e`, Chrome) | 44 de 44 aprovados |
+| Outros navegadores (seção 5) | 44 de 44 no Edge, no WebKit, no tablet e nos dois celulares; 43 de 44 no Firefox |
 | Tempo de resposta (seção 7) | 24 rotas, 29 telas e 13 ações dentro do limite |
 | Verificação do código do site (`npm run lint` e `npm run build`) | Sem erros |
 | Dependências com falha conhecida (`npm audit`) | Nenhuma, na API e no site |
@@ -927,15 +927,15 @@ Os testes de navegador abrem o site de verdade, ligado em uma API de verdade, e 
 
 | Navegador | Resultado |
 | --- | --- |
-| Chrome | 40 de 40 |
-| Edge | 40 de 40 |
-| Firefox | 39 de 40 |
-| WebKit (motor do Safari) | 40 de 40 |
-| Tablet (Galaxy Tab S4) | 40 de 40 |
-| Celular Android (Pixel 7) | 37 de 40 |
-| Celular iPhone (iPhone 14, WebKit) | 37 de 40 |
+| Chrome | 44 de 44 |
+| Edge | 44 de 44 |
+| Firefox | 43 de 44 |
+| WebKit (motor do Safari) | 44 de 44 |
+| Tablet (Galaxy Tab S4) | 44 de 44 |
+| Celular Android (Pixel 7) | 44 de 44 |
+| Celular iPhone (iPhone 14, WebKit) | 44 de 44 |
 
-Os 3 testes que não passam no celular são os mesmos nos dois aparelhos: localização manual, aviso no sininho e Procura-se. Eles clicam no botão da cidade e no sininho do cabeçalho. Na conferência de 23/11/2026 ficou claro que, em tela de celular (até 600 px de largura), esses dois botões não aparecem no cabeçalho, nem no menu, nem na barra de baixo: os avisos chegam pela notificação do aparelho, mas a lista do sininho não abre, e quem não usa o GPS não consegue escolher a cidade. É um ajuste do site, não do teste. No Firefox, o teste de colar print e arrastar imagem fica de fora, porque o Firefox não deixa um teste automático simular colar ou arrastar arquivo.
+Até 23/11/2026, três testes não passavam nos celulares (localização manual, aviso no sininho e Procura-se): em tela de até 600 px, o botão da cidade e o sininho não apareciam no cabeçalho, nem no menu, nem na barra de baixo. Era um ajuste do site, não do teste. Nesse dia, o celular e o tablet passaram a mostrar no alto o Início, o sininho e as mensagens, com a cidade no menu que desce do ☰, e os três testes passaram nos dois aparelhos. Um teste novo (`menu-celular.spec.js`) confere o menu, os atalhos, o número de mensagens novas chegando na hora e que o computador continua com todos os ícones. No Firefox, o teste de colar print e arrastar imagem fica de fora, porque o Firefox não deixa um teste automático simular colar ou arrastar arquivo.
 
 Falhas reais que os outros navegadores mostraram e que foram corrigidas no site: no Firefox e no WebKit a conexão do tempo real era refeita na carga da página e derrubava o primeiro pedido, o interruptor de avisos ficava preso quando o navegador não respondia, e uma tela quebrava quando as categorias ainda não tinham chegado.
 
@@ -1025,7 +1025,7 @@ Nenhum cenário ficou reprovado. Mesmo assim, estes pontos não foram cobertos o
 9. **Denúncias sem tela de administração.** Elas ficam gravadas no banco, mas ninguém é avisado. Alguém precisa olhar a tabela.
 10. **Carga medida em um computador só.** 30 pedidos ao mesmo tempo, com os dados de exemplo. Não representa a hospedagem nem um banco com milhares de anúncios.
 11. **Aparelhos reais.** O Safari foi testado pelo motor WebKit no Windows. iPhone e Mac de verdade, e o GPS de um celular na rua, ainda não foram testados.
-12. **No celular falta o sininho e a troca de cidade** (seção 5). Em tela de até 600 px de largura, a lista de avisos e a escolha manual da cidade não aparecem; por isso três testes de navegador não passam nos celulares.
+12. **Celular e tablet testados por simulação.** O menu do celular, o sininho e as mensagens foram testados em telas simuladas de celular e tablet nos navegadores da seção 5; no aparelho de verdade, foram conferidos à mão.
 13. **Sair da conta encerra a sessão em todos os aparelhos.** É o comportamento escolhido por segurança, mas o usuário pode estranhar.
 14. **Arquivar conversa fica só no navegador.** Em outro aparelho a conversa aparece de novo na lista.
 
