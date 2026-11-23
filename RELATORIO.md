@@ -242,12 +242,13 @@ Na Sprint 5, o grupo implementou o sistema, integrou o front-end à API e ao ban
 | 20/11/2026 | Conversas, mensagens e chat em tempo real |
 | 21/11/2026 | Versão final: localização e mapa, notificações, fotos e denúncia no chat, perfil público do vendedor, Procura-se, tag de transporte, status reservado, selo de vínculo acadêmico, compromisso nas entregas, ajustes de visual, testes e relatório |
 | 22/11/2026 | Publicação do sistema na internet, na AWS; ajustes de visual encontrados no site publicado; botões de acessibilidade e tradução para Libras (VLibras); editar e apagar mensagem e confirmação de leitura no chat; anúncios de outras cidades nas categorias e na busca; login indo direto para a tela inicial; site publicado só com anúncios reais, no domínio desapegauai.com.br; aviso de mensagem nova com a foto de quem mandou, mesmo sem ativar os avisos; foto no chat colando um print ou arrastando a imagem; conversa ocupando a tela toda, com a barra do anúncio recolhida; compartilhar anúncio; perfil atualizado em tempo real; painel completo de emojis; vídeo no chat |
+| 23/11/2026 | Hospedagem trocada da AWS para a Azure, com o banco começando do zero |
 
 **Arquitetura.** O sistema tem três partes: o front-end (site em React), a API (Node.js com Express) e o banco de dados MySQL. O site conversa com a API por pedidos HTTP e por uma conexão em tempo real (Socket.IO), usada no chat, nos avisos e na atualização dos anúncios. A API está documentada em `/api/docs`.
 
 **Banco de dados.** O modelo está em `backend/database/schema.sql`, com 21 tabelas: cidade, bairro, rua, usuario, categoria, subcategoria, anuncio, foto_anuncio, localizacao_anuncio, localizacao_usuario, preferencia_localizacao, favorito, conversa, mensagem, mensagem_oculta, avaliacao, comparecimento, procura, denuncia, notificacao e inscricao_push. A base de locais reúne 142 cidades da Zona da Mata mineira, com seus bairros, localidades e ruas, a partir de dados públicos do IBGE e do OpenStreetMap.
 
-**Publicação.** O sistema está no ar em <https://desapegauai.com.br>, domínio próprio registrado no Registro.br. Ele roda em uma máquina virtual da AWS (EC2, no plano gratuito), com Ubuntu 24.04. O site, a API e o banco MySQL ficam no mesmo servidor. Em produção a própria API entrega o site, então tudo fica no mesmo endereço e o login e o chat em tempo real funcionam. O Caddy recebe os acessos em HTTPS, com certificado gratuito do Let's Encrypt que se renova sozinho, e o endereço antigo, criado no DuckDNS enquanto o domínio não existia, leva para o domínio oficial. No Google Cloud, o endereço publicado foi cadastrado e o login foi liberado para qualquer conta Google.
+**Publicação.** O sistema está no ar em <https://desapegauai.com.br>, domínio próprio registrado no Registro.br. Ele roda em uma máquina virtual Linux da Azure, na conta gratuita, com Ubuntu 24.04. O site, a API e o banco MySQL ficam no mesmo servidor. Em produção a própria API entrega o site, então tudo fica no mesmo endereço e o login e o chat em tempo real funcionam. O Caddy recebe os acessos em HTTPS, com certificado gratuito do Let's Encrypt que se renova sozinho, e o endereço com www leva para o domínio oficial. No Google Cloud, o endereço publicado foi cadastrado e o login foi liberado para qualquer conta Google.
 
 Foi escolhida uma máquina virtual porque o chat precisa do servidor sempre ligado, as fotos ficam em disco e a busca por distância usa o MySQL 8. Hospedagens que desligam quando ninguém está usando não servem para o projeto.
 
@@ -349,7 +350,7 @@ O sistema está publicado em <https://desapegauai.com.br> e pode ser acessado pe
 
 - **Problemas técnicos:** dificuldades na configuração do ambiente de desenvolvimento, na execução da API e na correção de erros no código.
 - **Desafios relacionados ao banco de dados:** dificuldades na conexão com o banco de dados e na integração dos dados com a API.
-- **Publicação gratuita:** a Railway já não tinha período grátis para a conta do projeto, o Azure para Estudantes não aceitou o e-mail da faculdade e a Oracle Cloud passou a exigir CNPJ no plano gratuito. A solução foi o plano gratuito da AWS, que aceita CPF e não cobra no cartão.
+- **Publicação gratuita:** a Railway já não tinha período grátis para a conta do projeto, o Azure para Estudantes não aceitou o e-mail da faculdade e a Oracle Cloud passou a exigir CNPJ no plano gratuito. A primeira publicação foi no plano gratuito da AWS, que aceita CPF e não cobra no cartão. Em 23/11/2026 a AWS suspendeu a conta para uma verificação de cadastro, e o site passou para a conta gratuita da Azure, com o banco começando do zero, porque os dados publicados até ali eram de teste.
 - **Organização e divisão de tarefas:** necessidade de organizar as responsabilidades de cada integrante, acompanhar o andamento das atividades e cumprir os prazos estabelecidos para cada Sprint.
 
 Os problemas foram solucionados por meio de pesquisas, testes, correções no código, reuniões e colaboração entre os integrantes, buscando melhorar o desenvolvimento e o funcionamento do sistema.
@@ -366,7 +367,7 @@ As contribuições de cada integrante foram fundamentais para o desenvolvimento 
 | João Pedro Fonseca Elias | Elaborou o diagrama de estados do sistema e os Termos de Uso e a Política de Privacidade. |
 | Marina Vieira de Abreu | Elaborou o termo de aceite e os requisitos do sistema; participou do desenvolvimento do back-end (anúncios e favoritos); contribuiu com o repositório Git; participou da elaboração dos relatórios das Sprints e do relatório geral; desenvolveu o banner do projeto. |
 | Rayanne Fernandes Fideles | Participou da elaboração dos gráficos de Burndown; elaborou o diagrama de atividades; contribuiu para o desenvolvimento do front-end; desenvolveu o protótipo de baixa fidelidade. |
-| Rhayane de Freitas Eloi | Contribuiu com a ideia principal do projeto; elaborou as personas e o diagrama de casos de uso; participou do desenvolvimento do front-end e do back-end; realizou a integração entre as duas partes; criou o banco de dados e o repositório Git; organizou o repositório; realizou os testes de implementação e a finalização da versão entregue; publicou o sistema na AWS. |
+| Rhayane de Freitas Eloi | Contribuiu com a ideia principal do projeto; elaborou as personas e o diagrama de casos de uso; participou do desenvolvimento do front-end e do back-end; realizou a integração entre as duas partes; criou o banco de dados e o repositório Git; organizou o repositório; realizou os testes de implementação e a finalização da versão entregue; publicou o sistema na internet, primeiro na AWS e depois na Azure. |
 
 ## 9. Tecnologias e ferramentas utilizadas
 
@@ -377,7 +378,7 @@ As contribuições de cada integrante foram fundamentais para o desenvolvimento 
 | Back-end | Node.js com Express 5 |
 | Tempo real | Socket.IO (chat, avisos e atualização dos anúncios) |
 | Banco de dados | MySQL, com gerenciamento pelo phpMyAdmin e ambiente local com XAMPP; MySQL 8 no servidor |
-| Hospedagem | AWS (máquina virtual EC2, no plano gratuito) com Ubuntu 24.04; Caddy (HTTPS, com certificado do Let's Encrypt); domínio desapegauai.com.br, registrado no Registro.br |
+| Hospedagem | Azure (máquina virtual Linux, na conta gratuita) com Ubuntu 24.04; Caddy (HTTPS, com certificado do Let's Encrypt); domínio desapegauai.com.br, registrado no Registro.br |
 | Login | Google (Google Identity Services), com sessão em cookie protegido (JWT) |
 | Imagens | Multer (envio) e Sharp (conversão para WebP em vários tamanhos) |
 | Segurança | Helmet, limite de pedidos por tempo, CORS restrito ao endereço do site e conferência de origem nos pedidos que alteram dados |
@@ -403,7 +404,7 @@ A proposta tem foco local e facilita a reutilização e a negociação de produt
 
 Próximos passos:
 
-- **Hospedagem depois do plano gratuito da AWS**, que termina em maio de 2027.
+- **Hospedagem depois do período gratuito da Azure**, que termina 12 meses depois do cadastro.
 - **Cópia de segurança automática** do banco e das fotos do servidor.
 - **Tela de administração** para a equipe analisar as denúncias registradas.
 - **Avisos de mensagem nova com o site fechado** (notificação no aparelho), que hoje existem para anúncios novos e avaliações.
@@ -438,7 +439,7 @@ Referências:
 - Documentação do Leaflet. Disponível em: <https://leafletjs.com>.
 - LAWSON, Nolan. emoji-picker-element: seletor de emojis leve, em várias línguas. Disponível em: <https://github.com/nolanlawson/emoji-picker-element>.
 - GOOGLE. Google Identity Services. Disponível em: <https://developers.google.com/identity>.
-- AMAZON WEB SERVICES. Plano gratuito da AWS. Disponível em: <https://aws.amazon.com/free/>.
+- MICROSOFT. Conta gratuita do Azure. Disponível em: <https://azure.microsoft.com/free/>.
 - Documentação do Caddy. Disponível em: <https://caddyserver.com/docs/>.
 - LET'S ENCRYPT. Certificados HTTPS gratuitos. Disponível em: <https://letsencrypt.org>.
 - REGISTRO.BR. Registro de domínios .br. Disponível em: <https://registro.br>.

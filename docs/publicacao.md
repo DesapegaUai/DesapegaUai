@@ -2,7 +2,7 @@
 
 O site, a API e o banco rodam juntos em um servidor Linux (Ubuntu 24.04). Em produção a API também entrega o site, então tudo fica no mesmo endereço, e o login (cookie) e o chat em tempo real funcionam.
 
-Endereço oficial: <https://desapegauai.com.br> (o `www` e o endereço antigo, <https://desapegauai.duckdns.org>, levam para ele)
+Endereço oficial: <https://desapegauai.com.br> (o `www` leva para ele)
 
 ## O que o projeto precisa da hospedagem
 
@@ -13,7 +13,9 @@ Endereço oficial: <https://desapegauai.com.br> (o `www` e o endereço antigo, <
 | MySQL 8 | A busca por distância usa `ST_Distance_Sphere` |
 | Site e API no mesmo endereço | O cookie de login é `sameSite=lax` |
 
-Por isso a Vercel e os planos gratuitos que "dormem" não servem. Usamos uma máquina virtual do [plano gratuito da AWS](https://aws.amazon.com/free/): US$ 100 em créditos (e até mais US$ 100 em tarefas) por 6 meses, sem cobrança no cartão.
+Por isso a Vercel e os planos gratuitos que "dormem" não servem. Usamos uma máquina virtual Linux da [conta gratuita da Azure](https://azure.microsoft.com/free/), que inclui uma máquina pequena grátis por 12 meses.
+
+Até 23/11/2026 o site ficou no plano gratuito da AWS. A AWS suspendeu a conta para uma verificação de cadastro e o site passou para a Azure, com o banco começando do zero (os dados até ali eram de teste).
 
 ## O que fica no servidor
 
@@ -28,28 +30,31 @@ Por isso a Vercel e os planos gratuitos que "dormem" não servem. Usamos uma má
 
 ## Primeira vez
 
-### 1. Máquina virtual na AWS
+### 1. Máquina virtual na Azure
 
-- No EC2, crie a máquina com a imagem **Ubuntu 24.04 (arm64)**, o tipo **t4g.micro** (entra no plano gratuito) e disco de 20 GB.
-- No grupo de segurança, libere a entrada TCP nas portas **22**, **80** e **443**.
-- Reserve um **IP elástico** e associe à máquina. Assim o IP não muda quando ela reinicia.
+- No portal da Azure, em **Máquinas virtuais > Criar**, use a imagem **Ubuntu Server 24.04 LTS (x64)** e um tamanho que entre no gratuito (por exemplo, **B1s**). Com 1 GB de memória basta, porque o instalador cria uma memória extra no disco.
+- Em **Autenticação**, escolha **Chave pública SSH**, com o usuário `azureuser`, e guarde o arquivo `.pem` da chave.
+- Em **Portas de entrada**, libere **SSH (22)**, **HTTP (80)** e **HTTPS (443)**.
+- Deixe o **IP público** como **Estático**. Assim o IP não muda quando a máquina reinicia.
 
 ### 2. Endereço do site
 
-A AWS dá só o número do IP. O domínio oficial, `desapegauai.com.br`, foi registrado no [Registro.br](https://registro.br). No painel do domínio, em **DNS**, crie dois registros do tipo **A** com o IP elástico da máquina:
+A Azure dá só o número do IP. O domínio oficial, `desapegauai.com.br`, foi registrado no [Registro.br](https://registro.br). No painel do domínio, em **DNS** (modo avançado), ficam estes registros:
 
 | Nome | Tipo | Valor |
 | --- | --- | --- |
-| (vazio, o próprio domínio) | A | IP elástico da máquina |
-| www | A | IP elástico da máquina |
+| (vazio, o próprio domínio) | A | IP público da máquina |
+| www | CNAME | desapegauai.com.br |
+| (vazio) | TXT | `v=spf1 -all` (avisa que nenhum e-mail sai do domínio, o que dificulta e-mail falso em nome do site) |
+| (vazio) | TXT | o código `google-site-verification` do Search Console |
 
-A mudança pode levar de alguns minutos a algumas horas para valer na internet.
+Ao trocar de servidor, basta mudar o IP do registro **A**. A mudança pode levar de alguns minutos a algumas horas para valer na internet.
 
-Antes do domínio próprio, o site usou um endereço gratuito do [DuckDNS](https://www.duckdns.org) (`desapegauai.duckdns.org`), que hoje só leva para o domínio oficial.
+Antes do domínio próprio, o site usou um endereço gratuito do [DuckDNS](https://www.duckdns.org) (`desapegauai.duckdns.org`), que não é mais usado.
 
 ### 3. Instalar
 
-Entre no servidor por SSH (usuário `ubuntu`) e rode o instalador com o endereço e o ID do cliente OAuth do Google:
+Entre no servidor por SSH (usuário `azureuser`, com a chave `.pem`) e rode o instalador com o endereço e o ID do cliente OAuth do Google:
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/DesapegaUai/DesapegaUai/main/servidor/instalar.sh
@@ -82,6 +87,12 @@ sudo bash /opt/desapegauai/servidor/atualizar.sh
 ```
 
 Ele baixa a última versão do mesmo ramo, monta o site e reinicia a API. O banco e as fotos ficam como estão.
+
+Do computador, dá para rodar sem entrar no servidor (no PowerShell, com o caminho da chave `.pem` e o IP público da máquina):
+
+```powershell
+ssh -i CAMINHO-DA-CHAVE.pem azureuser@IP-DA-MAQUINA "sudo bash /opt/desapegauai/servidor/atualizar.sh"
+```
 
 - Para trocar de ramo (por exemplo, para a `main` depois do merge): `sudo RAMO=main bash /opt/desapegauai/servidor/atualizar.sh`
 - Quando o `schema.sql` mudar, acrescente `--banco` no fim. Ele roda o `npm run atualizar`, que ajusta as tabelas sem apagar dados.
@@ -122,9 +133,9 @@ sudo bash /opt/desapegauai/servidor/remover-demonstracao.sh --confirmar
 
 O primeiro comando só mostra o que seria apagado. O segundo apaga essas três contas com os anúncios, as conversas, os favoritos e as fotos delas, como o "Excluir minha conta" do site. As contas criadas pelo login do Google não são tocadas.
 
-## Fim do plano gratuito
+## Fim do período gratuito
 
-O plano gratuito da AWS acaba 6 meses depois do cadastro ou quando os créditos acabam, o que vier primeiro. O saldo aparece no console da AWS, em **Faturamento > Créditos**. Antes do fim, guarde uma cópia do banco e das fotos:
+Na conta gratuita da Azure, o crédito inicial vale 30 dias. Para continuar com os serviços gratuitos de 12 meses, como a máquina pequena, a conta precisa ser convertida para **pagamento conforme o uso** antes desse prazo; o que passar do limite gratuito é cobrado no cartão. Os gastos aparecem no portal, em **Gerenciamento de Custos**. De tempos em tempos, e antes do fim dos 12 meses, guarde uma cópia do banco e das fotos:
 
 ```bash
 sudo mysqldump desapegauai > desapegauai.sql
