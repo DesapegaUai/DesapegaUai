@@ -50,6 +50,13 @@ export async function buscarAlemDoRaio(filtros, raioKm, { sinal } = {}) {
   return resultado.itens.map(cardDaApi).filter((anuncio) => typeof anuncio.distancia_km === 'number' && anuncio.distancia_km > raioKm)
 }
 
+// todos os anúncios publicados, sem limite de distância (atalho "Anúncios" do menu do celular).
+// origem (GPS ou cidade) só serve para mostrar a distância de cada um e para ordenar pelos mais próximos.
+export async function listarTodos({ ordenar = 'recentes', pagina = 1, porPagina = 12, origem = {} } = {}, { sinal } = {}) {
+  const resultado = await api.get(`/anuncios${parametros({ ...origem, ordenar, pagina, por_pagina: porPagina })}`, { sinal })
+  return { ...resultado, itens: resultado.itens.map(cardDaApi) }
+}
+
 // os mais recentes da região inteira, sem raio (cards da seção "Conectando pessoas" da home)
 export async function listarRecentes(quantidade = 12, { sinal } = {}) {
   const resultado = await api.get(`/anuncios${parametros({ ordenar: 'recentes', por_pagina: quantidade })}`, { sinal })

@@ -280,15 +280,19 @@ fieldset.filtro-grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
   .cab-logo { height: 32px; }
   .cab-lupa, .local, .btn-anunciar { display: none; }
   .cab-icones { display: flex; order: 2; margin-left: auto; gap: 2px; }
-  .cab-icones > :not(.notif):not([href="/conversas"]) { display: none; }
+  .cab-icones > :not(.notif):not([href="/conversas"]):not([href="/"]) { display: none; }
   .cab-icones .cab-icone { width: 42px; height: 42px; }
   .cab-burger { display: flex; order: 3; width: 42px; height: 42px; }
   .cab-burger[aria-expanded="true"] { background: var(--marca-suave); border-color: var(--marca-clara); }
   .busca { display: flex; order: 10; flex: 1 0 100%; max-width: none; height: 46px; margin: 4px 0 0; padding: 0 16px; }
   .busca input { font-size: 16px; }
 }
+@media (max-width: 420px) {
+  .cab-logo { height: 28px; }
+  .cab-icones .cab-icone, .cab-burger { width: 40px; height: 40px; }
+}
 @media (max-width: 374px) {
-  .cab { padding: 12px; }
-  .cab-logo { height: 27px; }
-  .cab-icones .cab-icone, .cab-burger { width: 38px; height: 38px; }
+  .cab { gap: 6px; padding: 12px; }
+  .cab-logo { height: 23px; }
+  .cab-icones .cab-icone, .cab-burger { width: 37px; height: 37px; }
 }

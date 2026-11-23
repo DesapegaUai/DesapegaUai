@@ -25,3 +25,8 @@
   .bus-grade { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: var(--e5); }
   .bus-vazio { padding: 40px 16px; }
 }
+
+/* Todos os anúncios (atalho "Anúncios" do menu do celular) */
+.todos-sub { margin: 6px 0 0; color: var(--texto-2); font-size: 15px; }
+.bus-grade.atualizando { opacity: .6; transition: opacity .15s ease; }
+.bus-vazio a.ampliar-raio { display: inline-flex; align-items: center; color: #fff; text-decoration: none; }

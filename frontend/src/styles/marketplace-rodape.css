@@ -32,10 +32,6 @@
 .mkt-rodape-links { display: flex; flex-wrap: wrap; gap: 6px 24px; min-width: 0; }
 .mkt-rodape-links a { font-family: inherit; font-weight: 500; font-size: 15px; line-height: 1.4; color: var(--rd-claro); text-decoration: none; white-space: nowrap; }
 .mkt-rodape-links a:hover { color: #FFFFFF; text-decoration: underline; }
-.mkt-rodape-local { flex: none; display: flex; align-items: center; gap: 20px; margin-left: auto; }
-.mkt-rodape-cidade { display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-weight: 500; font-size: 15px; line-height: 1; color: var(--rd-texto); white-space: nowrap; }
-.mkt-rodape-social { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .04); }
-.mkt-rodape-social:hover { border-color: var(--rd-lima); }
 
 /* Telas acima de 1440: o fundo do rodapé vai de ponta a ponta, o conteúdo segue alinhado à página */
 @media (min-width: 1441px) {
@@ -60,10 +56,9 @@
   .mkt-rodape-seg-ic { width: 40px; height: 40px; }
   .mkt-rodape-seg-txt { flex-direction: column; align-items: flex-start; gap: 10px; }
   .mkt-rodape-seg p, .mkt-rodape-seg-link { font-size: 15px; }
-  /* barra final: links | local + Instagram, divisória, © por último */
-  .mkt-rodape-base-in { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "links local" "copy copy"; align-items: center; gap: 0 24px; padding: 24px 32px 28px; }
+  /* barra final: links, divisória e o © por último */
+  .mkt-rodape-base-in { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "links" "copy"; align-items: center; gap: 0 24px; padding: 24px 32px 28px; }
   .mkt-rodape-links { grid-area: links; }
-  .mkt-rodape-local { grid-area: local; margin-left: 0; }
   .mkt-rodape-copy { grid-area: copy; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rd-borda); }
 }
 
@@ -85,11 +80,14 @@
   .mkt-rodape-seg-txt { gap: 0; }
   .mkt-rodape-seg p { font-size: 14px; line-height: 1.45; }
   .mkt-rodape-seg-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; }
-  /* barra final: local ··· Instagram, divisória, links, © por último */
-  .mkt-rodape-base-in { grid-template-columns: minmax(0, 1fr); grid-template-areas: "local" "links" "copy"; gap: 0; padding: 22px 20px 30px; }
-  .mkt-rodape-local { justify-content: space-between; gap: 16px; }
-  .mkt-rodape-links { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rd-borda); gap: 0 22px; }
+  /* barra final: links e o © por último */
+  .mkt-rodape-base-in { grid-template-columns: minmax(0, 1fr); grid-template-areas: "links" "copy"; gap: 0; padding: 18px 20px 30px; }
+  .mkt-rodape-links { gap: 0 22px; }
   .mkt-rodape-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; line-height: 20px; }
   .mkt-rodape-copy { margin-top: 0; padding-top: 0; border-top: 0; font-size: 14px; line-height: 20px; }
-  .mkt-rodape-cidade { font-size: 14px; }
+}
+
+/* Celular: o botão flutuante "+ Anunciar" fica por cima do fim da página; o rodapé deixa espaço para ele */
+@media (max-width: 600px) {
+  .shell .mkt-rodape-base-in { padding-bottom: 96px; }
 }

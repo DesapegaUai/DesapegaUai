@@ -76,6 +76,9 @@ test('a imagem de prévia do anúncio é um JPG 1200 x 630; anúncio sem foto us
 test('categoria e páginas de ajuda têm título próprio; as telas da conta e os perfis ficam fora do Google', async () => {
   assert.match(await (await fetch(`${origem}/categoria/casa`)).text(), /<title>Casa: usados em Viçosa e região \| DesapegaUai<\/title>/)
   assert.match(await (await fetch(`${origem}/ajuda/dicas-de-seguranca`)).text(), /<title>Dicas de segurança \| DesapegaUai<\/title>/)
+  const todos = await (await fetch(`${origem}/anuncios`)).text()
+  assert.match(todos, /<title>Todos os anúncios de usados em Viçosa e região \| DesapegaUai<\/title>/)
+  assert.ok(todos.includes(`<link rel="canonical" href="${BASE}/anuncios" />`))
   for (const caminho of ['/perfil', '/conversas/1', '/favoritos', '/usuario/2', '/anuncio/999999', '/pagina-que-nao-existe']) {
     const html = await (await fetch(origem + caminho)).text()
     assert.ok(html.includes('<meta name="robots" content="noindex" />'), caminho)
@@ -101,6 +104,7 @@ test('sitemap.xml lista a página inicial, as categorias, as páginas de ajuda e
   const xml = await r.text()
   assert.ok(xml.includes(`<loc>${BASE}/</loc>`))
   assert.ok(xml.includes(`<loc>${BASE}/categoria/casa</loc>`))
+  assert.ok(xml.includes(`<loc>${BASE}/anuncios</loc>`), 'a lista de todos os anúncios')
   assert.ok(xml.includes(`<loc>${BASE}/ajuda/como-funciona</loc>`))
   assert.ok(xml.includes(`<loc>${BASE}/anuncio/${anuncioComFoto}</loc>`))
   assert.equal(xml.includes('/perfil'), false)
