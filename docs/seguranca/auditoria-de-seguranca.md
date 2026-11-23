@@ -27,7 +27,7 @@ Um aviso importante: os números abaixo mostram que os cenários definidos passa
 | Outras conferências | Resultado |
 | --- | --- |
 | SQL injection | 1.441 pedidos de ataque, nenhuma injeção funcionou |
-| Testes automáticos da API (`npm test`) | 273 de 273 aprovados, em 27 arquivos |
+| Testes automáticos da API (`npm test`) | 276 de 276 aprovados, em 28 arquivos |
 | Testes de navegador (`npm run e2e`, Chrome) | 44 de 44 aprovados |
 | Outros navegadores (seção 5) | 44 de 44 no Edge, no WebKit, no tablet e nos dois celulares; 43 de 44 no Firefox |
 | Tempo de resposta (seção 7) | 24 rotas, 29 telas e 13 ações dentro do limite |
@@ -941,7 +941,7 @@ Falhas reais que os outros navegadores mostraram e que foram corrigidas no site:
 
 ## 6. Testes automáticos da API
 
-São 273 testes em 27 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
+São 276 testes em 28 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
 
 Os testes de exclusão de imagens (`exclusao-de-imagens.test.js`) incluem dois casos que a auditoria por fora não consegue provocar:
 
