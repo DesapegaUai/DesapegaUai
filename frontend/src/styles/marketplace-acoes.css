@@ -33,3 +33,20 @@
 .comp-opcoes a, .comp-opcoes button { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: var(--tinta); font-family: inherit; font-weight: 600; font-size: 16px; text-align: left; text-decoration: none; cursor: pointer; }
 .comp-opcoes a:hover, .comp-opcoes button:hover, .comp-opcoes a:focus-visible, .comp-opcoes button:focus-visible { background: var(--marca-suave); }
 .comp-marca { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 20px; }
+
+/* Ajustar a foto de perfil: a foto atrás de um círculo, para arrastar e aproximar ou afastar */
+.ajustar-foto { max-width: 400px; text-align: center; }
+.ajustar-foto p { margin-top: 6px; font-size: 14.5px; }
+.ajustar-foto-quadro { position: relative; margin: 18px auto 0; overflow: hidden; border-radius: 16px; background: #111; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
+.ajustar-foto-quadro:active { cursor: grabbing; }
+.ajustar-foto-quadro:focus-visible { outline: 3px solid var(--marca); outline-offset: 3px; }
+.ajustar-foto-quadro img { position: absolute; left: 0; top: 0; max-width: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+/* o que fica fora do círculo aparece escurecido (o que não vai para a foto); o anel branco marca a borda */
+.ajustar-foto-circulo { position: absolute; inset: 0; background: radial-gradient(circle closest-side, transparent calc(100% - 1px), rgba(0, 0, 0, .55) 100%); pointer-events: none; }
+.ajustar-foto-circulo::after { content: ""; position: absolute; inset: 0; border: 2px solid rgba(255, 255, 255, .9); border-radius: 50%; }
+.ajustar-foto-zoom { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.ajustar-foto-zoom .slider { flex: 1; margin-top: 0; }
+.ajustar-foto-zoom button { flex: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 18px; background: none; cursor: pointer; }
+.ajustar-foto-zoom button:hover { background: var(--sup-3); }
+.acoes-btn.ajustar-foto-usar { border-color: var(--marca); background: var(--marca); color: #fff; }
+.acoes-btn.ajustar-foto-usar:disabled { opacity: .6; cursor: wait; }
