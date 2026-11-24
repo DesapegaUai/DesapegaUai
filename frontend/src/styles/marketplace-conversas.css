@@ -410,7 +410,8 @@
 /* Áudio no chat (opção B e ondas, escolhidas na prévia): o microfone fica ao lado do emoji; gravando, a linha
    de escrever vira a barra de gravação; no balão, tocar, as ondas do som (fala sobe, silêncio fica reto) e a
    velocidade. O tempo fica embaixo, à esquerda, e o horário e os tiques no canto, como nas outras mensagens. */
-.bolha.com-audio { padding: 8px 10px 22px; }
+/* embaixo sobra espaço para o horário (e os tiques) não encostarem no microfone da foto */
+.bolha.com-audio { padding: 8px 10px 28px; }
 .audio-chat { display: flex; align-items: center; gap: 10px; width: 250px; max-width: 100%; }
 .audio-tocar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--marca); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
 .linha-msg.eu .audio-tocar { background: #fff; color: var(--marca); }
@@ -421,6 +422,15 @@
 .linha-msg.eu .audio-ondas i { background: rgba(255, 255, 255, .45); }
 .audio-ondas i.ouvida { background: var(--marca); }
 .linha-msg.eu .audio-ondas i.ouvida { background: #fff; }
+/* do lado direito: a foto de quem mandou (antes de tocar e depois de ouvir tudo) ou a velocidade (tocando ou
+   pausado no meio). Os dois ocupam o mesmo espaço, então trocar um pelo outro não mexe no balão */
+.audio-lado { flex: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.audio-foto { position: relative; width: 40px; height: 40px; border-radius: 50%; background: #DDEBD3; color: var(--marca); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; line-height: 1; }
+.linha-msg.eu .audio-foto { background: rgba(255, 255, 255, .25); color: #fff; }
+.audio-foto img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+/* o microfone no canto da foto, como no WhatsApp */
+.audio-foto-mic { position: absolute; left: -3px; bottom: -2px; width: 18px; height: 18px; border-radius: 50%; background: var(--marca); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #E9E9EB; }
+.linha-msg.eu .audio-foto-mic { background: #fff; color: var(--marca); box-shadow: 0 0 0 2px var(--marca); }
 .audio-velocidade { flex: none; min-width: 36px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: rgba(0, 0, 0, .08); color: #3A3A3C; font: inherit; font-weight: 700; font-size: 12px; line-height: 22px; cursor: pointer; }
 .linha-msg.eu .audio-velocidade { background: rgba(255, 255, 255, .22); color: #fff; }
 .audio-tempo { position: absolute; left: 56px; bottom: 6px; font-weight: 600; font-size: 11.5px; line-height: 1; color: #6E6E73; font-variant-numeric: tabular-nums; }
