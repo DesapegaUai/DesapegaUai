@@ -109,6 +109,21 @@ export function formatarVideoDoChat(conversaId, video) {
   return { url: `/api/conversas/${conferirId(conversaId)}/videos/${video}` }
 }
 
+// áudios do chat: "<32 letras e números>.m4a" (todo áudio é convertido para M4A), na mesma pasta privada
+export const AUDIO_DO_CHAT = /^[a-f0-9]{32}\.m4a$/
+
+export function caminhoDoAudioDoChat(conversaId, audio) {
+  if (typeof audio !== 'string' || !AUDIO_DO_CHAT.test(audio)) return null
+  return path.join(pastaDaConversa(conversaId), audio)
+}
+
+// { url, segundos, ondas }, ou null quando a mensagem não tem áudio.
+// ondas: um caractere por barrinha, de "0" (silêncio, reto) a "v" (fala alta)
+export function formatarAudioDoChat(conversaId, audio, segundos, ondas) {
+  if (!audio) return null
+  return { url: `/api/conversas/${conferirId(conversaId)}/audios/${audio}`, segundos: Number(segundos) || null, ondas: ondas ?? '' }
+}
+
 // { pequena, grande }, ou null quando a mensagem não tem foto
 export function formatarFotoDoChat(conversaId, foto) {
   if (!foto) return null

@@ -4,7 +4,7 @@ import * as comparecimento from '../controllers/comparecimentoController.js'
 import * as denuncia from '../controllers/denunciaController.js'
 import { exigirLogin } from '../middlewares/autenticacao.js'
 import { limiteGravacao, limiteMensagens } from '../middlewares/limites.js'
-import { receberFotosDoChat, receberVideoDoChat } from '../middlewares/upload.js'
+import { receberAudioDoChat, receberFotosDoChat, receberVideoDoChat } from '../middlewares/upload.js'
 
 export const conversaRoutes = Router()
 
@@ -20,6 +20,8 @@ conversaRoutes.post('/:id/fotos', limiteMensagens, receberFotosDoChat, conversa.
 conversaRoutes.get('/:id/fotos/:arquivo', conversa.verFoto)
 conversaRoutes.post('/:id/videos', limiteMensagens, receberVideoDoChat, conversa.enviarVideo)
 conversaRoutes.get('/:id/videos/:arquivo', conversa.verVideo)
+conversaRoutes.post('/:id/audios', limiteMensagens, receberAudioDoChat, conversa.enviarAudio)
+conversaRoutes.get('/:id/audios/:arquivo', conversa.verAudio)
 conversaRoutes.get('/:id/denuncia', denuncia.ver)
 conversaRoutes.post('/:id/denuncia', limiteGravacao, denuncia.criar)
 conversaRoutes.get('/:id/comparecimento', comparecimento.ver)

@@ -104,6 +104,7 @@ export async function listarConversas(usuarioId, filtro) {
        ultima.texto AS mensagem_texto,
        ultima.foto AS mensagem_foto,
        ultima.video AS mensagem_video,
+       ultima.audio_segundos AS mensagem_audio_segundos,
        ultima.remetente_id AS mensagem_remetente_id,
        ultima.enviada_em AS mensagem_enviada_em,
        ultima.apagada_em AS mensagem_apagada_em,
@@ -186,6 +187,8 @@ export async function listarConversas(usuarioId, filtro) {
         texto: resultado.mensagem_apagada_em ? '' : resultado.mensagem_texto,
         tem_foto: resultado.mensagem_foto !== null,
         tem_video: resultado.mensagem_video !== null && resultado.mensagem_video !== undefined,
+        // duração do áudio, para a lista mostrar "🎤 Áudio (0:12)"; null quando não é áudio
+        audio_segundos: resultado.mensagem_audio_segundos ?? null,
         apagada: resultado.mensagem_apagada_em !== null,
         remetente_id: resultado.mensagem_remetente_id,
         enviada_em: resultado.mensagem_enviada_em,

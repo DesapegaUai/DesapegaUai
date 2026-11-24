@@ -5,7 +5,8 @@ import { access, mkdir, rm, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import { abrirConversa, listarConversas, contarConversasNaoLidas, ocultarConversa } from '../models/conversaModel.js'
 import { erroHttp } from '../utils/erroHttp.js'
-import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, caminhoDoVideoDoChat, pastaDaConversa } from '../utils/fotos.js'
+import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, caminhoDoAudioDoChat, caminhoDoVideoDoChat, pastaDaConversa } from '../utils/fotos.js'
+import { converterAudio } from '../services/audioDoChat.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, liberarMidiasQueNinguemVe, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
@@ -146,6 +147,10 @@ export async function apagarMensagem(req, res) {
     const caminho = caminhoDoVideoDoChat(resultado.mensagem.conversa_id, resultado.videoAntigo)
     if (caminho) await apagarDoDisco(caminho, { tipo: 'video_chat', conversa_id: resultado.mensagem.conversa_id, mensagem_id: resultado.mensagem.id })
   }
+  if (resultado.audioAntigo) {
+    const caminho = caminhoDoAudioDoChat(resultado.mensagem.conversa_id, resultado.audioAntigo)
+    if (caminho) await apagarDoDisco(caminho, { tipo: 'audio_chat', conversa_id: resultado.mensagem.conversa_id, mensagem_id: resultado.mensagem.id })
+  }
   avisarUsuarios(resultado.participantes, 'mensagem_apagada', resultado.mensagem)
   res.json({ mensagem: { ...resultado.mensagem, minha: true } })
 }
@@ -213,6 +218,56 @@ export async function verVideo(req, res) {
   res.set('Cache-Control', 'private, max-age=2592000, immutable')
   res.set('Cross-Origin-Resource-Policy', 'same-site')
   res.type(TIPO_DO_VIDEO[req.params.arquivo.split('.').pop()])
+  res.sendFile(caminho)
+}
+
+// ---------------------------------------------------------------- áudio no chat
+
+// POST /api/conversas/:id/audios (multipart: audio = o áudio gravado no navegador, até 5 MB e 2 minutos).
+// O servidor converte para M4A, mede a duração e desenha as ondas (services/audioDoChat.js).
+export async function enviarAudio(req, res) {
+  const conversaId = lerId(req.params.id, 'id da conversa')
+  const usuarioId = req.usuario.id
+  if (!req.file) throw erroHttp(400, 'Envie o áudio no campo audio.')
+  await exigirParticipante(conversaId, usuarioId)
+
+  const { m4a, segundos, ondas } = await converterAudio(req.file.buffer)
+  const arquivo = `${randomUUID().replaceAll('-', '')}.m4a`
+  const caminho = caminhoDoAudioDoChat(conversaId, arquivo)
+  await mkdir(pastaDaConversa(conversaId), { recursive: true })
+  await writeFile(caminho, m4a)
+
+  let resultado
+  try {
+    resultado = await salvarMensagem(conversaId, usuarioId, '', null, null, { arquivo, segundos, ondas })
+  } catch (erro) {
+    await rm(caminho, { force: true }).catch(() => {})
+    throw erro
+  }
+
+  await marcarEntregueSeOnline(resultado.mensagem, resultado.participantes)
+  avisarUsuarios(resultado.participantes, 'nova_mensagem', resultado.mensagem)
+  avisarMensagemNova(resultado.mensagem, resultado.participantes)
+  res.status(201).json({ mensagem: { ...resultado.mensagem, minha: true } })
+}
+
+// GET /api/conversas/:id/audios/:arquivo (só quem participa). Aceita pedidos de pedaço (Range): é o que
+// deixa tocar e avançar o áudio no iPhone.
+export async function verAudio(req, res) {
+  const conversaId = lerId(req.params.id, 'id da conversa')
+  await exigirParticipante(conversaId, req.usuario.id)
+
+  const caminho = caminhoDoAudioDoChat(conversaId, req.params.arquivo)
+  if (!caminho) throw erroHttp(404, 'Áudio não encontrado.')
+  try {
+    await access(caminho)
+  } catch {
+    throw erroHttp(404, 'Áudio não encontrado.')
+  }
+
+  res.set('Cache-Control', 'private, max-age=2592000, immutable')
+  res.set('Cross-Origin-Resource-Policy', 'same-site')
+  res.type('audio/mp4')
   res.sendFile(caminho)
 }
 
@@ -353,5 +408,7 @@ async function apagarArquivosQueNinguemVe(conversaId) {
     }
     const video = mensagem.video ? caminhoDoVideoDoChat(conversaId, mensagem.video) : null
     if (video) await apagarDoDisco(video, { tipo: 'video_chat', ...detalhes })
+    const audio = mensagem.audio ? caminhoDoAudioDoChat(conversaId, mensagem.audio) : null
+    if (audio) await apagarDoDisco(audio, { tipo: 'audio_chat', ...detalhes })
   }
 }

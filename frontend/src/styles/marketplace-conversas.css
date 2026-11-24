@@ -407,3 +407,50 @@
   .composer { padding: 8px 10px 10px; }
   .campo-msg textarea { font-size: 16px; }
 }
+/* Áudio no chat (opção B e ondas, escolhidas na prévia): o microfone fica ao lado do emoji; gravando, a linha
+   de escrever vira a barra de gravação; no balão, tocar, as ondas do som (fala sobe, silêncio fica reto) e a
+   velocidade. O tempo fica embaixo, à esquerda, e o horário e os tiques no canto, como nas outras mensagens. */
+.bolha.com-audio { padding: 8px 10px 22px; }
+.audio-chat { display: flex; align-items: center; gap: 10px; width: 250px; max-width: 100%; }
+.audio-tocar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--marca); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.linha-msg.eu .audio-tocar { background: #fff; color: var(--marca); }
+.audio-tocar:disabled { opacity: .5; cursor: default; }
+.audio-ondas { flex: 1; min-width: 0; height: 28px; display: flex; align-items: center; gap: 1.5px; overflow: hidden; }
+.audio-ondas[role="slider"] { cursor: pointer; }
+.audio-ondas i { flex: 1 1 0; min-width: 1.5px; max-width: 3px; border-radius: 2px; background: #B6B6BB; }
+.linha-msg.eu .audio-ondas i { background: rgba(255, 255, 255, .45); }
+.audio-ondas i.ouvida { background: var(--marca); }
+.linha-msg.eu .audio-ondas i.ouvida { background: #fff; }
+.audio-velocidade { flex: none; min-width: 36px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: rgba(0, 0, 0, .08); color: #3A3A3C; font: inherit; font-weight: 700; font-size: 12px; line-height: 22px; cursor: pointer; }
+.linha-msg.eu .audio-velocidade { background: rgba(255, 255, 255, .22); color: #fff; }
+.audio-tempo { position: absolute; left: 56px; bottom: 6px; font-weight: 600; font-size: 11.5px; line-height: 1; color: #6E6E73; font-variant-numeric: tabular-nums; }
+.linha-msg.eu .audio-tempo { color: rgba(255, 255, 255, .85); }
+.audio-tocar:focus-visible, .audio-velocidade:focus-visible, .audio-ondas:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.linha-msg.eu .audio-tocar:focus-visible, .linha-msg.eu .audio-velocidade:focus-visible, .linha-msg.eu .audio-ondas:focus-visible { outline-color: #fff; }
+/* barra de gravação. Gravando: lixeira · ponto vermelho e tempo · ondas ao vivo · parar.
+   Pronto: lixeira · ouvir · ondas · tempo · enviar */
+.gravador { flex: 1; min-width: 0; min-height: 42px; border: 1px solid var(--linha); border-radius: 21px; background: var(--sup); display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.gravador-botao { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.gravador-botao:hover { background: var(--sup-3); }
+.gravador-ponto { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; opacity: .35; }
+.gravador-ponto.ligado { opacity: 1; animation: gravador-piscar 1s steps(2) infinite; }
+@keyframes gravador-piscar { 50% { opacity: .2; } }
+.gravador-tempo { flex: none; font-weight: 600; font-size: 14.5px; font-variant-numeric: tabular-nums; color: var(--tinta); white-space: nowrap; }
+.gravador-ondas { flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; overflow: hidden; }
+.gravador-ondas i { flex: none; width: 3px; border-radius: 2px; background: #9DBF8C; transition: height .1s linear; }
+.gravador-ondas-prontas { height: 24px; }
+.gravador-ondas-prontas i { background: #B8C9B0; }
+.gravador-ondas-prontas i.ouvida { background: var(--marca); }
+.gravador-parar { flex: none; width: 32px; height: 32px; margin-right: 2px; border: 2px solid #E5484D; border-radius: 50%; background: none; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.gravador-parar i { width: 11px; height: 11px; border-radius: 2px; background: #E5484D; }
+.gravador-parar:disabled { opacity: .4; cursor: default; }
+.gravador-ouvir { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--marca-suave); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.gravador .btn-enviar { margin: 0 1px 0 2px; }
+.gravador button:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .gravador-ponto.ligado { animation: none; }
+  .gravador-ondas i { transition: none; }
+}
+@media (max-width: 600px) {
+  .audio-chat { width: 230px; }
+}

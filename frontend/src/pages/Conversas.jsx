@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
+import AudioDoChat from '../components/AudioDoChat.jsx';
 import CaixaMensagem from '../components/CaixaMensagem.jsx';
 import MenuMensagem from '../components/MenuMensagem.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
@@ -13,7 +14,7 @@ import { lerArquivadas, salvarArquivadas, posicaoDoMenu } from '../services/conv
 import { carregarMinhasAvaliacoes, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { formatarPreco } from '../services/formatar.js';
 import {
-  apagarMensagemPelaApi, editarMensagemPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, enviarVideoPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
+  apagarMensagemPelaApi, editarMensagemPelaApi, enviarAudioPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, enviarVideoPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
 } from '../services/mercadoApi.js';
 import { urlDaApi } from '../services/api.js';
 import { useSessao } from '../services/sessao.js';
@@ -34,7 +35,7 @@ function previa(conversa) {
   const ultima = conversa.mensagens.at(-1);
   if (!ultima) return 'Conversa iniciada';
   if (ultima.apagada) return ultima.autor === 'eu' ? 'Você apagou esta mensagem' : 'Mensagem apagada';
-  const texto = ultima.texto || (ultima.temFoto ? '📷 Foto' : ultima.temVideo ? '🎥 Vídeo' : '');
+  const texto = ultima.texto || (ultima.temFoto ? '📷 Foto' : ultima.temVideo ? '🎥 Vídeo' : ultima.audioSegundos ? `🎤 Áudio (${duracaoEmTexto(ultima.audioSegundos)})` : '');
   return ultima.autor === 'eu' ? `Você: ${texto}` : texto;
 }
 
@@ -463,6 +464,22 @@ export default function Conversas() {
     }
   }
 
+  // áudio gravado na caixa de mensagem: vai pela API (o servidor converte e desenha as ondas)
+  async function enviarAudio(gravacao) {
+    if (!selecionada) return false;
+    try {
+      const { mensagem } = await enviarAudioPelaApi(selecionada.id, gravacao);
+      const local = mensagemDaApi({ ...mensagem, minha: true }, meuId);
+      setConversas((lista) => lista.map((c) => (c.id === selecionada.id
+        ? { ...c, mensagens: [...c.mensagens.filter((m) => m.id !== local.id), local] }
+        : c)));
+      return true;
+    } catch (erro) {
+      avisar('erro', 'Áudio não enviado', erro.message);
+      return false;
+    }
+  }
+
   async function apagarMensagem(mensagem, para) {
     if (!selecionada) return;
     try {
@@ -685,11 +702,11 @@ export default function Conversas() {
                   {m.dia !== anterior?.dia && <div className="dia"><span>{m.dia}</span></div>}
                   <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}${ultima ? ' ultima' : ''}`}>
                     <div
-                      className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.editada ? ' com-editada' : ''}${menuMensagem?.mensagem.id === m.id ? ' em-destaque' : ''}`}
+                      className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.audio && !m.apagada ? ' com-audio' : ''}${m.editada ? ' com-editada' : ''}${menuMensagem?.mensagem.id === m.id ? ' em-destaque' : ''}`}
                       role="button"
                       tabIndex={0}
                       aria-haspopup="menu"
-                      aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || (m.video ? 'Vídeo' : 'Foto')}. Abrir opções da mensagem`}
+                      aria-label={`${m.apagada ? 'Mensagem apagada' : m.texto || (m.video ? 'Vídeo' : m.audio ? `Áudio de ${duracaoEmTexto(m.audio.segundos ?? 0)}` : 'Foto')}. Abrir opções da mensagem`}
                       onPointerDown={(e) => aoApertarBolha(e, m)}
                       onPointerMove={aoMexerNaBolha}
                       onPointerUp={aoSoltarBolha}
@@ -711,6 +728,7 @@ export default function Conversas() {
                           <VideoDoChat url={m.video.url} />
                         </div>
                       )}
+                      {m.audio && <AudioDoChat url={m.audio.url} segundos={m.audio.segundos} ondas={m.audio.ondas} />}
                       {m.texto && <p>{m.texto}</p>}
                       <div className="meta">
                         {m.editada && <span className="editada">editada</span>}
@@ -764,6 +782,7 @@ export default function Conversas() {
               onCancelarEdicao={() => setEditando(null)}
               nomeContato={selecionada.nome}
               onEnviar={enviar}
+              onEnviarAudio={enviarAudio}
               onDigitar={avisarQueEstouDigitando}
               preco={selecionada.anuncio.preco}
               podeOfertar={!selecionada.vendendo && !selecionada.anuncio.vendido}

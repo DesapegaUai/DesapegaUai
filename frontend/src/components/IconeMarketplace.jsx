@@ -31,6 +31,10 @@ const DESENHOS = {
   lixeira: <path d="M5 7.200h14M9.8 7.200V5.400a1 1 0 0 1 1-1h2.400a1 1 0 0 1 1 1v1.800M7 7.200l.800 11.400a1.5 1.5 0 0 0 1.5 1.400h5.400a1.5 1.5 0 0 0 1.5-1.400L17 7.200M10.3 11v5.400M13.7 11v5.4" />,
   bandeira: <path d="M6 20.5V4.4M6 5.2c3.6-2 6.4 1.8 10.2.2.5-.2.9.1.9.6v7.2c0 .4-.2.7-.6.9-3.9 1.6-6.8-2.3-10.5-.2" />,
   mais: <path d="M12 5.5v13M5.5 12h13" />,
+  microfone: <path d="M12 3.6a3 3 0 0 0-3 3v5.2a3 3 0 0 0 6 0V6.6a3 3 0 0 0-3-3zM6.4 11.4a5.6 5.6 0 0 0 11.2 0M12 17v3.4M9 20.4h6" />,
+  // tocar e pausar do áudio: usar com preenchimento (desenhos cheios)
+  tocar: <path d="M8 5.6v12.8a.8.8 0 0 0 1.2.7l10-6.4a.8.8 0 0 0 0-1.4l-10-6.4a.8.8 0 0 0-1.2.7z" />,
+  pausar: <path d="M7.6 5.6h2.8v12.8H7.6zM13.6 5.6h2.8v12.8h-2.8z" />,
   check: <path d="M5 12.6l4.4 4.4L19 7.4" />,
   imagem: (
     <>

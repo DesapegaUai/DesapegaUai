@@ -20,7 +20,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 - `npm test`: testes automáticos. Rode `npm run banco` antes.
 - Login de teste: `POST /api/auth/teste` com `{ "usuario_id": 1 }` (1 Diego, 2 Larissa, 3 Usuário Teste). Os pedidos seguintes já vão com o cookie do login.
 - Pedidos prontos: `test/api.http` (extensão REST Client do VS Code) e a coleção do Postman em `test/DesapegaUai - API (Rhayane)/` (ou o arquivo `.postman_collection.json`, para importar direto no Postman).
-- Documentação completa, com as 72 rotas e um botão para testar cada uma: <http://localhost:3333/api/docs> (Swagger).
+- Documentação completa, com todas as rotas e um botão para testar cada uma: <http://localhost:3333/api/docs> (Swagger).
 
 ## Rotas
 
@@ -61,6 +61,8 @@ As rotas principais e quem fez cada uma. A lista completa está no Swagger (`/ap
 | `PATCH /api/conversas/:id/mensagens/:mensagemId` (editar até 15 min) | quem enviou | Rhayane |
 | `DELETE /api/conversas/:id/mensagens/:mensagemId?para=mim` ou `para=todos` (até 2 dias) | participante; para todos, só quem enviou | Rhayane |
 | `POST /api/conversas/:id/fotos` | participante | Rhayane |
+| `POST /api/conversas/:id/audios` (áudio de até 2 min, convertido para M4A, com as ondas) | participante | Rhayane |
+| `GET /api/conversas/:id/audios/:arquivo` | participante | Rhayane |
 | `GET /api/conversas/:id/fotos/:arquivo` | participante | Rhayane |
 | `GET /api/conversas/:id/denuncia` | participante | Rhayane |
 | `POST /api/conversas/:id/denuncia` | participante | Rhayane |

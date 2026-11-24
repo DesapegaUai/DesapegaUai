@@ -2,7 +2,9 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useSta
 import Icone from './IconeMarketplace.jsx';
 import SeletorEmoji from './SeletorEmoji.jsx';
 import CameraFoto from './CameraFoto.jsx';
+import GravadorAudio from './GravadorAudio.jsx';
 import MenuRapido from './MenuRapido.jsx';
+import { podeGravarAudio } from '../services/audio.js';
 import { ANEXOS, PONTOS_DE_ENCONTRO, RESPOSTAS_RAPIDAS } from '../services/conversas.js';
 import { prepararEmojis } from '../services/emojis.js';
 import { formatarPreco, formatarTamanho } from '../services/formatar.js';
@@ -20,10 +22,12 @@ let proximoId = 1;
  * - Câmera: tira uma foto na hora e ela entra nos anexos (mesmos limites).
  *   Computador: janela com a webcam ao vivo · celular/tablet: câmera do próprio aparelho.
  * - Emoji: painel com 4 grupos; insere onde o cursor está.
+ * - Microfone (ao lado do emoji): grava um áudio de até 2 minutos; dá para ouvir antes de mandar.
  * - Enter envia · Shift+Enter quebra linha.
  */
 // edicao: { texto, temFoto } quando a pessoa está editando uma mensagem já enviada (os anexos somem)
-export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco = null, podeOfertar = false, edicao = null, onCancelarEdicao }) {
+// onEnviarAudio(gravacao): manda o áudio gravado; devolve false se não foi
+export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, onDigitar, preco = null, podeOfertar = false, edicao = null, onCancelarEdicao }) {
   const [texto, setTexto] = useState(edicao?.texto ?? '');
   const [anexos, setAnexos] = useState([]);
   const [erro, setErro] = useState('');
@@ -34,6 +38,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
   const [rapidasAbertas, setRapidasAbertas] = useState(false); // respostas rápidas escondidas atrás de um botão
   const [maisAberto, setMaisAberto] = useState(false); // menu do "+": foto ou vídeo e câmera
   const maisRef = useRef(null);
+  const [temMicrofone] = useState(podeGravarAudio); // HTTPS, microfone e gravador no navegador
+  const [gravador, setGravador] = useState(null); // { contexto } enquanto grava ou mostra o áudio gravado
 
   // o menu do "+" fecha tocando fora dele ou com Esc
   useEffect(() => {
@@ -288,6 +294,40 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
     if (devolverFoco === true) botaoEmojiRef.current?.focus();
   }, []);
 
+  // Microfone: o AudioContext nasce aqui, no toque, porque o iPhone só deixa medir o volume assim
+  const contextoRef = useRef(null);
+  function abrirGravador() {
+    setEmojiAberto(false);
+    setMaisAberto(false);
+    setErro('');
+    let contexto;
+    try {
+      const Contexto = window.AudioContext || window.webkitAudioContext;
+      contexto = Contexto ? new Contexto() : null;
+    } catch {
+      contexto = null; // sem ele a gravação funciona igual; só as ondas ao vivo ficam retas
+    }
+    contextoRef.current = contexto;
+    setGravador({ contexto });
+  }
+
+  const fecharGravador = useCallback(() => {
+    contextoRef.current?.close().catch(() => {});
+    contextoRef.current = null;
+    setGravador(null);
+    // no computador o cursor volta para o campo; no celular, não (abriria o teclado sem a pessoa pedir)
+    if (!window.matchMedia('(pointer: coarse)').matches) requestAnimationFrame(() => campoRef.current?.focus());
+  }, []);
+
+  // fechou a conversa no meio da gravação: o áudio do navegador também fecha
+  useEffect(() => () => { contextoRef.current?.close().catch(() => {}); }, []);
+
+  async function enviarAudio(gravacao) {
+    const foi = await onEnviarAudio(gravacao);
+    if (foi !== false) fecharGravador();
+    return foi;
+  }
+
   return (
     <div className="composer" ref={raizRef}>
       {soltando && (
@@ -376,6 +416,10 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
       )}
 
       <div className="linha-envio">
+        {gravador ? (
+          <GravadorAudio contexto={gravador.contexto} onEnviar={enviarAudio} onFechar={fecharGravador} onErro={setErro} />
+        ) : (
+        <>
         {!edicao && (
         <div className="mais-anexos" ref={maisRef}>
         {/* "+" como no iPhone: abre foto ou vídeo e câmera */}
@@ -438,6 +482,12 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
             onKeyDown={aoTeclar}
             enterKeyHint="send"
           />
+          {/* microfone ao lado do emoji (opção B da prévia): toca para gravar um áudio */}
+          {!edicao && temMicrofone && onEnviarAudio && (
+            <button type="button" className="btn-emoji btn-microfone" aria-label="Gravar áudio" title="Gravar áudio (até 2 minutos)" onClick={abrirGravador}>
+              <Icone nome="microfone" tamanho={22} cor="#3E8B22" espessura={1.7} />
+            </button>
+          )}
           <button
             type="button"
             ref={botaoEmojiRef}
@@ -469,6 +519,8 @@ export default function CaixaMensagem({ onEnviar, nomeContato, onDigitar, preco 
             {edicao ? <Icone nome="check" tamanho={18} cor="#fff" espessura={2.4} /> : <Icone nome="seta-link" tamanho={18} cor="#fff" espessura={2.4} className="seta-para-cima" />}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
