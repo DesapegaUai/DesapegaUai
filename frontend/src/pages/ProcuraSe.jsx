@@ -4,7 +4,7 @@ import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import SeloVinculo from '../components/SeloVinculo.jsx';
 import Toast from '../components/Toast.jsx';
-import { formatarPreco } from '../services/formatar.js';
+import { formatarPreco, textoParaPreco } from '../services/formatar.js';
 import { bairrosDaCidade, listarCidades, nomeDoBairro } from '../services/locais.js';
 import { useLocalizacao } from '../services/localizacao.js';
 import { excluirProcura, listarProcuras, obterCategorias, publicarProcura } from '../services/mercadoApi.js';
@@ -13,7 +13,6 @@ import '../styles/marketplace-cadastro.css';
 import '../styles/marketplace-procura.css';
 
 const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
-const textoParaPreco = (texto) => Number(String(texto).replace(/\./g, '').replace(',', '.')) || 0;
 
 /**
  * Procura-se: quem quer comprar diz o que precisa, o bairro e até quanto paga.

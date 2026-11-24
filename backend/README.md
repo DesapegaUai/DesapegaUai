@@ -19,12 +19,14 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 - `npm test`: testes automáticos. Rode `npm run banco` antes.
 - Login de teste: `POST /api/auth/teste` com `{ "usuario_id": 1 }` (1 Diego, 2 Larissa, 3 Usuário Teste). Os pedidos seguintes já vão com o cookie do login.
-- Pedidos prontos: `test/api.http` (extensão REST Client do VS Code) e a coleção do Postman em `test/DesapegaUai - API (Rhayane)/`.
-- Rota que ainda responde `501 Ainda não implementado.` é rota que falta fazer.
+- Pedidos prontos: `test/api.http` (extensão REST Client do VS Code) e a coleção do Postman em `test/DesapegaUai - API (Rhayane)/` (ou o arquivo `.postman_collection.json`, para importar direto no Postman).
+- Documentação completa, com as 72 rotas e um botão para testar cada uma: <http://localhost:3333/api/docs> (Swagger).
 
 ## Rotas
 
-| Rota | Login | Quem faz |
+As rotas principais e quem fez cada uma. A lista completa está no Swagger (`/api/docs`).
+
+| Rota | Login | Quem fez |
 | --- | --- | --- |
 | `GET /api/saude` | não | pronta |
 | `POST /api/auth/google` | não | Rhayane |

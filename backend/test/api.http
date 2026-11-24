@@ -60,7 +60,7 @@ Content-Type: application/json
 
 { "telefone": "31999990001", "bio": "Saio de Viçosa em 3 semanas e preciso esvaziar o apartamento." }
 
-### rota da Marina ainda não feita (501)
+### meus anúncios
 GET {{api}}/meus-anuncios
 
 ### logout (204)

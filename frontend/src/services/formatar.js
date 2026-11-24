@@ -15,6 +15,18 @@ export function formatarPreco(valor, unidade) {
   return unidade ? `${texto} / ${unidade}` : texto;
 }
 
+/**
+ * Preço digitado para número (0 quando não dá para ler): "1.500,00" → 1500 · "99,90" → 99.9.
+ * Um ponto só, seguido de 1 ou 2 dígitos e sem vírgula, é a casa dos centavos: o teclado do celular
+ * em inglês só tem ponto, e "99.90" virava R$ 9.990. Com 3 dígitos depois ("1.500") continua sendo milhar.
+ */
+export function textoParaPreco(texto) {
+  let t = String(texto ?? '').trim();
+  if (!t.includes(',') && /^\d+\.\d{1,2}$/.test(t)) t = t.replace('.', ',');
+  const numero = Number(t.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero * 100) / 100 : 0;
+}
+
 /** 2_400_000 → "2,4 MB" · 320_000 → "313 KB" */
 export function formatarTamanho(bytes) {
   if (bytes < 1024) return `${bytes} B`;

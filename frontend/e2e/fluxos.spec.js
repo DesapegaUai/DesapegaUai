@@ -241,6 +241,54 @@ test.describe('Vendedor publicando pelo site', () => {
   })
 })
 
+test.describe('Vendedor editando um anúncio com foto', () => {
+  // o seed não tem fotos: sem este teste, a tela de edição abria sem a foto e o salvar
+  // pedia DELETE /fotos/undefined ("O id da foto precisa ser um número inteiro positivo.")
+  test('a foto aparece, salvar não dá erro e trocar a única foto funciona', async ({ page }) => {
+    const erros = vigiarErros(page)
+    await semMapaDaInternet(page)
+    await entrarComo(page, 3)
+    const { id, fotos: [original] } = await criarAnuncioPelaApi(page, { titulo: `Luminária do teste E2E ${Date.now()}`, transporte: 'mochila' })
+    const fotoDaCapa = page.getByRole('button', { name: 'Foto de capa' }).locator('img')
+    const carregou = () => fotoDaCapa.evaluate((img) => img.complete && img.naturalWidth > 0)
+
+    // 1) a foto que o anúncio já tem aparece; mudar só o título salva sem erro e não mexe na foto
+    await page.goto(`/anuncios/${id}/editar`)
+    await expect(page.getByRole('heading', { name: 'Editar anúncio' })).toBeVisible()
+    await expect.poll(carregou).toBe(true)
+    await page.getByLabel('Título do anúncio').fill('Luminária de mesa revisada')
+    // teclado do celular em inglês só tem ponto: "99.90" é R$ 99,90 (antes virava R$ 9.990)
+    await page.getByLabel('Preço').fill('99.90')
+    await expect(page.locator('.cad-pvpreco')).toHaveText('R$ 99,90')
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page).toHaveURL(/\/meus-anuncios\?aba=ativos/)
+    await expect(page.getByText('Alterações salvas')).toBeVisible()
+    // o aviso aparece uma vez só: recarregar a página não mostra de novo (o aviso e o título nascem juntos)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Meus anúncios' })).toBeVisible()
+    expect(await page.getByText('Alterações salvas').count()).toBe(0)
+    let salvo = await (await page.request.get(`/api/anuncios/${id}`)).json()
+    expect(salvo.titulo).toBe('Luminária de mesa revisada')
+    expect(Number(salvo.preco)).toBe(99.9)
+    expect(salvo.fotos.map((f) => f.id)).toEqual([original.id])
+
+    // 2) troca a única foto: a nova chega antes de a antiga sair (a API não deixa o anúncio sem foto)
+    await page.goto(`/anuncios/${id}/editar`)
+    await expect.poll(carregou).toBe(true)
+    await page.locator('input[type="file"]').first().setInputFiles({ name: 'nova.png', mimeType: 'image/png', buffer: FOTO_PNG })
+    await page.getByRole('button', { name: 'Usar a foto 2 como capa' }).click()
+    await page.getByRole('button', { name: 'Remover a foto 2' }).click()
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
+    await expect(page).toHaveURL(/\/meus-anuncios\?aba=ativos/)
+    salvo = await (await page.request.get(`/api/anuncios/${id}`)).json()
+    expect(salvo.fotos).toHaveLength(1)
+    expect(salvo.fotos[0].id).not.toBe(original.id)
+
+    await page.request.delete(`/api/anuncios/${id}`)
+    expect(erros).toEqual([])
+  })
+})
+
 test.describe('Diferenciais', () => {
   test('Procura-se: o pedido aparece na página e o anúncio compatível avisa quem procura', async ({ browser }) => {
     const doComprador = await browser.newContext()

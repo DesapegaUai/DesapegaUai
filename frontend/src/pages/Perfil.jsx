@@ -5,6 +5,7 @@ import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
 import AjustarFoto from '../components/AjustarFoto.jsx';
+import useAvisoDaNavegacao from '../hooks/useAvisoDaNavegacao.js';
 import useSair from '../hooks/useSair.js';
 import { listarConversas, listarMeusAnuncios } from '../services/mercadoApi.js';
 import { estaVisivel } from '../services/meusAnuncios.js';
@@ -26,14 +27,14 @@ import PreferenciasAvisos from '../components/PreferenciasAvisos.jsx';
  * Celular: layout enxuto (revisão 26/10) + menu inferior.
  */
 export default function Perfil() {
-  const { hash, state } = useLocation();
+  const { hash } = useLocation();
   const perfil = usePerfil();
   const [anuncios, setAnuncios] = useState(null); // null = ainda carregando
   const [totalConversas, setTotalConversas] = useState(null);
   const carregarAnuncios = useCallback(() => listarMeusAnuncios().then(setAnuncios).catch(() => {}), []);
   useEffect(() => { carregarAnuncios(); }, [carregarAnuncios]);
   const sair = useSair();
-  const [toast, setToast] = useState(() => state?.aviso ?? null);
+  const [toast, setToast] = useAvisoDaNavegacao();
   const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(true);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoMenuAberto, setFotoMenuAberto] = useState(false);
@@ -67,7 +68,7 @@ export default function Perfil() {
       if (ativo) setToast({ tipo: 'erro', titulo: 'Não foi possível carregar o perfil', texto: erro.message, chave: Date.now() });
     });
     return () => { ativo = false; };
-  }, []);
+  }, [setToast]);
 
   // Último acesso e números do painel em tempo real (conexão única do site).
   // O servidor só avisa que algo mudou; os números vêm sempre da API.
@@ -114,7 +115,7 @@ export default function Perfil() {
         if (ativo) setCarregandoAvaliacoes(false);
       });
     return () => { ativo = false; };
-  }, []);
+  }, [setToast]);
 
   useEffect(() => {
     if (!fotoMenuAberto) return undefined;

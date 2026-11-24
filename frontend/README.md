@@ -11,7 +11,6 @@ A API precisa estar rodando junto (veja o [README da raiz](../README.md)). Em de
 | `src/pages/` | Uma tela por arquivo (`Home.jsx`, `Favoritos.jsx`...). Toda tela nova entra nas rotas do `src/App.jsx`. |
 | `src/components/` | Partes que se repetem entre as telas: cabeçalho, rodapé, card de anúncio, botões. |
 | `src/services/api.js` | Chamadas para o back-end: `api.get('/rota')`, `api.post('/rota', dados)`. |
-| `src/contexts/` | Estado compartilhado entre as telas (ex.: usuário logado). |
 | `src/hooks/` | Hooks próprios (`useAlgumaCoisa.js`). |
 | `src/styles/global.css` | CSS global e as cores da marca em variáveis (`var(--cor-principal)`). |
 | `src/assets/` | Imagens e ícones usados no código. |
@@ -25,6 +24,9 @@ A API precisa estar rodando junto (veja o [README da raiz](../README.md)). Em de
 | `npm run build` | Gera a versão final na pasta `dist/` |
 | `npm run preview` | Abre a versão final gerada pelo build |
 | `npm run lint` | Procura erros no código |
+| `npm run e2e` | Testes no navegador (Chrome), com API e banco próprios (`desapegauai_conferencia`) |
+| `npm run e2e:todos` | O `npm run e2e` e mais o teste de acessibilidade e compatibilidade no Edge, em tela de celular e em tela de tablet |
+| `npm run celular` | Abre o site para o celular na mesma rede Wi-Fi |
 
 ## Combinados
 
