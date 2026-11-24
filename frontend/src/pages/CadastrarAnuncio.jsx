@@ -5,6 +5,7 @@ import Icone from '../components/IconeMarketplace.jsx';
 import MapaAnuncios from '../components/MapaAnuncios.jsx';
 import Toast from '../components/Toast.jsx';
 import { CATEGORIAS } from '../services/categorias.js';
+import { urlDaApi } from '../services/api.js';
 import { erroDaFoto } from '../services/fotosAnuncio.js';
 import { formatarPreco } from '../services/formatar.js';
 import { bairrosDaCidade, buscarRuas, enderecoDoPonto, listarCidades, localDoCep, nomeDoBairro } from '../services/locais.js';
@@ -50,7 +51,9 @@ function formularioDaApi(a) {
     ponto: local?.exata && local.origem !== 'bairro' ? { latitude: local.exata.latitude, longitude: local.exata.longitude } : null,
     origem: local?.origem ?? 'bairro',
     precisao: local?.exata?.precisao_m ?? null,
-    fotos: (a.fotos ?? []).map((f) => ({ id: f.id, url: f.grande ?? f.media ?? f.pequena })),
+    // verAnuncio troca `fotos` por uma lista de endereços (para a página do anúncio);
+    // aqui precisa do id de cada foto, que fica em `fotosApi`
+    fotos: (a.fotosApi ?? []).map((f) => ({ id: f.id, url: urlDaApi(f.grande ?? f.media ?? f.pequena) })),
   };
 }
 
@@ -106,7 +109,8 @@ function Formulario({ existente }) {
   const [ruas, setRuas] = useState([]);
   const [localizando, setLocalizando] = useState(false);
   const [esperandoPermissao, setEsperandoPermissao] = useState(false);
-  const fotosOriginais = useRef(existente?.fotos?.map((f) => f.id) ?? []);
+  // as fotos que o anúncio já tinha ao abrir (o form do primeiro render): ao salvar, sai do servidor só a que a pessoa tirou
+  const fotosOriginais = useRef(form.fotos.filter((f) => f.id).map((f) => f.id));
   const arquivoRef = useRef(null);
   const editandoPublicado = existente && existente.status !== 'rascunho';
   const tituloDaTela = editandoPublicado ? 'Editar anúncio' : existente ? 'Continuar rascunho' : 'Cadastrar anúncio';
@@ -311,15 +315,27 @@ function Formulario({ existente }) {
     for (const c of ['latitude', 'longitude', 'origem_localizacao', 'precisao_m']) if (dados[c] === '') delete dados[c];
     await editarAnuncio(id, dados);
 
-    // fotos: tira as removidas, envia as novas e ajusta a capa
+    // fotos: tira as removidas, envia as novas e ajusta a capa.
+    // A API mantém o anúncio publicado com 1 a 8 fotos: tirar antes abre vaga para as novas,
+    // mas, se todas as antigas saem (trocar a única foto), a última só sai depois que chega uma nova.
     const mantidas = form.fotos.filter((f) => f.id).map((f) => f.id);
-    for (const fotoId of fotosOriginais.current.filter((fid) => !mantidas.includes(fid))) await removerFoto(id, fotoId);
+    const removidas = fotosOriginais.current.filter((fid) => !mantidas.includes(fid));
     const novas = form.fotos.filter((f) => f.arquivo);
+    const tirarDepois = !mantidas.length && novas.length ? removidas.pop() : null;
     let atual = null;
-    if (novas.length) {
+    async function enviar(lista) {
+      if (!lista.length) return;
       const formulario = new FormData();
-      for (const foto of novas) formulario.append('fotos', foto.arquivo, foto.arquivo.name);
+      for (const foto of lista) formulario.append('fotos', foto.arquivo, foto.arquivo.name);
       atual = await adicionarFotos(id, formulario);
+    }
+    for (const fotoId of removidas) atual = await removerFoto(id, fotoId);
+    if (tirarDepois) {
+      await enviar(novas.slice(0, LIMITES.fotos - 1));
+      atual = await removerFoto(id, tirarDepois);
+      await enviar(novas.slice(LIMITES.fotos - 1));
+    } else {
+      await enviar(novas);
     }
     const capa = form.fotos[0];
     if (capa) {
