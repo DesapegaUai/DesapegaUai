@@ -5,6 +5,17 @@ import { alturaDaBarra, duracaoEmTexto, niveisDasOndas } from '../services/audio
 const VELOCIDADES = [1, 1.5, 2];
 let tocandoAgora = null; // só um áudio toca por vez: dar play num pausa o que estava tocando
 
+// a velocidade escolhida vale para os próximos áudios também, como no WhatsApp (guardada neste navegador)
+const CHAVE_DA_VELOCIDADE = 'desapegauai:velocidade-do-audio';
+function velocidadeGuardada() {
+  try {
+    const salva = Number(localStorage.getItem(CHAVE_DA_VELOCIDADE));
+    return VELOCIDADES.includes(salva) ? salva : 1;
+  } catch {
+    return 1;
+  }
+}
+
 /**
  * As ondas do áudio, como no WhatsApp: cada barrinha é o volume de um pedaço (fala sobe, silêncio fica
  * reto) e as que já tocaram ficam coloridas. Com onBuscar, tocar nas ondas (ou as setas do teclado)
@@ -49,12 +60,19 @@ export function OndasDoAudio({ niveis, parte, total, atual, onBuscar, classe = '
   );
 }
 
-/** Áudio no balão da conversa: tocar/pausar, as ondas, o tempo e a velocidade (1x, 1,5x, 2x). */
-export default function AudioDoChat({ url, segundos, ondas }) {
+/**
+ * Áudio no balão da conversa: tocar/pausar, as ondas e o tempo. Como no WhatsApp, do lado direito fica a foto de
+ * quem mandou (com o microfone); ao dar o play, a foto vira o botão de velocidade (1x, 1,5x, 2x). Pausado no
+ * meio, a velocidade continua ali (mesmo rolando a conversa) até ouvir tudo; quando o áudio acaba, ou a página
+ * recarrega, a foto volta.
+ * foto e iniciais: de quem mandou o áudio (sem foto, as iniciais).
+ */
+export default function AudioDoChat({ url, segundos, ondas, foto, iniciais }) {
   const audioRef = useRef(null);
   const [tocando, setTocando] = useState(false);
+  const [iniciado, setIniciado] = useState(false); // já deu play e ainda não ouviu até o fim
   const [atual, setAtual] = useState(0);
-  const [velocidade, setVelocidade] = useState(1);
+  const [velocidade, setVelocidade] = useState(velocidadeGuardada);
   const [falhou, setFalhou] = useState(false);
   const niveis = useMemo(() => niveisDasOndas(ondas), [ondas]);
   const total = Number(segundos) || 0;
@@ -105,6 +123,7 @@ export default function AudioDoChat({ url, segundos, ondas }) {
     const nova = VELOCIDADES[(VELOCIDADES.indexOf(velocidade) + 1) % VELOCIDADES.length];
     setVelocidade(nova);
     if (audioRef.current) audioRef.current.playbackRate = nova;
+    try { localStorage.setItem(CHAVE_DA_VELOCIDADE, String(nova)); } catch { /* sem localStorage: vale só para este áudio */ }
   }
 
   const textoDaVelocidade = `${String(velocidade).replace('.', ',')}x`;
@@ -115,9 +134,9 @@ export default function AudioDoChat({ url, segundos, ondas }) {
         ref={audioRef}
         src={url}
         preload="metadata"
-        onPlay={() => setTocando(true)}
+        onPlay={() => { setTocando(true); setIniciado(true); }}
         onPause={() => { setTocando(false); setAtual(audioRef.current?.currentTime ?? 0); }}
-        onEnded={() => { setTocando(false); setAtual(0); }}
+        onEnded={() => { setTocando(false); setIniciado(false); setAtual(0); }}
         onError={() => setFalhou(true)}
       />
       <button type="button" className="audio-tocar" onClick={alternar} disabled={falhou}
@@ -125,9 +144,19 @@ export default function AudioDoChat({ url, segundos, ondas }) {
         <Icone nome={tocando ? 'pausar' : 'tocar'} tamanho={18} cor="currentColor" preenchimento="currentColor" espessura={1.2} />
       </button>
       <OndasDoAudio niveis={niveis} parte={total ? atual / total : 0} total={total} atual={atual} onBuscar={buscar} />
-      <button type="button" className="audio-velocidade" onClick={trocarVelocidade} aria-label={`Velocidade ${textoDaVelocidade}. Tocar para trocar`}>
-        {textoDaVelocidade}
-      </button>
+      {/* o mesmo lugar para a foto e para a velocidade: trocar um pelo outro não mexe no balão */}
+      <span className="audio-lado">
+        {iniciado ? (
+          <button type="button" className="audio-velocidade" onClick={trocarVelocidade} aria-label={`Velocidade ${textoDaVelocidade}. Tocar para trocar`}>
+            {textoDaVelocidade}
+          </button>
+        ) : (
+          <span className="audio-foto" aria-hidden="true">
+            {foto ? <img src={foto} alt="" referrerPolicy="no-referrer" /> : iniciais}
+            <span className="audio-foto-mic"><Icone nome="microfone" tamanho={11} cor="currentColor" espessura={2.4} /></span>
+          </span>
+        )}
+      </span>
       <span className="audio-tempo" aria-hidden="true">{falhou ? 'Áudio indisponível' : duracaoEmTexto(tocando || atual > 0 ? atual : total)}</span>
     </div>
   );

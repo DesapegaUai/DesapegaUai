@@ -728,7 +728,15 @@ export default function Conversas() {
                           <VideoDoChat url={m.video.url} />
                         </div>
                       )}
-                      {m.audio && <AudioDoChat url={m.audio.url} segundos={m.audio.segundos} ondas={m.audio.ondas} />}
+                      {m.audio && (
+                        <AudioDoChat
+                          url={m.audio.url}
+                          segundos={m.audio.segundos}
+                          ondas={m.audio.ondas}
+                          foto={m.autor === 'eu' ? urlDaApi(usuario?.foto_url) : selecionada.foto}
+                          iniciais={m.autor === 'eu' ? iniciais(usuario?.nome ?? '') : selecionada.iniciais}
+                        />
+                      )}
                       {m.texto && <p>{m.texto}</p>}
                       <div className="meta">
                         {m.editada && <span className="editada">editada</span>}

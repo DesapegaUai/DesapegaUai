@@ -62,6 +62,10 @@ test.describe('Áudio no chat', () => {
     // a lista de conversas mostra que chegou um áudio (no celular a lista fica escondida com a conversa aberta)
     await expect(vendedor.locator('.item-msg').filter({ hasText: /🎤 Áudio \(0:0\d\)/ })).not.toHaveCount(0)
 
+    // antes de tocar, como no WhatsApp: a foto de quem mandou, e ainda não tem o botão de velocidade
+    await expect(recebida.locator('.audio-foto')).toBeVisible()
+    await expect(recebida.getByRole('button', { name: /^Velocidade/ })).toHaveCount(0)
+
     // ouvir: o botão vira "Pausar", o som anda e a velocidade troca para 1,5x
     await recebida.getByRole('button', { name: /^Tocar o áudio/ }).click()
     await expect(recebida.getByRole('button', { name: 'Pausar o áudio' })).toBeVisible()
@@ -100,10 +104,46 @@ test.describe('Áudio no chat', () => {
 
     await compradora.goto('/conversas/1')
     const recebida = compradora.locator('.linha-msg:not(.eu) .bolha.com-audio').last()
-    await expect(recebida.getByRole('button', { name: 'Tocar o áudio de 0:03' })).toBeVisible()
-    await recebida.getByRole('button', { name: 'Tocar o áudio de 0:03' }).click()
+    const tocar = recebida.getByRole('button', { name: 'Tocar o áudio de 0:03' })
+    const foto = recebida.locator('.audio-foto')
+    const velocidade = recebida.getByRole('button', { name: /^Velocidade/ })
+    await expect(tocar).toBeVisible()
+    // como no WhatsApp: antes de tocar aparece a foto de quem mandou, sem o botão de velocidade
+    await expect(foto).toBeVisible()
+    await expect(velocidade).toHaveCount(0)
+
+    // tocando: a foto vira a velocidade
+    await tocar.click()
     await expect.poll(() => recebida.locator('audio').evaluate((a) => a.currentTime), { timeout: 15_000 }).toBeGreaterThan(0.2)
     await expect(recebida.locator('.audio-ondas i.ouvida').first()).toBeVisible() // as barrinhas já tocadas ficam coloridas
+    await expect(velocidade).toHaveText('1x')
+    await expect(foto).toHaveCount(0)
+
+    // pausado no meio: a velocidade continua, mesmo subindo e descendo a conversa, até ouvir tudo
+    await recebida.getByRole('button', { name: 'Pausar o áudio' }).click()
+    await expect(velocidade).toBeVisible()
+    await compradora.locator('.msgs').evaluate((m) => { m.scrollTop = 0 })
+    await compradora.locator('.msgs').evaluate((m) => { m.scrollTop = m.scrollHeight })
+    await expect(velocidade).toBeVisible()
+    await expect(foto).toHaveCount(0)
+
+    // ouviu até o fim (em 2x): a foto volta no lugar da velocidade
+    await velocidade.click()
+    await velocidade.click()
+    await expect(velocidade).toHaveText('2x')
+    await recebida.getByRole('button', { name: /^Tocar o áudio/ }).click()
+    await expect(foto).toBeVisible({ timeout: 15_000 })
+    await expect(velocidade).toHaveCount(0)
+    await expect(tocar).toBeVisible()
+
+    // recarregou a página: continua a foto; a velocidade escolhida (2x) vale para o próximo play, como no WhatsApp
+    await compradora.reload()
+    await expect(foto).toBeVisible()
+    await expect(velocidade).toHaveCount(0)
+    await tocar.click()
+    await expect(velocidade).toHaveText('2x')
+    expect(await recebida.locator('audio').evaluate((a) => a.playbackRate)).toBe(2)
+    await recebida.getByRole('button', { name: 'Pausar o áudio' }).click()
 
     await vendedor.request.delete(`/api/conversas/1/mensagens/${mensagem.id}?para=todos`)
     expect(erros).toEqual([])
