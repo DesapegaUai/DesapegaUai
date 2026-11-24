@@ -287,6 +287,65 @@ test.describe('Vendedor editando um anúncio com foto', () => {
     await page.request.delete(`/api/anuncios/${id}`)
     expect(erros).toEqual([])
   })
+
+  test('Cancelar na edição: sem mudança volta direto; com mudança pergunta antes e não salva nada', async ({ page }) => {
+    const erros = vigiarErros(page)
+    await semMapaDaInternet(page)
+    await entrarComo(page, 3)
+    const titulo = `Abajur do teste E2E ${Date.now()}`
+    const { id } = await criarAnuncioPelaApi(page, { titulo, transporte: 'mochila' })
+    const tituloDoAnuncio = page.locator('.det-resumo h1')
+    const aviso = page.getByRole('alertdialog', { name: 'Descartar as alterações?' })
+
+    // 1) sem mudar nada: Cancelar volta direto para o anúncio, de onde a pessoa veio
+    await page.goto(`/anuncio/${id}`)
+    await page.getByRole('link', { name: 'Editar anúncio' }).click()
+    await expect(page.getByRole('heading', { name: 'Editar anúncio' })).toBeVisible()
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(page).toHaveURL(new RegExp(`/anuncio/${id}$`))
+    await expect(tituloDoAnuncio).toHaveText(titulo)
+
+    // 2) mudou o título: o site pergunta antes; "Continuar editando" e o Esc mantêm o que foi digitado
+    await page.getByRole('link', { name: 'Editar anúncio' }).click()
+    await page.getByLabel('Título do anúncio').fill('Título que não vai ser salvo')
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(aviso).toBeVisible()
+    await expect(aviso).toContainText(titulo)
+    await aviso.getByRole('button', { name: 'Continuar editando' }).click()
+    await expect(aviso).toHaveCount(0)
+    await expect(page.getByLabel('Título do anúncio')).toHaveValue('Título que não vai ser salvo')
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(aviso).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(aviso).toHaveCount(0)
+    await expect(page).toHaveURL(/\/editar$/)
+
+    // 3) "Descartar alterações": volta para o anúncio, que continua com o título de antes
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+    await aviso.getByRole('button', { name: 'Descartar alterações' }).click()
+    await expect(page).toHaveURL(new RegExp(`/anuncio/${id}$`))
+    await expect(tituloDoAnuncio).toHaveText(titulo)
+    expect((await (await page.request.get(`/api/anuncios/${id}`)).json()).titulo).toBe(titulo)
+
+    // 4) edição aberta direto pelo endereço (sem tela anterior no site): Cancelar vai para Meus anúncios
+    await page.goto(`/anuncios/${id}/editar`)
+    await expect(page.getByRole('heading', { name: 'Editar anúncio' })).toBeVisible()
+    await page.getByRole('button', { name: 'Cancelar' }).click()
+    await expect(page).toHaveURL(/\/meus-anuncios$/)
+
+    // 5) o Cancelar é só da edição de anúncio publicado: não aparece no cadastro nem no rascunho
+    await page.goto('/anunciar')
+    await expect(page.getByRole('heading', { name: 'Cadastrar anúncio' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toHaveCount(0)
+    const rascunho = await criarAnuncioPelaApi(page, { titulo: `Rascunho do teste E2E ${Date.now()}`, status: 'rascunho' })
+    await page.goto(`/anuncios/${rascunho.id}/editar`)
+    await expect(page.getByRole('heading', { name: 'Continuar rascunho' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Cancelar' })).toHaveCount(0)
+
+    await page.request.delete(`/api/anuncios/${rascunho.id}`)
+    await page.request.delete(`/api/anuncios/${id}`)
+    expect(erros).toEqual([])
+  })
 })
 
 test.describe('Diferenciais', () => {

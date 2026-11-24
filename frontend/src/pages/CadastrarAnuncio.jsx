@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams } from 'react-router';
 import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import MapaAnuncios from '../components/MapaAnuncios.jsx';
 import Toast from '../components/Toast.jsx';
+import useGaveta from '../hooks/useGaveta.js';
 import { CATEGORIAS } from '../services/categorias.js';
 import { urlDaApi } from '../services/api.js';
 import { erroDaFoto } from '../services/fotosAnuncio.js';
@@ -16,9 +18,10 @@ import {
 import { PONTOS_DE_ENCONTRO } from '../services/conversas.js';
 import { pedirAvisosDeMensagem } from '../services/push.js';
 import { CONDICOES, ENTREGAS, LIMITES, TRANSPORTES, validarAnuncio } from '../services/meusAnuncios.js';
+import '../styles/marketplace-acoes.css';
 import '../styles/marketplace-cadastro.css';
 
-const DICAS = ['Use fotos reais e bem iluminadas', 'Descreva o produto com detalhes', 'Informe medidas e condições', 'Responda rápido às mensagens'];
+const DICAS =['Use fotos reais e bem iluminadas', 'Descreva o produto com detalhes', 'Informe medidas e condições', 'Responda rápido às mensagens'];
 const ORDEM_DOS_ERROS = ['fotos', 'titulo', 'categoria', 'condicao', 'preco', 'cidade', 'bairro', 'entrega', 'transporte'];
 // campo da API -> campo da tela
 const CAMPO_DA_API = { titulo: 'titulo', categoria_id: 'categoria', condicao: 'condicao', preco: 'preco', bairro_id: 'bairro', forma_entrega: 'entrega', transporte: 'transporte', fotos: 'fotos', latitude: 'local', cep: 'cep', rua: 'rua' };
@@ -95,6 +98,33 @@ function Selecao({ id, valor, onMudar, opcoes, vazio, erro, desativado }) {
   );
 }
 
+// Cancelar a edição com mudanças que não foram salvas: pergunta antes (o mesmo aviso do "Excluir anúncio").
+// Esc, tocar fora e "Continuar editando" fecham o aviso e mantêm o que a pessoa digitou.
+function ConfirmarDescarte({ titulo, onContinuar, onDescartar }) {
+  const continuarRef = useRef(null);
+  useGaveta(true, onContinuar, continuarRef);
+  return createPortal(
+    <div className="telas-marketplace">
+      <div className="acoes-fundo" onMouseDown={(e) => { if (e.target === e.currentTarget) onContinuar(); }}>
+        <div className="acoes-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="descartar-titulo" aria-describedby="descartar-texto">
+          <h2 id="descartar-titulo">Descartar as alterações?</h2>
+          <p id="descartar-texto">
+            Você mudou o anúncio <b>{titulo}</b>. Se sair agora, as mudanças não são salvas e o anúncio continua como estava.
+          </p>
+          <div className="acoes-botoes">
+            <button type="button" className="acoes-btn" onClick={onContinuar} ref={continuarRef}>Continuar editando</button>
+            <button type="button" className="acoes-btn perigo" onClick={onDescartar}>Descartar alterações</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// o formulário resumido para comparar: as fotos contam pelo id (as do anúncio) ou pela prévia (as novas)
+const assinaturaDoFormulario = (f) => JSON.stringify({ ...f, fotos: f.fotos.map((foto) => foto.id ?? foto.url) });
+
 function Formulario({ existente }) {
   const navegar = useNavigate();
   const [form, setForm] = useState(() => (existente ? formularioDaApi(existente) : formularioVazio()));
@@ -110,6 +140,10 @@ function Formulario({ existente }) {
   const [esperandoPermissao, setEsperandoPermissao] = useState(false);
   // as fotos que o anúncio já tinha ao abrir (o form do primeiro render): ao salvar, sai do servidor só a que a pessoa tirou
   const fotosOriginais = useRef(form.fotos.filter((f) => f.id).map((f) => f.id));
+  // o formulário como abriu: o Cancelar só pergunta antes de sair se a pessoa mudou alguma coisa
+  const formInicial = useRef(form);
+  const [descartando, setDescartando] = useState(false);
+  const continuarEditando = useCallback(() => setDescartando(false), []);
   const arquivoRef = useRef(null);
   const editandoPublicado = existente && existente.status !== 'rascunho';
   const tituloDaTela = editandoPublicado ? 'Editar anúncio' : existente ? 'Continuar rascunho' : 'Cadastrar anúncio';
@@ -367,6 +401,18 @@ function Formulario({ existente }) {
     salvar('rascunho', { tipo: 'sucesso', titulo: 'Rascunho salvo', texto: 'Continue quando quiser em Meus anúncios.' }, 'rascunhos');
   }
 
+  // Cancelar (só na edição de anúncio publicado): volta para onde a pessoa estava, o anúncio ou Meus anúncios.
+  // Aberta direto pelo endereço (sem tela anterior no site), vai para Meus anúncios.
+  function sairSemSalvar() {
+    if (window.history.state?.idx > 0) navegar(-1);
+    else navegar('/meus-anuncios');
+  }
+
+  function cancelar() {
+    if (assinaturaDoFormulario(form) !== assinaturaDoFormulario(formInicial.current)) setDescartando(true);
+    else sairSemSalvar();
+  }
+
   function publicar(e) {
     e.preventDefault();
     const encontrados = validarAnuncio({ ...form, preco });
@@ -389,6 +435,7 @@ function Formulario({ existente }) {
   return (
     <>
       <Toast aviso={toast} onFechar={() => setToast(null)} />
+      {descartando && <ConfirmarDescarte titulo={existente.titulo} onContinuar={continuarEditando} onDescartar={sairSemSalvar} />}
       <form className="cad-form" onSubmit={publicar} noValidate>
         <div className="cad-col">
           <div className="cad-cabeca">
@@ -594,6 +641,11 @@ function Formulario({ existente }) {
             <button type="submit" className="cad-btn solido" disabled={salvando}>
               <Icone nome="aviao" tamanho={20} cor="#fff" />{salvando ? 'Salvando…' : editandoPublicado ? 'Salvar alterações' : 'Publicar anúncio'}
             </button>
+            {editandoPublicado && (
+              <button type="button" className="cad-btn fantasma" onClick={cancelar} disabled={salvando}>
+                <Icone nome="fechar" tamanho={20} cor="#16281C" />Cancelar
+              </button>
+            )}
             <p className="cad-dica"><Icone nome="sino" tamanho={16} cor="#8C918B" />Ao publicar, quem ativou os avisos recebe uma notificação.</p>
           </div>
         </aside>
