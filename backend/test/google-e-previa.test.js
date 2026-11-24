@@ -97,6 +97,27 @@ test('robots.txt deixa o Google ler o site (menos a conta e a API) e aponta o si
   assert.ok(texto.includes(`Sitemap: ${BASE}/sitemap.xml`))
 })
 
+// Como o Google lê o robots.txt: vale a regra mais comprida que combina com o endereço; no empate, Allow
+function googlePodeLer(robots, caminho) {
+  const regras = robots.split('\n').map((l) => l.match(/^(Allow|Disallow): (\S+)$/)).filter(Boolean)
+  const combinam = regras.filter(([, , prefixo]) => caminho.startsWith(prefixo))
+  combinam.sort((a, b) => b[2].length - a[2].length || (a[1] === 'Allow' ? -1 : 1))
+  return combinam.length === 0 || combinam[0][1] === 'Allow'
+}
+
+test('o Google consegue montar as páginas públicas (a API delas fica aberta), mas não lê a conta de ninguém', async () => {
+  const robots = await (await fetch(`${origem}/robots.txt`)).text()
+  // o que a página inicial, as categorias, o anúncio, o mapa e o Procura-se buscam na API
+  const publicos = ['/anuncio/14', '/categoria/casa', '/api/anuncios?ordenar=recentes', '/api/anuncios/14', '/api/categorias', '/api/cidades',
+    '/api/cidades/1/bairros', '/api/localizacao/proximos?cidade_id=1', '/api/localizacao/mapa?bbox=1,2,3,4', '/api/avaliacoes/usuarios/1',
+    '/api/procuras', '/api/auth/sessao', '/api/uploads/anuncios/1/foto-800.webp']
+  for (const caminho of publicos) assert.equal(googlePodeLer(robots, caminho), true, `o Google precisa ler ${caminho}`)
+  // a conta, as conversas e as fotos de perfil das pessoas continuam fora do Google
+  const privados = ['/api/conversas', '/api/conversas/1/mensagens', '/api/perfil', '/api/favoritos', '/api/meus-anuncios', '/api/notificacoes',
+    '/api/usuarios/1', '/api/uploads/perfis/1/foto.webp', '/api/auth/teste', '/api/auth/google', '/conversas', '/perfil', '/anuncios/14/editar']
+  for (const caminho of privados) assert.equal(googlePodeLer(robots, caminho), false, `o Google não pode ler ${caminho}`)
+})
+
 test('sitemap.xml lista a página inicial, as categorias, as páginas de ajuda e os anúncios ativos', async () => {
   const r = await fetch(`${origem}/sitemap.xml`)
   assert.equal(r.status, 200)

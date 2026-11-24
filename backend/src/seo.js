@@ -140,6 +140,18 @@ export function rotasDoGoogle({ base = env.frontendUrl } = {}) {
       'User-agent: *',
       'Allow: /',
       'Allow: /api/uploads/anuncios/', // as fotos dos anúncios podem aparecer no Google Imagens
+      // O que as páginas públicas buscam na API para montar a tela. O Google abre o site como um navegador e
+      // obedece a esta lista: com /api/ todo fechado, ele via "Anúncio não encontrado" na página do anúncio
+      // (e não colocava o anúncio na pesquisa) e a página inicial sem nenhum anúncio. Vale a regra mais
+      // comprida, então o resto da API (conversas, perfil, favoritos, fotos de perfil) continua fechado.
+      'Allow: /api/anuncios',
+      'Allow: /api/categorias',
+      'Allow: /api/cidades',
+      'Allow: /api/localizacao/proximos',
+      'Allow: /api/localizacao/mapa',
+      'Allow: /api/avaliacoes/usuarios/',
+      'Allow: /api/procuras',
+      'Allow: /api/auth/sessao',
       'Disallow: /api/',
       'Disallow: /entrar',
       'Disallow: /perfil',

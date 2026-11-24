@@ -4,6 +4,8 @@
 
 Plataforma web de classificados locais (um marketplace C2C hiperlocal) para Viçosa e a Zona da Mata mineira. Projeto de Extensão com o tema Cidades Inteligentes.
 
+**Site no ar:** [desapegauai.com.br](https://desapegauai.com.br)
+
 **Relatório do projeto:** [RELATORIO.md](RELATORIO.md)
 
 ## Tecnologias
