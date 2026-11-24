@@ -93,6 +93,35 @@ export function receberVideoDoChat(req, res, next) {
   })
 }
 
+// Áudio gravado no chat: um por envio, no campo audio, até 5 MB (2 minutos cabem com folga).
+// O tipo que o navegador diz só serve de primeira peneira: quem decide é o começo do arquivo, na conversão.
+const MAXIMO_DO_AUDIO_MB = 5
+const TIPOS_DE_AUDIO = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac', 'video/webm', 'video/mp4', 'application/octet-stream']
+
+const uploadAudioDoChat = multer({
+  storage: armazenamentoEmMemoria,
+  limits: { fileSize: MAXIMO_DO_AUDIO_MB * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, callback) => {
+    if (!TIPOS_DE_AUDIO.includes(file.mimetype.split(';')[0].trim())) return callback(erroHttp(400, 'Envie um áudio gravado pelo chat.'))
+    callback(null, true)
+  },
+}).single('audio')
+
+export function receberAudioDoChat(req, res, next) {
+  uploadAudioDoChat(req, res, (erro) => {
+    if (!erro) return next()
+    if (!erro.status) {
+      const mensagens = {
+        LIMIT_FILE_SIZE: `O áudio pode ter no máximo ${MAXIMO_DO_AUDIO_MB} MB.`,
+        LIMIT_FILE_COUNT: 'Envie um áudio por vez.',
+        LIMIT_UNEXPECTED_FILE: 'Envie o áudio no campo audio.',
+      }
+      return next(erroHttp(400, mensagens[erro.code] ?? 'Não foi possível ler o envio. Mande como multipart/form-data, com o áudio no campo audio.'))
+    }
+    next(erro)
+  })
+}
+
 export function receberFotosDoChat(req, res, next) {
   uploadFotosDoChat(req, res, (erro) => {
     if (!erro) return next()

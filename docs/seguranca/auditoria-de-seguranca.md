@@ -1,6 +1,6 @@
 # Auditoria de segurança e testes do DesapegaUai
 
-Conferência feita em 21/11/2026, na versão que vai para o GitHub.
+Conferência feita em 21/11/2026, na versão que vai para o GitHub, e atualizada em 24/11/2026 com o áudio no chat (cenários IDOR-20, IDOR-21, UPL-10 a UPL-15 e IMG-10) e com a varredura de dados sensíveis no site (PRV-07 a PRV-09).
 
 Este documento registra o que foi testado, o que foi aprovado e quais riscos ainda existem antes de publicar a plataforma. Cada cenário tem identificação, objetivo, requisição, resultado esperado, resultado obtido, evidência e status.
 
@@ -11,25 +11,25 @@ Um aviso importante: os números abaixo mostram que os cenários definidos passa
 | Conferência | Cenários | Aprovados | Reprovados |
 | --- | --- | --- | --- |
 | Autenticação | 12 | 12 | 0 |
-| Autorização e IDOR | 19 | 19 | 0 |
+| Autorização e IDOR | 21 | 21 | 0 |
 | CSRF e CORS | 6 | 6 | 0 |
 | XSS | 7 | 7 | 0 |
 | Validação de dados | 8 | 8 | 0 |
-| Upload de imagens | 9 | 9 | 0 |
-| Exclusão de imagens | 9 | 9 | 0 |
-| Privacidade | 6 | 6 | 0 |
+| Upload de imagens e áudio | 15 | 15 | 0 |
+| Exclusão de imagens e áudio | 10 | 10 | 0 |
+| Privacidade | 9 | 9 | 0 |
 | Geolocalização | 8 | 8 | 0 |
 | Cabeçalhos HTTP | 7 | 7 | 0 |
 | Limite de requisições | 8 | 8 | 0 |
 | Desempenho e carga | 4 | 4 | 0 |
-| **Total da auditoria de segurança** | **103** | **103** | **0** |
+| **Total da auditoria de segurança** | **115** | **115** | **0** |
 
 | Outras conferências | Resultado |
 | --- | --- |
 | SQL injection | 1.441 pedidos de ataque, nenhuma injeção funcionou |
-| Testes automáticos da API (`npm test`) | 276 de 276 aprovados, em 28 arquivos |
-| Testes de navegador (`npm run e2e`, Chrome) | 44 de 44 aprovados |
-| Outros navegadores (seção 5) | 44 de 44 no Edge, no WebKit, no tablet e nos dois celulares; 43 de 44 no Firefox |
+| Testes automáticos da API (`npm test`) | 285 de 285 aprovados, em 29 arquivos |
+| Testes de navegador (`npm run e2e`, Chrome) | 49 de 49 aprovados |
+| Outros navegadores (seção 5) | 49 de 49 no Edge, no tablet e no celular Android; 47 de 49 no Firefox; 46 de 49 no WebKit e no iPhone (os que ficam de fora são limites do navegador de teste, explicados na seção 5) |
 | Tempo de resposta (seção 7) | 24 rotas, 29 telas e 13 ações dentro do limite |
 | Verificação do código do site (`npm run lint` e `npm run build`) | Sem erros |
 | Dependências com falha conhecida (`npm audit`) | Nenhuma, na API e no site |
@@ -302,6 +302,22 @@ Aqui a pergunta não é se o pedido é válido, e sim se quem pede é o dono. Em
 - **Evidência:** {"ok":false,"erro":"Você não participa desta conversa."}
 - **Status:** Aprovado
 
+#### IDOR-20
+- **Objetivo:** Ouvir o áudio de uma conversa da qual não participo, sabendo o endereço dele.
+- **Requisição:** A Larissa envia um áudio na conversa 1; o Diego (participante), o Usuário Teste e um visitante pedem GET /conversas/1/audios/&lt;arquivo&gt;.m4a
+- **Resultado esperado:** HTTP 200 para quem participa, 403 para quem não participa e 401 sem login
+- **Resultado obtido:** Participante: HTTP 200; Usuário Teste: HTTP 403; sem login: HTTP 401
+- **Evidência:** HTTP 403 {"erro":"Você não participa desta conversa.","codigo":"SEM_PERMISSAO","status":403}; HTTP 401 {"erro":"Faça login para continuar.","codigo":"NAO_AUTENTICADO","status":401}
+- **Status:** Aprovado
+
+#### IDOR-21
+- **Objetivo:** Mandar um áudio em uma conversa da qual não participo.
+- **Requisição:** POST /conversas/1/audios (multipart, áudio de 3 s) com a conta do Usuário Teste
+- **Resultado esperado:** HTTP 403 e nenhum áudio novo na conversa
+- **Resultado obtido:** HTTP 403; áudios na conversa antes: 1, depois: 1
+- **Evidência:** HTTP 403 {"erro":"Você não participa desta conversa.","codigo":"SEM_PERMISSAO","status":403}
+- **Status:** Aprovado
+
 ### 3.3 CSRF e CORS
 
 #### CSRF-01
@@ -478,7 +494,7 @@ Feito no navegador (Chrome), com textos de ataque gravados pela API e depois abe
 - **Evidência:** HTTP 400 {"erro":"O número da página precisa ser um número inteiro positivo.","codigo":"DADOS_INVALIDOS","status":400}
 - **Status:** Aprovado
 
-### 3.6 Upload de imagens
+### 3.6 Upload de imagens e áudio
 
 #### UPL-01
 - **Objetivo:** Arquivo de texto com nome e tipo de imagem é recusado.
@@ -552,7 +568,57 @@ Feito no navegador (Chrome), com textos de ataque gravados pela API e depois abe
 - **Evidência:** HTTP 400 {"erro":"A foto não é válida. Envie uma imagem JPG, PNG ou WebP.","codigo":"DADOS_INVALIDOS","status":400}
 - **Status:** Aprovado
 
-### 3.7 Exclusão de imagens
+Áudio do chat (24/11/2026): o servidor decide o formato pelo começo do arquivo (WebM, OGG ou MP4), converte com o ffmpeg para M4A e mede a duração. O ffmpeg só lê o formato detectado e não pode abrir outros arquivos nem endereços citados dentro do áudio (`-protocol_whitelist file,pipe`); no máximo duas conversões rodam ao mesmo tempo, cada uma com 30 segundos de limite.
+
+#### UPL-10
+- **Objetivo:** Um arquivo que não é áudio, declarado como áudio, é recusado.
+- **Requisição:** POST /conversas/1/audios com um texto enviado como audio/webm
+- **Resultado esperado:** HTTP 400, nada gravado
+- **Resultado obtido:** HTTP 400
+- **Evidência:** HTTP 400 {"erro":"O arquivo não é um áudio gravado pelo chat.","codigo":"DADOS_INVALIDOS","status":400}
+- **Status:** Aprovado
+
+#### UPL-11
+- **Objetivo:** Um arquivo com o começo de um WebM e o resto lixo não passa pela conversão.
+- **Requisição:** POST /conversas/1/audios com os 4 bytes de assinatura do WebM seguidos de 4.000 bytes quaisquer
+- **Resultado esperado:** HTTP 400, nada gravado
+- **Resultado obtido:** HTTP 400
+- **Evidência:** HTTP 400 {"erro":"Não foi possível ler o áudio. Grave de novo.","codigo":"DADOS_INVALIDOS","status":400}
+- **Status:** Aprovado
+
+#### UPL-12
+- **Objetivo:** Áudio maior que 5 MB é recusado antes da conversão.
+- **Requisição:** POST /conversas/1/audios com um áudio de verdade completado até passar de 5 MB
+- **Resultado esperado:** HTTP 400
+- **Resultado obtido:** HTTP 400
+- **Evidência:** HTTP 400 {"erro":"O áudio pode ter no máximo 5 MB.","codigo":"DADOS_INVALIDOS","status":400}
+- **Status:** Aprovado
+
+#### UPL-13
+- **Objetivo:** Áudio com mais de 2 minutos é recusado (a duração é medida pelo servidor, não pelo navegador).
+- **Requisição:** POST /conversas/1/audios com um WebM de 125 segundos
+- **Resultado esperado:** HTTP 400
+- **Resultado obtido:** HTTP 400
+- **Evidência:** HTTP 400 {"erro":"O áudio pode ter no máximo 2 minutos.","codigo":"DADOS_INVALIDOS","status":400}
+- **Status:** Aprovado
+
+#### UPL-14
+- **Objetivo:** O áudio guardado não leva os dados escondidos no arquivo original (como o nome do aparelho ou um endereço).
+- **Requisição:** POST /conversas/1/audios com um WebM que tem, dentro dele, o título "SEGREDO-DO-APARELHO" e o comentário "Rua Exemplo 123"; leitura do arquivo guardado no disco
+- **Resultado esperado:** O arquivo guardado é M4A e não tem nenhum dos dois textos
+- **Resultado obtido:** Original: tem o título e o comentário; guardado (M4A, 25.819 bytes): não tem o título e não tem o comentário
+- **Evidência:** cabeçalho do arquivo guardado: ftyp (M4A)
+- **Status:** Aprovado
+
+#### UPL-15
+- **Objetivo:** Pedir um áudio com nome inventado ou tentando sair da pasta da conversa não entrega nada.
+- **Requisição:** GET /conversas/1/audios/ com "../../../backend/.env", com um nome válido de outra extensão (.webm) e com um .m4a que não existe, pela conta do Diego (participante)
+- **Resultado esperado:** HTTP 404 nos três
+- **Resultado obtido:** ../../../backend/.env: HTTP 404; ….webm: HTTP 404; ….m4a inexistente: HTTP 404
+- **Evidência:** o nome do arquivo só é aceito no formato &lt;32 letras e números&gt;.m4a (`utils/fotos.js`)
+- **Status:** Aprovado
+
+### 3.7 Exclusão de imagens e áudio
 
 Regra da API: o registro sai do banco primeiro e o arquivo sai do disco depois. Se o disco falhar, o pedido termina bem, a falha vai para o log e a conferência de fotos (`npm run fotos`) apaga o que sobrou.
 
@@ -629,6 +695,14 @@ Regra da API: o registro sai do banco primeiro e o arquivo sai do disco depois. 
 - **Observação:** O navegador de quem já abriu a foto pode guardar a cópia dele até o prazo do cache vencer. O servidor não tem como apagar essa cópia.
 - **Status:** Aprovado
 
+#### IMG-10
+- **Objetivo:** "Apagar para todos" um áudio do chat tira o arquivo do disco, e o áudio deixa de ser entregue na hora.
+- **Requisição:** A Larissa envia um áudio na conversa 1 e chama DELETE /conversas/1/mensagens/:id?para=todos; depois, GET do áudio pelo Diego
+- **Resultado esperado:** HTTP 200 no DELETE, arquivo fora do disco e HTTP 404 no GET
+- **Resultado obtido:** Antes: arquivo existe; DELETE: HTTP 200; depois: arquivo não existe; GET do áudio: HTTP 404
+- **Evidência:** o mesmo vale quando as duas pessoas apagam o áudio "para mim" (teste automático `audios-do-chat.test.js`)
+- **Status:** Aprovado
+
 ### 3.8 Privacidade
 
 #### PRV-01
@@ -677,6 +751,30 @@ Regra da API: o registro sai do banco primeiro e o arquivo sai do disco depois. 
 - **Resultado esperado:** Só a mensagem de erro em português
 - **Resultado obtido:** HTTP 404, 400, 400, sem detalhe interno
 - **Evidência:** HTTP 404 {"erro":"Rota não encontrada: GET /api/rota-que-nao-existe","codigo":"ROTA_NAO_ENCONTRADA","status":404}
+- **Status:** Aprovado
+
+#### PRV-07
+- **Objetivo:** Varredura completa (24/11/2026): nenhum dado pessoal de uma pessoa chega a outra, nem escondido na resposta (o que a tela não mostra, mas aparece no F12 do navegador).
+- **Requisição:** O Usuário Teste cadastra telefone, publica um anúncio com o ponto exato do GPS, rua e CEP, cria um pedido no Procura-se e muda o perfil. Um visitante e a Larissa (que conversa com ele) fazem os 22 pedidos que dá para fazer (anúncio, listas, busca por perto, mapa, localização do anúncio, perfil público, avaliações, Procura-se, conversas, mensagens, favoritos, avisos) e ficam ouvindo o tempo real. Cada resposta e cada evento é vasculhado atrás do e-mail, do telefone, da rua, do CEP, das coordenadas exatas e dos campos email, telefone, google_id, token, rua, cep e precisao_m
+- **Resultado esperado:** Nenhum desses dados aparece para o visitante nem para a Larissa
+- **Resultado obtido:** 22 pedidos e 14 eventos de tempo real (anuncio_publicado, perfil_atualizado, nova_mensagem e outros): nada encontrado. Controle: a mesma busca nas respostas do próprio dono acha os 12 pontos (e-mail, telefone, ponto exato, rua e CEP), o que prova que o detector funciona
+- **Evidência:** A distância mostrada nos cards é medida a partir do ponto aproximado (grade de cerca de 250 m), então medir de vários lugares não revela o ponto exato. O e-mail só é lido para calcular o selo de vínculo acadêmico e sai da resposta antes do envio (`anuncioModel.buscarDetalhe` e `procuraModel`)
+- **Status:** Aprovado
+
+#### PRV-08
+- **Objetivo:** O código do site, que qualquer pessoa baixa ao abrir a página, não leva segredo nem informação interna.
+- **Requisição:** O site gerado (`npm run build`) e o site no ar foram vasculhados atrás dos valores secretos do `.env` da API (comparados por programa, sem mostrar os valores), de mapas de código-fonte (.map), do login de teste, de caminhos do computador e do IP do servidor; e foram pedidos no ar os endereços /.env, /backend/.env, /.git/config e /.git/HEAD
+- **Resultado esperado:** Nada disso no site; os endereços sensíveis não entregam arquivo
+- **Resultado obtido:** JWT_SEGREDO e VAPID_PRIVATE_KEY não aparecem; nenhum .map (no ar, o .map responde 404); o código do login de teste nem entra no site gerado; nenhum caminho nem IP. /.env, /.git e afins devolvem a própria página do site (index.html, 2 KB), não o arquivo
+- **Evidência:** A única variável do site é o código do Google para o botão de login (VITE_GOOGLE_CLIENT_ID), que é público por natureza. Sem console.log no código do site. Cabeçalhos no ar: Referrer-Policy strict-origin-when-cross-origin (outro site só recebe o domínio, nunca o endereço da conversa), Strict-Transport-Security, X-Content-Type-Options e X-Frame-Options
+- **Status:** Aprovado
+
+#### PRV-09
+- **Objetivo:** Em computador compartilhado, depois de sair da conta, o navegador não guarda token, localização do GPS nem dado pessoal.
+- **Requisição:** Entrar como Larissa, usar a localização, abrir e arquivar uma conversa, sair da conta e listar localStorage, sessionStorage, cookies, Cache Storage e IndexedDB; depois pedir GET /perfil
+- **Resultado esperado:** Sem token e sem dado pessoal; a sessão acabou
+- **Resultado obtido:** Cookie de login apagado (sobra só o g_state, do Google, sem dado pessoal); GET /perfil: HTTP 401. Ficam só preferências: acessibilidade, a cidade escolhida (sem o ponto do GPS, que fica só na memória), os números das conversas arquivadas e um contador de avisos que some ao fechar a aba
+- **Evidência:** Cache Storage vazio (o service worker só mostra notificações, não guarda páginas); IndexedDB só com a lista pública de emojis
 - **Status:** Aprovado
 
 ### 3.9 Geolocalização
@@ -927,13 +1025,15 @@ Os testes de navegador abrem o site de verdade, ligado em uma API de verdade, e 
 
 | Navegador | Resultado |
 | --- | --- |
-| Chrome | 44 de 44 |
-| Edge | 44 de 44 |
-| Firefox | 43 de 44 |
-| WebKit (motor do Safari) | 44 de 44 |
-| Tablet (Galaxy Tab S4) | 44 de 44 |
-| Celular Android (Pixel 7) | 44 de 44 |
-| Celular iPhone (iPhone 14, WebKit) | 44 de 44 |
+| Chrome | 49 de 49 |
+| Edge | 49 de 49 |
+| Firefox | 47 de 49 (2 de fora) |
+| WebKit (motor do Safari) | 46 de 49 (3 de fora) |
+| Tablet (Galaxy Tab S4) | 49 de 49 |
+| Celular Android (Pixel 7) | 49 de 49 |
+| Celular iPhone (iPhone 14, WebKit) | 46 de 49 (3 de fora) |
+
+Os que ficam de fora são limites dos navegadores de teste, não do site: só o Chrome e o Edge do Playwright têm o microfone de mentira para gravar áudio; o Firefox não deixa um teste simular colar ou arrastar arquivo; e o WebKit do Playwright no Windows não tem o gravador de áudio nem toca nenhum formato de áudio (nem MP3). O Safari de verdade tem os dois (iOS 14.3 em diante) e toca o M4A que o servidor entrega; por isso o áudio deve ser conferido num iPhone de verdade depois de publicar. Em todos os navegadores, inclusive no WebKit, passa o teste de que, sem gravador, o microfone não aparece e o resto da caixa de mensagem funciona.
 
 Até 23/11/2026, três testes não passavam nos celulares (localização manual, aviso no sininho e Procura-se): em tela de até 600 px, o botão da cidade e o sininho não apareciam no cabeçalho, nem no menu, nem na barra de baixo. Era um ajuste do site, não do teste. Nesse dia, o celular e o tablet passaram a mostrar no alto o Início, o sininho e as mensagens, com a cidade no menu que desce do ☰, e os três testes passaram nos dois aparelhos. Um teste novo (`menu-celular.spec.js`) confere o menu, os atalhos, o número de mensagens novas chegando na hora e que o computador continua com todos os ícones. No Firefox, o teste de colar print e arrastar imagem fica de fora, porque o Firefox não deixa um teste automático simular colar ou arrastar arquivo.
 
@@ -941,7 +1041,7 @@ Falhas reais que os outros navegadores mostraram e que foram corrigidas no site:
 
 ## 6. Testes automáticos da API
 
-São 276 testes em 28 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
+São 285 testes em 29 arquivos, na pasta `backend/test`. Cobrem login, perfil, anúncios, rascunho, favoritos, busca, localização, conversas, chat em tempo real, fotos do chat, áudio do chat (conversão para M4A, duração, ondas, quem pode ouvir, recusas e apagar), avaliações, denúncias, notificações, Procura-se, compromisso nas entregas, tag de transporte, status reservado, selo de vínculo acadêmico, segurança, falha do banco e exclusão de imagens.
 
 Os testes de exclusão de imagens (`exclusao-de-imagens.test.js`) incluem dois casos que a auditoria por fora não consegue provocar:
 

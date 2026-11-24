@@ -50,7 +50,7 @@ export const PONTOS_DE_ENCONTRO = [
 export const PRAZO_PARA_EDITAR_MS = 15 * 60 * 1000;
 export const PRAZO_PARA_APAGAR_PARA_TODOS_MS = 2 * 24 * 60 * 60 * 1000;
 const idade = (mensagem) => Date.now() - new Date(mensagem.enviada_em).getTime();
-export const podeEditar = (mensagem) => mensagem.minha && !mensagem.apagada && idade(mensagem) < PRAZO_PARA_EDITAR_MS;
+export const podeEditar = (mensagem) => mensagem.minha && !mensagem.apagada && !mensagem.audio && idade(mensagem) < PRAZO_PARA_EDITAR_MS;
 export const podeApagarParaTodos = (mensagem) => mensagem.minha && !mensagem.apagada && idade(mensagem) < PRAZO_PARA_APAGAR_PARA_TODOS_MS;
 
 const ALTURA_MENU_DA_MENSAGEM = 160;

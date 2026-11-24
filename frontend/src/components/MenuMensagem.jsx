@@ -41,7 +41,8 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
       {/* no celular, a conversa fica desfocada por trás das opções, como no iPhone */}
       <div className="menu-mensagem-fundo" aria-hidden="true" />
       <div className="acoes-menu menu-mensagem" role="menu" aria-label="Opções da mensagem" ref={menuRef} style={posicao}>
-        {minha && (
+        {/* áudio não tem texto para editar: a opção nem aparece, como no WhatsApp */}
+        {minha && !mensagem.audio && (
           <button type="button" role="menuitem" disabled={!editar} onClick={escolher(onEditar)}>
             <Icone nome="lapis" tamanho={19} cor={editar ? '#3E8B22' : '#9AA39B'} />
             <span className="menu-mensagem-texto">

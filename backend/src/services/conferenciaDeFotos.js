@@ -8,7 +8,7 @@ import { readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { db } from '../config/db.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
-import { LARGURAS_FOTO, LARGURAS_FOTO_DO_CHAT, PASTA_PRIVADA, PASTA_UPLOADS } from '../utils/fotos.js'
+import { AUDIO_DO_CHAT, LARGURAS_FOTO, LARGURAS_FOTO_DO_CHAT, PASTA_PRIVADA, PASTA_UPLOADS } from '../utils/fotos.js'
 import { registrar } from '../utils/log.js'
 
 const FOTO_DO_ANUNCIO = new RegExp(`^([a-f0-9]{32})-(${LARGURAS_FOTO.join('|')})\\.webp$`)
@@ -122,7 +122,19 @@ export async function conferirFotos({ corrigir = false, idadeMinimaMs = 60 * 60 
     }
     relatorio.semArquivo.push({ tipo: 'video_chat', id: mensagem.id, conversa_id: mensagem.conversa_id, corrigido: corrigir })
   }
-  await conferirPasta(PASTA_PRIVADA, path.join(PASTA_PRIVADA, 'conversas'), daConversa, (nome) => FOTO_DO_CHAT.test(nome) || VIDEO_DO_CHAT.test(nome), 'pasta de conversa')
+  // áudios do chat (um arquivo .m4a por mensagem; o áudio nunca tem texto, então a mensagem sem o arquivo some)
+  const [comAudio] = await db.query('SELECT id, conversa_id, audio FROM mensagem WHERE audio IS NOT NULL')
+  for (const mensagem of comAudio) {
+    relatorio.registros += 1
+    daConversa.get(mensagem.conversa_id)?.add(mensagem.audio)
+    if (await existe(path.join(PASTA_PRIVADA, 'conversas', String(mensagem.conversa_id), mensagem.audio))) continue
+    if (corrigir) {
+      await db.query('DELETE FROM mensagem WHERE id = ?', [mensagem.id])
+      daConversa.get(mensagem.conversa_id)?.delete(mensagem.audio)
+    }
+    relatorio.semArquivo.push({ tipo: 'audio_chat', id: mensagem.id, conversa_id: mensagem.conversa_id, corrigido: corrigir })
+  }
+  await conferirPasta(PASTA_PRIVADA, path.join(PASTA_PRIVADA, 'conversas'), daConversa, (nome) => FOTO_DO_CHAT.test(nome) || VIDEO_DO_CHAT.test(nome) || AUDIO_DO_CHAT.test(nome), 'pasta de conversa')
 
   registrar('fotos.conferencia', { arquivos: relatorio.arquivos, registros: relatorio.registros, orfaos: relatorio.orfaos.length, sem_arquivo: relatorio.semArquivo.length, corrigir })
   return relatorio

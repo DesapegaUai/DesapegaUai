@@ -282,6 +282,9 @@ CREATE TABLE mensagem (
   texto        VARCHAR(1000)  NOT NULL,                              -- vazio quando a mensagem é só a foto
   foto         CHAR(32)       NULL,                                  -- nome do arquivo da foto (sem tamanho e sem .webp)
   video        VARCHAR(40)    NULL,                                  -- nome do arquivo do vídeo, com a extensão (mp4, webm ou mov)
+  audio        VARCHAR(40)    NULL,                                  -- nome do arquivo do áudio (sempre convertido para .m4a)
+  audio_segundos SMALLINT UNSIGNED NULL,                             -- duração do áudio, medida pelo servidor (1 a 120)
+  audio_ondas  CHAR(40)       NULL,                                  -- volume de cada barrinha, de "0" (silêncio, reto) a "v" (fala alta)
   enviada_em   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   lida         BOOLEAN        NOT NULL DEFAULT FALSE,
   entregue_em  DATETIME       NULL,                                  -- chegou no aparelho de quem recebe (site aberto)
@@ -291,9 +294,10 @@ CREATE TABLE mensagem (
   KEY ix_mensagem_conversa (conversa_id, id),
   CONSTRAINT fk_mensagem_conversa  FOREIGN KEY (conversa_id)  REFERENCES conversa (id) ON DELETE CASCADE,
   CONSTRAINT fk_mensagem_remetente FOREIGN KEY (remetente_id) REFERENCES usuario (id) ON DELETE CASCADE,
-  CONSTRAINT ck_mensagem_texto CHECK (TRIM(texto) <> '' OR foto IS NOT NULL OR video IS NOT NULL OR apagada_em IS NOT NULL),   -- precisa ter texto, foto ou vídeo (a apagada fica vazia)
+  CONSTRAINT ck_mensagem_texto CHECK (TRIM(texto) <> '' OR foto IS NOT NULL OR video IS NOT NULL OR audio IS NOT NULL OR apagada_em IS NOT NULL),   -- precisa ter texto, foto, vídeo ou áudio (a apagada fica vazia)
   CONSTRAINT ck_mensagem_foto  CHECK (foto IS NULL OR foto REGEXP '^[a-f0-9]{32}$'),
-  CONSTRAINT ck_mensagem_video CHECK (video IS NULL OR video REGEXP '^[a-f0-9]{32}[.](mp4|webm|mov)$')
+  CONSTRAINT ck_mensagem_video CHECK (video IS NULL OR video REGEXP '^[a-f0-9]{32}[.](mp4|webm|mov)$'),
+  CONSTRAINT ck_mensagem_audio CHECK (audio IS NULL OR (audio REGEXP '^[a-f0-9]{32}[.]m4a$' AND audio_segundos BETWEEN 1 AND 120 AND audio_ondas REGEXP '^[0-9a-v]{40}$'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- "Apagar para mim": a mensagem some só para quem apagou; a outra pessoa continua vendo.

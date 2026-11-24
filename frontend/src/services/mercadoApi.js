@@ -143,6 +143,9 @@ export function mensagemDaApi(mensagem, meuId) {
   return {
     ...mensagem, foto, temFoto: Boolean(foto || mensagem.tem_foto),
     video: mensagem.video ? { url: urlDaApi(mensagem.video.url) } : null, temVideo: Boolean(mensagem.video || mensagem.tem_video),
+    // áudio: { url, segundos, ondas } (na lista de conversas vem só audio_segundos, sem o endereço)
+    audio: mensagem.audio ? { ...mensagem.audio, url: urlDaApi(mensagem.audio.url) } : null,
+    audioSegundos: mensagem.audio?.segundos ?? mensagem.audio_segundos ?? null,
     minha, autor: minha ? 'eu' : 'outro', hora: formatoHora.format(data), dia: diaDaMensagem(data),
   }
 }
@@ -196,6 +199,14 @@ export const buscarDenuncia = (conversaId) => api.get(`/conversas/${conversaId}/
 
 // manda as fotos (arquivos File) e, se tiver, o texto como legenda da última; devolve { mensagens }
 // um vídeo por envio (MP4, MOV ou WebM de até 25 MB); o texto vai junto como legenda
+// áudio gravado no chat (Blob do gravador do navegador); o servidor converte, mede e devolve { mensagem }
+export function enviarAudioPelaApi(conversaId, gravacao) {
+  const extensao = gravacao.type.includes('ogg') ? 'ogg' : gravacao.type.includes('mp4') ? 'm4a' : 'webm'
+  const corpo = new FormData()
+  corpo.append('audio', gravacao, `audio.${extensao}`)
+  return api.post(`/conversas/${conversaId}/audios`, corpo)
+}
+
 export function enviarVideoPelaApi(conversaId, arquivo, texto) {
   const corpo = new FormData()
   corpo.append('video', arquivo)

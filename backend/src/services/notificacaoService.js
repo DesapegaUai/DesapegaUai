@@ -76,7 +76,8 @@ export async function avisarMensagemNova(mensagem, participantes) {
     if (!destinatarios.length) return
     const nome = mensagem.remetente?.nome ?? null
     const foto = mensagem.remetente?.foto_url ?? null
-    const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : mensagem.video ? '🎥 Vídeo' : 'Mensagem nova')
+    const audio = mensagem.audio?.segundos ? `🎤 Áudio (${Math.floor(mensagem.audio.segundos / 60)}:${String(mensagem.audio.segundos % 60).padStart(2, '0')})` : null
+    const texto = String(mensagem.texto ?? '') || (mensagem.foto ? '📷 Foto' : mensagem.video ? '🎥 Vídeo' : audio ?? 'Mensagem nova')
     for (const id of destinatarios) {
       const preferencias = await repo.buscarPreferencias(id)
       if (!preferencias?.mensagens) continue

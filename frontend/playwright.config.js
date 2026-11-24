@@ -26,7 +26,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
+    // microfone de mentira (faz bipes) e sem a pergunta de permissão: é o que deixa testar o áudio do chat
+    { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome', launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } } },
     { name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' }, testMatch: /compatibilidade/ },
     { name: 'celular', use: { ...devices['Pixel 7'], channel: 'chrome' }, testMatch: /compatibilidade/ },
     { name: 'tablet', use: { ...devices['Galaxy Tab S4'], channel: 'chrome' }, testMatch: /compatibilidade/ },
