@@ -43,13 +43,14 @@ export default function EditarPerfil() {
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoParaAjustar, setFotoParaAjustar] = useState(null); // foto escolhida, esperando o ajuste
   const fotoRef = useRef(null);
+  const mexeu = useRef(false); // a pessoa já digitou: o perfil que chega depois não apaga o que ela escreveu
 
   useEffect(() => {
     document.title = 'DesapegaUai — Editar perfil';
     let ativo = true;
     carregarPerfil()
       .then((atual) => {
-        if (ativo) setForm({ nome: atual.nome, telefone: formatarTelefone(atual.telefone), bio: atual.bio ?? '' });
+        if (ativo && !mexeu.current) setForm({ nome: atual.nome, telefone: formatarTelefone(atual.telefone), bio: atual.bio ?? '' });
       })
       .catch((erro) => {
         if (ativo) setToast({ tipo: 'erro', titulo: 'Não foi possível carregar o perfil', texto: erro.message, chave: Date.now() });
@@ -58,6 +59,7 @@ export default function EditarPerfil() {
   }, []);
 
   function mudar(campo, valor) {
+    mexeu.current = true;
     setForm((f) => ({ ...f, [campo]: valor }));
     setErros((e) => Object.fromEntries(Object.entries(e).filter(([c]) => c !== campo)));
   }

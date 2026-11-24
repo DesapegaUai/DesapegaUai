@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import LogoAnimado from '../components/LogoAnimado.jsx'
 import Toast from '../components/Toast.jsx'
+import useAvisoDaNavegacao from '../hooks/useAvisoDaNavegacao.js'
 import { api } from '../services/api.js'
 import { entrou } from '../services/sessao.js'
 import './Login.css'
@@ -90,7 +91,7 @@ export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [aceitou, setAceitou] = useState(false)
   const [erro, setErro] = useState(null) // erro que aparece embaixo do formulário: { texto, campo }
-  const [toast, setToast] = useState(() => (location.state?.saiu ? { ...AVISO.saiu, chave: 1 } : null)) // aviso rápido no meio da tela, que some sozinho: { texto, chave }
+  const [toast, setToast] = useAvisoDaNavegacao((estado) => (estado?.saiu ? { ...AVISO.saiu, chave: 1 } : null)) // aviso rápido no meio da tela, que some sozinho: { texto, chave }
   const [carregando, setCarregando] = useState(false)
   const [erroGoogle, setErroGoogle] = useState('')
 

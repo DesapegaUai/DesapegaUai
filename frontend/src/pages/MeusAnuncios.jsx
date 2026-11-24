@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import AcoesAnuncio from '../components/AcoesAnuncio.jsx';
+import useAvisoDaNavegacao from '../hooks/useAvisoDaNavegacao.js';
 import LayoutPainel from '../components/LayoutPainel.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import SemFoto from '../components/SemFoto.jsx';
@@ -65,11 +66,10 @@ function Item({ anuncio, onAviso, onMudou }) {
 
 /** Meus anúncios: publicados, rascunhos e vendidos (da API). */
 export default function MeusAnuncios() {
-  const location = useLocation();
   const [parametros, setParametros] = useSearchParams();
   const [anuncios, setAnuncios] = useState(null);
   const [erro, setErro] = useState(null);
-  const [toast, setToast] = useState(() => location.state?.aviso ?? null);
+  const [toast, setToast] = useAvisoDaNavegacao();
 
   const carregar = useCallback(() => {
     listarMeusAnuncios().then((lista) => { setAnuncios(lista); setErro(null); }).catch((falha) => setErro(falha.message));

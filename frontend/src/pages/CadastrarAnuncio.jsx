@@ -7,7 +7,7 @@ import Toast from '../components/Toast.jsx';
 import { CATEGORIAS } from '../services/categorias.js';
 import { urlDaApi } from '../services/api.js';
 import { erroDaFoto } from '../services/fotosAnuncio.js';
-import { formatarPreco } from '../services/formatar.js';
+import { formatarPreco, textoParaPreco } from '../services/formatar.js';
 import { bairrosDaCidade, buscarRuas, enderecoDoPonto, listarCidades, localDoCep, nomeDoBairro } from '../services/locais.js';
 import { motivoSemGps, TEXTO_DO_STATUS } from '../services/localizacao.js';
 import {
@@ -24,7 +24,6 @@ const ORDEM_DOS_ERROS = ['fotos', 'titulo', 'categoria', 'condicao', 'preco', 'c
 const CAMPO_DA_API = { titulo: 'titulo', categoria_id: 'categoria', condicao: 'condicao', preco: 'preco', bairro_id: 'bairro', forma_entrega: 'entrega', transporte: 'transporte', fotos: 'fotos', latitude: 'local', cep: 'cep', rua: 'rua' };
 
 const precoParaTexto = (preco) => (preco ? String(preco).replace('.', ',') : '');
-const textoParaPreco = (texto) => Number(String(texto).replace(/\./g, '').replace(',', '.')) || 0;
 const formatarCep = (cep) => (cep ?? '').replace(/\D/g, '').slice(0, 8).replace(/(\d{5})(\d{1,3})/, '$1-$2');
 
 const formularioVazio = () => ({
