@@ -73,6 +73,21 @@ test('a imagem de prévia do anúncio é um JPG 1200 x 630; anúncio sem foto us
   assert.equal(semFoto.headers.get('location'), '/img/compartilhar.jpg')
 })
 
+test('a página inicial diz ao Google o nome do site (DesapegaUai, também "Desapega Uai") e o logo', async () => {
+  const html = await (await fetch(`${origem}/`)).text()
+  const blocos = [...html.matchAll(/<script type="application\/ld\+json">(.+?)<\/script>/g)].map((b) => JSON.parse(b[1]))
+  assert.equal(blocos.length, 1)
+  const [site, organizacao] = ['WebSite', 'Organization'].map((tipo) => blocos[0]['@graph'].find((d) => d['@type'] === tipo))
+  assert.equal(site.name, 'DesapegaUai')
+  assert.ok(site.alternateName.includes('Desapega Uai'))
+  assert.equal(site.url, `${BASE}/`)
+  assert.equal(organizacao.logo, `${BASE}/icon-512.png`)
+  assert.equal(organizacao.url, `${BASE}/`)
+  // só a página inicial leva esse dado; as outras não repetem
+  const categoria = await (await fetch(`${origem}/categoria/casa`)).text()
+  assert.equal(categoria.includes('"WebSite"'), false)
+})
+
 test('categoria e páginas de ajuda têm título próprio; as telas da conta e os perfis ficam fora do Google', async () => {
   assert.match(await (await fetch(`${origem}/categoria/casa`)).text(), /<title>Casa: usados em Viçosa e região \| DesapegaUai<\/title>/)
   assert.match(await (await fetch(`${origem}/ajuda/dicas-de-seguranca`)).text(), /<title>Dicas de segurança \| DesapegaUai<\/title>/)

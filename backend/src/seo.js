@@ -107,6 +107,38 @@ export async function metasDaPagina(caminho, base = env.frontendUrl) {
   return { ...padrao, foraDoGoogle: true } // página que não existe
 }
 
+// dado para o Google (não é código que roda): o "<" vira \u003c para nada fechar a tag antes da hora
+const dadoParaOGoogle = (dado) => `<script type="application/ld+json">${JSON.stringify(dado).replace(/</g, '\\u003c')}</script>`
+
+// Só na página inicial: o nome do site e o logo. Em 24/11/2026 o Google corrigia a busca "desapegauai" para
+// "desapega urai", como se fosse erro de digitação. Aqui ele aprende que DesapegaUai é o nome de um site e que
+// "Desapega Uai", com espaço, é o mesmo site.
+function dadosDoSite(base) {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${base}/#site`,
+        name: NOME,
+        alternateName: ['Desapega Uai', 'DesapegaUai Viçosa'],
+        url: `${base}/`,
+        inLanguage: 'pt-BR',
+        publisher: { '@id': `${base}/#organizacao` },
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${base}/#organizacao`,
+        name: NOME,
+        alternateName: 'Desapega Uai',
+        url: `${base}/`,
+        logo: `${base}/icon-512.png`,
+        description: DESCRICAO_PADRAO,
+      },
+    ],
+  }
+}
+
 // põe as informações da página no index.html, no lugar do título e da descrição que vêm do build
 export function aplicarMetas(html, m, caminho, base = env.frontendUrl) {
   const endereco = `${base}${caminho === '/' ? '/' : caminho.replace(/\/$/, '')}`
@@ -121,8 +153,8 @@ export function aplicarMetas(html, m, caminho, base = env.frontendUrl) {
     `<meta property="og:url" content="${escapar(endereco)}" />`,
     `<meta property="og:image" content="${escapar(m.imagem)}" />`,
     '<meta name="twitter:card" content="summary_large_image" />',
-    // dado para o Google (não é código que roda): o "<" vira \u003c para nada fechar a tag antes da hora
-    m.produto ? `<script type="application/ld+json">${JSON.stringify(m.produto).replace(/</g, '\\u003c')}</script>` : '',
+    m.produto ? dadoParaOGoogle(m.produto) : '',
+    caminho === '/' ? dadoParaOGoogle(dadosDoSite(base)) : '',
   ].filter(Boolean).join('\n    ')
   return html
     .replace(/<title>[^<]*<\/title>/, () => `<title>${escapar(m.titulo)}</title>`)
