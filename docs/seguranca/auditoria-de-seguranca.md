@@ -28,8 +28,8 @@ Um aviso importante: os números abaixo mostram que os cenários definidos passa
 | --- | --- |
 | SQL injection | 1.441 pedidos de ataque, nenhuma injeção funcionou |
 | Testes automáticos da API (`npm test`) | 286 de 286 aprovados, em 29 arquivos |
-| Testes de navegador (`npm run e2e`, Chrome) | 49 de 49 aprovados |
-| Outros navegadores (seção 5) | 49 de 49 no Edge, no tablet e no celular Android; 47 de 49 no Firefox; 46 de 49 no WebKit e no iPhone (os que ficam de fora são limites do navegador de teste, explicados na seção 5) |
+| Testes de navegador (`npm run e2e`, Chrome) | 50 de 50 aprovados |
+| Outros navegadores (seção 5) | 50 de 50 no Edge, no tablet e no celular Android; 48 de 50 no Firefox; 47 de 50 no WebKit e no iPhone (os que ficam de fora são limites do navegador de teste, explicados na seção 5) |
 | Tempo de resposta (seção 7) | 24 rotas, 29 telas e 13 ações dentro do limite |
 | Verificação do código do site (`npm run lint` e `npm run build`) | Sem erros |
 | Dependências com falha conhecida (`npm audit`) | Nenhuma, na API e no site |
@@ -1025,15 +1025,15 @@ Os testes de navegador abrem o site de verdade, ligado em uma API de verdade, e 
 
 | Navegador | Resultado |
 | --- | --- |
-| Chrome | 49 de 49 |
-| Edge | 49 de 49 |
-| Firefox | 47 de 49 (2 de fora) |
-| WebKit (motor do Safari) | 46 de 49 (3 de fora) |
-| Tablet (Galaxy Tab S4) | 49 de 49 |
-| Celular Android (Pixel 7) | 49 de 49 |
-| Celular iPhone (iPhone 14, WebKit) | 46 de 49 (3 de fora) |
+| Chrome | 50 de 50 |
+| Edge | 50 de 50 |
+| Firefox | 48 de 50 (2 de fora) |
+| WebKit (motor do Safari) | 47 de 50 (3 de fora) |
+| Tablet (Galaxy Tab S4) | 50 de 50 |
+| Celular Android (Pixel 7) | 50 de 50 |
+| Celular iPhone (iPhone 14, WebKit) | 47 de 50 (3 de fora) |
 
-Os que ficam de fora são limites dos navegadores de teste, não do site: só o Chrome e o Edge do Playwright têm o microfone de mentira para gravar áudio; o Firefox não deixa um teste simular colar ou arrastar arquivo; e o WebKit do Playwright no Windows não tem o gravador de áudio nem toca nenhum formato de áudio (nem MP3). O Safari de verdade tem os dois (iOS 14.3 em diante) e toca o M4A que o servidor entrega; por isso o áudio deve ser conferido num iPhone de verdade depois de publicar. Em todos os navegadores, inclusive no WebKit, passa o teste de que, sem gravador, o microfone não aparece e o resto da caixa de mensagem funciona.
+Os que ficam de fora são limites dos navegadores de teste, não do site: só o Chrome e o Edge do Playwright têm o microfone de mentira para gravar áudio; o Firefox não deixa um teste simular colar ou arrastar arquivo; e o WebKit do Playwright no Windows não tem o gravador de áudio nem toca nenhum formato de áudio (nem MP3). O Safari de verdade tem os dois (iOS 14.3 em diante) e toca o M4A que o servidor entrega; por isso o áudio deve ser conferido num iPhone de verdade depois de publicar. Em todos os navegadores, inclusive no WebKit, passa o teste de que, sem gravador, o microfone não aparece e o resto da caixa de mensagem funciona. Na rodada de 24/11, dois testes de tempo real (o chat entre duas contas e o feed que recebe o anúncio novo) falharam uma vez no WebKit e no iPhone de teste, sem a mensagem chegar na outra tela; repetidos duas vezes cada, passaram todas as vezes. É oscilação da conexão em tempo real do WebKit de teste no Windows (o servidor de teste mostrou conexões derrubadas só nele), não defeito do site.
 
 Até 23/11/2026, três testes não passavam nos celulares (localização manual, aviso no sininho e Procura-se): em tela de até 600 px, o botão da cidade e o sininho não apareciam no cabeçalho, nem no menu, nem na barra de baixo. Era um ajuste do site, não do teste. Nesse dia, o celular e o tablet passaram a mostrar no alto o Início, o sininho e as mensagens, com a cidade no menu que desce do ☰, e os três testes passaram nos dois aparelhos. Um teste novo (`menu-celular.spec.js`) confere o menu, os atalhos, o número de mensagens novas chegando na hora e que o computador continua com todos os ícones. No Firefox, o teste de colar print e arrastar imagem fica de fora, porque o Firefox não deixa um teste automático simular colar ou arrastar arquivo.
 
