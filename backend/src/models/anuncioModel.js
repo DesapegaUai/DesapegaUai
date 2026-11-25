@@ -4,6 +4,8 @@ import { temVinculoAcademico } from '../utils/vinculo.js'
 
 // anúncio que aparece na busca, no mapa e no perfil público: ativo ou reservado
 export const STATUS_VISIVEIS = ['ativo', 'reservado']
+// rascunho e em análise (tirado da busca por denúncias) só existem para o dono: para os outros, 404
+export const STATUS_SO_DO_DONO = ['rascunho', 'em_analise']
 
 // Tudo o que roda dentro do fn grava junto, ou nada grava (M1: anúncio e fotos numa transação).
 export async function emTransacao(fn) {

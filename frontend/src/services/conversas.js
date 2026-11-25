@@ -53,7 +53,7 @@ const idade = (mensagem) => Date.now() - new Date(mensagem.enviada_em).getTime()
 export const podeEditar = (mensagem) => mensagem.minha && !mensagem.apagada && !mensagem.audio && idade(mensagem) < PRAZO_PARA_EDITAR_MS;
 export const podeApagarParaTodos = (mensagem) => mensagem.minha && !mensagem.apagada && idade(mensagem) < PRAZO_PARA_APAGAR_PARA_TODOS_MS;
 
-const ALTURA_MENU_DA_MENSAGEM = 160;
+const ALTURA_MENU_DA_MENSAGEM = 210; // com o Fixar, são até 4 opções
 
 // Lugar do menu na tela: embaixo da mensagem (ou em cima, se não couber), do lado de quem enviou
 export function posicaoDoMenu(elemento, minha) {

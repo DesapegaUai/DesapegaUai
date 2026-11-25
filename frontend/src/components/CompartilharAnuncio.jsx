@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import Icone from './IconeMarketplace.jsx';
-import { formatarPreco } from '../services/formatar.js';
+import useGaveta from '../hooks/useGaveta.js';
+import { enderecoDoAnuncio, textoDoAnuncio } from '../services/compartilhar.js';
 import '../styles/marketplace-acoes.css';
 
 // desenhos das marcas do pacote Simple Icons (licença CC0, de uso livre)
@@ -19,45 +20,15 @@ function Marca({ nome, cor }) {
 }
 
 /**
- * Botão de compartilhar o anúncio (referência: o compartilhar da OLX).
- * Celular: abre a janela de compartilhar do próprio aparelho (WhatsApp, Instagram, mensagem...).
- * Computador: abre a escolha entre WhatsApp, Facebook, X e copiar o link.
+ * Janela "Compartilhar" do anúncio (referência: o compartilhar da OLX): WhatsApp, Facebook, X e copiar o
+ * link. Abre pelo menu ⋮ da página do anúncio; no celular, o menu usa antes a janela do próprio aparelho.
+ * `onFechar` deve ser estável (useCallback).
  */
-export default function CompartilharAnuncio({ anuncio, onAviso }) {
-  const [aberto, setAberto] = useState(false);
+export default function CompartilharAnuncio({ anuncio, onAviso, onFechar }) {
   const primeiroRef = useRef(null);
-  const botaoRef = useRef(null);
-  const endereco = `${window.location.origin}/anuncio/${anuncio.id}`;
-  const texto = `${anuncio.titulo} por ${formatarPreco(anuncio.preco)} no DesapegaUai`;
-
-  useEffect(() => {
-    if (!aberto) return undefined;
-    primeiroRef.current?.focus();
-    const teclar = (e) => {
-      if (e.key !== 'Escape') return;
-      setAberto(false);
-      botaoRef.current?.focus();
-    };
-    document.addEventListener('keydown', teclar);
-    return () => document.removeEventListener('keydown', teclar);
-  }, [aberto]);
-
-  function fechar() {
-    setAberto(false);
-    botaoRef.current?.focus();
-  }
-
-  async function compartilhar() {
-    if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-      try {
-        await navigator.share({ title: anuncio.titulo, text: texto, url: endereco });
-        return;
-      } catch (erro) {
-        if (erro.name === 'AbortError') return; // a pessoa fechou a janela do aparelho
-      }
-    }
-    setAberto(true);
-  }
+  useGaveta(true, onFechar, primeiroRef);
+  const endereco = enderecoDoAnuncio(anuncio);
+  const texto = textoDoAnuncio(anuncio);
 
   async function copiarLink() {
     try {
@@ -66,7 +37,7 @@ export default function CompartilharAnuncio({ anuncio, onAviso }) {
     } catch {
       onAviso?.('erro', 'Não foi possível copiar o link', endereco);
     }
-    fechar();
+    onFechar();
   }
 
   const redes = [
@@ -76,38 +47,31 @@ export default function CompartilharAnuncio({ anuncio, onAviso }) {
   ];
 
   return (
-    <>
-      <button type="button" ref={botaoRef} className="det-btn" aria-haspopup="dialog" onClick={compartilhar}>
-        <Icone nome="compartilhar" tamanho={20} cor="#3E8B22" />Compartilhar
-      </button>
-      {aberto && (
-        <div className="acoes-fundo" onMouseDown={(e) => { if (e.target === e.currentTarget) fechar(); }}>
-          <div className="acoes-dialogo comp-dialogo" role="dialog" aria-modal="true" aria-labelledby="comp-titulo">
-            <div className="comp-topo">
-              <h2 id="comp-titulo">Compartilhar</h2>
-              <button type="button" className="comp-fechar" aria-label="Fechar" onClick={fechar}>
-                <Icone nome="fechar" tamanho={20} cor="#6B726C" />
-              </button>
-            </div>
-            <p>Escolha como deseja compartilhar</p>
-            <ul className="comp-opcoes">
-              {redes.map((rede, i) => (
-                <li key={rede.nome}>
-                  <a ref={i === 0 ? primeiroRef : undefined} href={rede.link} target="_blank" rel="noopener noreferrer" onClick={() => setAberto(false)}>
-                    <Marca nome={rede.nome} cor={rede.cor} />{rede.rotulo}
-                  </a>
-                </li>
-              ))}
-              <li>
-                <button type="button" onClick={copiarLink}>
-                  <span className="comp-marca" style={{ background: 'var(--marca)' }} aria-hidden="true"><Icone nome="link" tamanho={20} cor="#fff" /></span>
-                  Copiar link
-                </button>
-              </li>
-            </ul>
-          </div>
+    <div className="acoes-fundo" onMouseDown={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="acoes-dialogo comp-dialogo" role="dialog" aria-modal="true" aria-labelledby="comp-titulo">
+        <div className="comp-topo">
+          <h2 id="comp-titulo">Compartilhar</h2>
+          <button type="button" className="comp-fechar" aria-label="Fechar" onClick={onFechar}>
+            <Icone nome="fechar" tamanho={20} cor="#6B726C" />
+          </button>
         </div>
-      )}
-    </>
+        <p>Escolha como deseja compartilhar</p>
+        <ul className="comp-opcoes">
+          {redes.map((rede, i) => (
+            <li key={rede.nome}>
+              <a ref={i === 0 ? primeiroRef : undefined} href={rede.link} target="_blank" rel="noopener noreferrer" onClick={onFechar}>
+                <Marca nome={rede.nome} cor={rede.cor} />{rede.rotulo}
+              </a>
+            </li>
+          ))}
+          <li>
+            <button type="button" onClick={copiarLink}>
+              <span className="comp-marca" style={{ background: 'var(--marca)' }} aria-hidden="true"><Icone nome="link" tamanho={20} cor="#fff" /></span>
+              Copiar link
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }

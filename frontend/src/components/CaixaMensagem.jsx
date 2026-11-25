@@ -4,6 +4,7 @@ import SeletorEmoji from './SeletorEmoji.jsx';
 import CameraFoto from './CameraFoto.jsx';
 import GravadorAudio from './GravadorAudio.jsx';
 import MenuRapido from './MenuRapido.jsx';
+import ProgramarMensagem from './ProgramarMensagem.jsx';
 import { podeGravarAudio } from '../services/audio.js';
 import { ANEXOS, PONTOS_DE_ENCONTRO, RESPOSTAS_RAPIDAS } from '../services/conversas.js';
 import { prepararEmojis } from '../services/emojis.js';
@@ -27,7 +28,17 @@ let proximoId = 1;
  */
 // edicao: { texto, temFoto } quando a pessoa está editando uma mensagem já enviada (os anexos somem)
 // onEnviarAudio(gravacao): manda o áudio gravado; devolve false se não foi
-export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, onDigitar, preco = null, podeOfertar = false, edicao = null, onCancelarEdicao }) {
+// a dica "Segure para programar o envio" aparece só na primeira vez (guardado neste navegador)
+const CHAVE_DA_DICA = 'desapegauai:dica-programar-vista';
+function dicaJaVista() {
+  try { return localStorage.getItem(CHAVE_DA_DICA) === '1'; } catch { return true; }
+}
+function marcarDicaVista() {
+  try { localStorage.setItem(CHAVE_DA_DICA, '1'); } catch { /* sem localStorage: a dica pode voltar */ }
+}
+const TEMPO_PARA_SEGURAR_MS = 450;
+
+export default function CaixaMensagem({ onEnviar, onEnviarAudio, onProgramar, nomeContato, onDigitar, preco = null, podeOfertar = false, edicao = null, onCancelarEdicao }) {
   const [texto, setTexto] = useState(edicao?.texto ?? '');
   const [anexos, setAnexos] = useState([]);
   const [erro, setErro] = useState('');
@@ -40,6 +51,10 @@ export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, on
   const maisRef = useRef(null);
   const [temMicrofone] = useState(podeGravarAudio); // HTTPS, microfone e gravador no navegador
   const [gravador, setGravador] = useState(null); // { contexto } enquanto grava ou mostra o áudio gravado
+  const [programando, setProgramando] = useState(false); // janela "Programar mensagem" aberta
+  const [dica, setDica] = useState(false);
+  const segurar = useRef(null);
+  const segurou = useRef(false);
 
   // o menu do "+" fecha tocando fora dele ou com Esc
   useEffect(() => {
@@ -80,6 +95,54 @@ export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, on
 
   // editando uma foto, a legenda pode ficar vazia
   const podeEnviar = edicao ? texto.trim().length > 0 || edicao.temFoto : texto.trim().length > 0 || anexos.length > 0;
+
+  // programar (como no WhatsApp): segurar o botão de enviar, ou o botão direito do mouse / tecla de menu nele
+  const podeProgramar = Boolean(onProgramar) && !edicao && anexos.length === 0 && texto.trim().length > 0;
+  useEffect(() => () => clearTimeout(segurar.current), []);
+  useEffect(() => {
+    if (!dica) return undefined;
+    const relogio = setTimeout(() => setDica(false), 6000);
+    return () => clearTimeout(relogio);
+  }, [dica]);
+  function apertarEnviar() {
+    segurou.current = false;
+    if (!podeProgramar) return;
+    clearTimeout(segurar.current);
+    segurar.current = setTimeout(() => {
+      segurou.current = true;
+      setDica(false);
+      setProgramando(true);
+    }, TEMPO_PARA_SEGURAR_MS);
+  }
+  const soltarEnviar = () => clearTimeout(segurar.current);
+  // segurou com o dedo: ao soltar, o celular "clicaria" no que ficou embaixo do dedo, que agora é a janela
+  // que abriu (o botão Enviar dela ou uma rodinha). Cancelar o fim do toque cancela esse clique.
+  function soltarODedo(e) {
+    clearTimeout(segurar.current);
+    if (segurou.current && e.cancelable) e.preventDefault();
+  }
+  function clicarEnviar() {
+    if (segurou.current) {
+      segurou.current = false; // segurou: abriu o Programar mensagem, não envia
+      return;
+    }
+    enviar();
+  }
+  function menuDoEnviar(e) {
+    if (!podeProgramar) return;
+    e.preventDefault();
+    clearTimeout(segurar.current);
+    setDica(false);
+    setProgramando(true);
+  }
+  // ao fechar, esquece o "segurou": senão o próximo Enter no botão (pelo teclado) seria engolido
+  const fecharProgramar = useCallback(() => { segurou.current = false; setProgramando(false); }, []);
+  async function programar(data) {
+    await onProgramar(texto.trim(), data); // erro: a janela mostra a mensagem e continua aberta
+    setTexto('');
+    setErro('');
+    fecharProgramar();
+  }
 
   async function enviar() {
     if (!podeEnviar) return;
@@ -478,7 +541,14 @@ export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, on
             rows={1}
             placeholder={ehCelular ? 'Mensagem' : 'Escreva uma mensagem…'}
             value={texto}
-            onChange={(e) => { setTexto(e.target.value); onDigitar?.(); }}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              onDigitar?.();
+              if (onProgramar && !edicao && e.target.value.trim() && !dicaJaVista()) {
+                marcarDicaVista();
+                setDica(true);
+              }
+            }}
             onKeyDown={aoTeclar}
             enterKeyHint="send"
           />
@@ -508,20 +578,32 @@ export default function CaixaMensagem({ onEnviar, onEnviarAudio, nomeContato, on
               ignorarRef={botaoEmojiRef}
             />
           )}
-          {/* enviar dentro do campo, no canto, como no iPhone */}
+          {/* enviar dentro do campo, no canto, como no iPhone; segurar abre o Programar mensagem */}
+          <span className="enviar-com-dica">
+          {dica && podeProgramar && <span className="pm-dica" role="status">Segure para programar o envio</span>}
           <button
             type="button"
             className="btn-enviar"
             aria-label={edicao ? 'Salvar edição' : 'Enviar mensagem'}
+            aria-describedby={onProgramar && !edicao ? 'dica-programar' : undefined}
             disabled={!podeEnviar || enviando}
-            onClick={enviar}
+            onClick={clicarEnviar}
+            onPointerDown={apertarEnviar}
+            onPointerUp={soltarEnviar}
+            onPointerLeave={soltarEnviar}
+            onPointerCancel={soltarEnviar}
+            onTouchEnd={soltarODedo}
+            onContextMenu={menuDoEnviar}
           >
             {edicao ? <Icone nome="check" tamanho={18} cor="#fff" espessura={2.4} /> : <Icone nome="seta-link" tamanho={18} cor="#fff" espessura={2.4} className="seta-para-cima" />}
           </button>
+          </span>
         </div>
         </>
         )}
       </div>
+      {onProgramar && <span id="dica-programar" className="oculto">Segure o botão, ou abra o menu dele, para programar o envio.</span>}
+      {programando && <ProgramarMensagem texto={texto.trim()} onProgramar={programar} onFechar={fecharProgramar} />}
     </div>
   );
 }

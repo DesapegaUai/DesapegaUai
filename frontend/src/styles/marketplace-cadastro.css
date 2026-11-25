@@ -163,3 +163,25 @@
 .cad-ajuda { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; color: #6B726C; }
 .cad-mapa { margin: 14px 0 10px; }
 .cad-privado { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; padding: 10px 12px; border-radius: 12px; background: #EFF6EB; font-size: 13px; line-height: 1.45; color: #2E6A19; }
+
+/* sugestão de preço da IA, embaixo do preço (opção A): bloco em degradê verde com o brilho, faixa sugerida,
+   se o preço digitado está acima ou abaixo da média e o botão para usar o preço do meio */
+.cad-sugestao { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, #F3F9EE, #E8F4DF); box-shadow: inset 0 0 0 1px rgba(62, 139, 34, .16); animation: cad-sugestao-entra .25s ease-out both; }
+@keyframes cad-sugestao-entra { from { opacity: 0; transform: translateY(4px); } }
+.cad-sugestao-ia { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; background: linear-gradient(145deg, #5DB236, #2F6B19); box-shadow: 0 6px 14px rgba(47, 107, 25, .26); }
+.cad-sugestao-txt { flex: 1; min-width: 0; }
+.cad-sugestao-txt p { margin: 0; }
+.cad-sugestao-faixa { font-size: 15.5px; line-height: 1.4; color: var(--tinta); }
+.cad-sugestao-faixa b { font-weight: 800; color: var(--marca-escura); }
+.cad-sugestao-base { margin-top: 2px !important; font-size: 13.5px; color: var(--texto-2); }
+.cad-sugestao-comparacao { margin-top: 4px !important; font-weight: 700; font-size: 13.5px; }
+.cad-sugestao-comparacao.media { color: #2F6B19; }
+.cad-sugestao-comparacao.acima { color: #8A5A00; }
+.cad-sugestao-comparacao.abaixo { color: #2F6B19; }
+.cad-sugestao-usar { flex: none; min-height: 42px; padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--degrade-anunciar); box-shadow: 0 6px 14px rgba(47, 107, 25, .22); color: #fff; font-family: inherit; font-weight: 700; font-size: 14.5px; white-space: nowrap; cursor: pointer; }
+.cad-sugestao-usar:hover { filter: brightness(1.05); }
+@media (max-width: 560px) {
+  .cad-sugestao { flex-wrap: wrap; }
+  .cad-sugestao-usar { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .cad-sugestao { animation: none; } }

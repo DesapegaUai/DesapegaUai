@@ -8,6 +8,7 @@ import Busca from './pages/Busca.jsx'
 import TodosAnuncios from './pages/TodosAnuncios.jsx'
 import CadastrarAnuncio from './pages/CadastrarAnuncio.jsx'
 import Casa from './pages/Casa.jsx'
+import CompararAnuncios from './pages/CompararAnuncios.jsx'
 import Conversas from './pages/Conversas.jsx'
 import DetalhesAnuncio from './pages/DetalhesAnuncio.jsx'
 import EditarPerfil from './pages/EditarPerfil.jsx'
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/anuncios" element={<TodosAnuncios />} />
           <Route path="/mapa" element={<Mapa />} />
           <Route path="/procura-se" element={<ProcuraSe />} />
+          <Route path="/comparar" element={<CompararAnuncios />} />
           <Route path="/anuncio/:id" element={<DetalhesAnuncio />} />
           <Route path="/usuario/:id" element={<PerfilPublico />} />
           <Route path="/ajuda/:pagina" element={<Institucional />} />

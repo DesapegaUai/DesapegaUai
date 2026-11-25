@@ -1,5 +1,5 @@
-// Compartilhar anúncio (referência: o compartilhar da OLX): no computador abre a escolha entre
-// WhatsApp, Facebook, X e copiar o link; no celular, a janela de compartilhar do próprio aparelho.
+// Compartilhar anúncio (referência: o compartilhar da OLX), pelos três pontinhos no alto do anúncio: no
+// computador abre a escolha entre WhatsApp, Facebook, X e copiar o link; no celular, a janela do próprio aparelho.
 import { expect, test } from '@playwright/test'
 import { semMapaDaInternet, vigiarErros } from './ajuda.js'
 
@@ -11,7 +11,8 @@ test('compartilhar o anúncio: WhatsApp, Facebook e X levam o link do anúncio, 
   await page.goto('/anuncio/1')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Sofá 3 lugares/)
 
-  await page.getByRole('button', { name: 'Compartilhar' }).click()
+  await page.getByRole('button', { name: 'Mais opções do anúncio' }).click() // os três pontinhos no alto do anúncio
+  await page.getByRole('menuitem', { name: 'Compartilhar' }).click()
   const janela = page.getByRole('dialog', { name: 'Compartilhar' })
   await expect(janela).toBeVisible()
   const endereco = encodeURIComponent(new URL('/anuncio/1', page.url()).href)
@@ -26,7 +27,8 @@ test('compartilhar o anúncio: WhatsApp, Facebook e X levam o link do anúncio, 
 
   // copiar o link: o aviso confirma (sem permissão da área de transferência, o aviso mostra o link)
   if (browserName === 'chromium') await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
-  await page.getByRole('button', { name: 'Compartilhar' }).click()
+  await page.getByRole('button', { name: 'Mais opções do anúncio' }).click() // os três pontinhos no alto do anúncio
+  await page.getByRole('menuitem', { name: 'Compartilhar' }).click()
   await janela.getByRole('button', { name: 'Copiar link' }).click()
   await expect(page.getByRole('status').getByText(/Link copiado|Não foi possível copiar o link/)).toBeVisible()
   await expect(janela).toHaveCount(0)

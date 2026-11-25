@@ -18,13 +18,14 @@ import {
 import { PONTOS_DE_ENCONTRO } from '../services/conversas.js';
 import { pedirAvisosDeMensagem } from '../services/push.js';
 import { CONDICOES, ENTREGAS, LIMITES, TRANSPORTES, validarAnuncio } from '../services/meusAnuncios.js';
+import SugestaoDePreco from '../components/SugestaoDePreco.jsx';
 import '../styles/marketplace-acoes.css';
 import '../styles/marketplace-cadastro.css';
 
 const DICAS =['Use fotos reais e bem iluminadas', 'Descreva o produto com detalhes', 'Informe medidas e condições', 'Responda rápido às mensagens'];
 const ORDEM_DOS_ERROS = ['fotos', 'titulo', 'categoria', 'condicao', 'preco', 'cidade', 'bairro', 'entrega', 'transporte'];
 // campo da API -> campo da tela
-const CAMPO_DA_API = { titulo: 'titulo', categoria_id: 'categoria', condicao: 'condicao', preco: 'preco', bairro_id: 'bairro', forma_entrega: 'entrega', transporte: 'transporte', fotos: 'fotos', latitude: 'local', cep: 'cep', rua: 'rua' };
+const CAMPO_DA_API = { titulo: 'titulo', categoria_id: 'categoria', condicao: 'condicao', preco: 'preco', bairro_id: 'bairro', forma_entrega: 'entrega', transporte: 'transporte', fotos: 'fotos', latitude: 'local', cep: 'cep', rua: 'rua', descricao: 'descricao', localizacao: 'referencia' };
 
 const precoParaTexto = (preco) => (preco ? String(preco).replace('.', ',') : '');
 const formatarCep = (cep) => (cep ?? '').replace(/\D/g, '').slice(0, 8).replace(/(\d{5})(\d{1,3})/, '$1-$2');
@@ -502,14 +503,29 @@ function Formulario({ existente }) {
                 </div>
               </Campo>
             </div>
+            {/* a IA sugere o preço pelos parecidos perto de onde o produto está (faixa embaixo do preço, opção A) */}
+            {!ehServico && (
+              <SugestaoDePreco
+                titulo={form.titulo}
+                condicao={form.condicao}
+                cidadeId={form.cidadeId}
+                bairroId={form.bairroId}
+                anuncioId={existente?.id}
+                precoDigitado={form.preco}
+                onUsar={(valor) => mudar('preco', precoParaTexto(valor))}
+              />
+            )}
           </Secao>
 
           <Secao numero={3} titulo="Descrição" descricao="Descreva o produto com detalhes para gerar mais confiança.">
             <div className="cad-area">
               <label htmlFor="cad-descricao" className="oculto">Descrição do anúncio</label>
-              <textarea id="cad-descricao" rows={3} maxLength={LIMITES.descricao} placeholder="Estado de conservação, medidas, funcionalidades, motivo da venda…" value={form.descricao} onChange={(e) => mudar('descricao', e.target.value)} />
+              <textarea id="cad-descricao" rows={3} maxLength={LIMITES.descricao} placeholder="Estado de conservação, medidas, funcionalidades, motivo da venda…" value={form.descricao} onChange={(e) => mudar('descricao', e.target.value)}
+                aria-invalid={Boolean(erros.descricao)} aria-describedby={erros.descricao ? 'cad-descricao-erro' : undefined} />
               <span>{form.descricao.length}/{LIMITES.descricao} caracteres</span>
             </div>
+            {/* a moderação da IA recusa o que não pode na plataforma e diz o que revisar */}
+            {erros.descricao && <p className="cad-erro" id="cad-descricao-erro">{erros.descricao}</p>}
           </Secao>
 
           <Secao numero={4} titulo="Localização e entrega" descricao="Onde o produto está disponível para negociação. A localização é do anúncio: ela não muda se você viajar.">
@@ -553,7 +569,7 @@ function Formulario({ existente }) {
             )}
             {erros.local && <p className="cad-erro">{erros.local}</p>}
 
-            <Campo id="cad-referencia" rotulo="Ponto de referência (aparece no anúncio)" ajuda="Opcional. Ex.: perto da UFV, em frente à rodoviária.">
+            <Campo id="cad-referencia" rotulo="Ponto de referência (aparece no anúncio)" ajuda="Opcional. Ex.: perto da UFV, em frente à rodoviária." erro={erros.referencia}>
               <input id="cad-referencia" className="cad-input" type="text" maxLength={120} value={form.referencia} onChange={(e) => mudar('referencia', e.target.value)} />
             </Campo>
             <div className="cad-pontos" role="group" aria-label="Pontos de encontro seguros">

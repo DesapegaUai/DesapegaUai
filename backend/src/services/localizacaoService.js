@@ -283,8 +283,8 @@ export async function resolverOrigem(query, usuarioId) {
     ['latitude', 'longitude', 'bairro_id', 'cidade_id'])
 }
 
-// raio pedido, senão o das preferências, senão 5 km
-async function raioDaBusca(query, usuarioId) {
+// raio pedido, senão o das preferências, senão 5 km (também usado pela comparação e pela lista de compras)
+export async function raioDaBusca(query, usuarioId) {
   const pedido = v.lerRaio(query.raio_km)
   if (pedido) return pedido
   if (usuarioId) return Number((await repo.buscarPreferencias(usuarioId)).raio_km)
@@ -400,7 +400,7 @@ export const raiosDisponiveis = () => ({ raios: RAIOS, minimo_km: RAIO_MINIMO_KM
 export async function localizacaoDoAnuncio(anuncioId, usuarioId) {
   const l = await repo.buscarLocalizacaoDoAnuncio(anuncioId)
   const dono = l && Number(l.usuario_id) === Number(usuarioId)
-  if (!l || (l.status === 'rascunho' && !dono)) throw erro(404, 'Anúncio não encontrado.', 'ANUNCIO_NAO_ENCONTRADO')
+  if (!l || (['rascunho', 'em_analise'].includes(l.status) && !dono)) throw erro(404, 'Anúncio não encontrado.', 'ANUNCIO_NAO_ENCONTRADO')
   return { anuncio_id: anuncioId, eh_meu: Boolean(dono), localizacao: localizacaoVisivel(l, dono) }
 }
 

@@ -14,8 +14,8 @@ export async function abrirConversa(anuncioId, compradorId) {
       [anuncioId],
     )
 
-    // rascunho só existe para o dono: para os outros, nem existe
-    if (anuncios.length === 0 || anuncios[0].status === 'rascunho') {
+    // rascunho (e anúncio em análise por denúncias) só existe para o dono: para os outros, nem existe
+    if (anuncios.length === 0 || ['rascunho', 'em_analise'].includes(anuncios[0].status)) {
       throw erroHttp(404, 'Anúncio não encontrado.')
     }
 

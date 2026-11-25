@@ -14,44 +14,58 @@
 
 /* ---------- Lista de conversas ---------- */
 .lista-conv { flex: none; width: 400px; border: 1px solid var(--linha); border-radius: 20px; background: var(--sup); box-shadow: var(--elev-2); display: flex; flex-direction: column; overflow: hidden; }
-.lista-topo { flex: none; padding: var(--e5) var(--e5) var(--e4); border-bottom: 1px solid var(--linha); }
-.busca-conv { min-height: 46px; border-radius: var(--r-pill); background: var(--sup-3); display: flex; align-items: center; gap: 11px; padding: 0 18px; border: 1px solid transparent; }
+/* topo da lista: título com as não lidas, busca e filtros, sobre um degradê verde bem leve */
+.lista-topo { flex: none; padding: var(--e5) var(--e5) var(--e4); border-bottom: 1px solid var(--linha); background: linear-gradient(160deg, #F3F9EE 0%, #FFFFFF 70%); }
+.lista-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; font-weight: 800; font-size: 22px; color: var(--tinta); }
+.lista-naolidas { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 11px; border-radius: var(--r-pill); background: linear-gradient(135deg, #3f8a22, #6cb338); box-shadow: 0 4px 12px rgba(62, 139, 34, .28); color: #fff; font-weight: 700; font-size: 12.5px; }
+.lista-naolidas i { width: 7px; height: 7px; border-radius: 50%; background: #E4FF8E; }
+.busca-conv { min-height: 46px; border-radius: 16px; background: var(--sup); display: flex; align-items: center; gap: 11px; padding: 0 18px; border: 1px solid var(--linha); }
 .busca-conv:focus-within { border-color: var(--marca); background: var(--sup); box-shadow: 0 0 0 3px var(--marca-suave); }
 .busca-conv input { flex: 1; min-width: 0; height: 44px; border: 0; padding: 0; background: transparent; font-family: inherit; font-weight: 400; font-size: 16px; color: var(--tinta); outline: none; }
 .busca-conv input::placeholder { color: var(--texto-3); opacity: 1; }
 .chips-conv { display: flex; flex-wrap: wrap; gap: var(--e2); margin-top: 14px; } /* quebra de linha: nenhuma aba fica cortada */
 .chips-conv::-webkit-scrollbar { display: none; }
-.chip-s { white-space: nowrap; flex: none; min-height: 38px; border-radius: var(--r-pill); border: 1px solid var(--linha); background: var(--sup); padding: 0 var(--e4); font-family: inherit; font-weight: 600; font-size: 14.5px; line-height: 36px; color: var(--texto-2); transition: border-color .15s ease; }
-.chip-s.on { border-color: var(--marca); background: #F1F7ED; color: var(--marca); }
+.chip-s { white-space: nowrap; flex: none; min-height: 36px; border-radius: var(--r-pill); border: 0; background: #EEF1EC; padding: 0 var(--e4); font-family: inherit; font-weight: 600; font-size: 14px; line-height: 36px; color: var(--texto-2); transition: background-color .15s ease, box-shadow .15s ease; }
+.chip-s.on { background: linear-gradient(135deg, #3f8a22, #6cb338); box-shadow: 0 4px 10px rgba(62, 139, 34, .25); color: #fff; }
 .chips-conv .chip-s:focus-visible { outline-offset: -2px; }
-.itens-conv { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-.item-conv { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 18px var(--e5); border: 0; border-bottom: 1px solid #F1F1EE; border-left: 3px solid transparent; background: var(--sup); font-family: inherit; text-align: left; color: inherit; transition: background-color .15s ease; }
+/* cada conversa é um cartão: a aberta tem borda verde; quem tem mensagem nova ganha um anel verde na foto */
+.itens-conv { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px 14px; background: #F6F8F4; }
+.item-conv-caixa + .item-conv-caixa { margin-top: 8px; }
+.item-conv { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 14px 14px 14px 12px; border: 0; border-radius: 18px; background: var(--sup); box-shadow: inset 0 0 0 1px var(--linha); font-family: inherit; text-align: left; color: inherit; transition: box-shadow .15s ease; }
 .item-conv:hover { color: inherit; }
 /* três pontinhos ao lado da conversa (o botão fica por cima do link, na linha do nome) */
 .item-conv-caixa { position: relative; }
 .item-conv-caixa .item-l1 { padding-right: 24px; }
-.item-conv-mais { position: absolute; top: 12px; right: 6px; isolation: isolate; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-pill); background: none; padding: 0; }
+.item-conv-mais { position: absolute; top: 10px; right: 8px; isolation: isolate; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-pill); background: none; padding: 0; }
 .item-conv-mais::before { content: ''; position: absolute; z-index: -1; inset: -6px; border-radius: var(--r-pill); } /* área de toque de 44 px */
 .item-conv-mais[aria-expanded="true"] { background: var(--sup-3); }
-.item-conv.on { border-left-color: var(--marca); background: #F1F7ED; }
+.item-conv.on { background: linear-gradient(#F4FAEF, #F4FAEF) padding-box, linear-gradient(135deg, #3f8a22, #a5d65c) border-box; border: 2px solid transparent; padding: 12px 12px 12px 10px; box-shadow: 0 8px 20px rgba(62, 139, 34, .12); }
+.item-conv.nao-lida .avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #6CB338; }
 .item-conv:focus-visible { outline-offset: -2px; }
-.avatar { flex: none; position: relative; width: 52px; height: 52px; border-radius: 26px; background: var(--sup-foto); display: flex; align-items: center; justify-content: center; font-family: inherit; font-weight: 700; font-size: 18px; line-height: 1; color: var(--marca); }
+.avatar { flex: none; position: relative; width: 52px; height: 52px; border-radius: 26px; background: linear-gradient(145deg, #DCEFCF, #B5D99B); display: flex; align-items: center; justify-content: center; font-family: inherit; font-weight: 800; font-size: 18px; line-height: 1; color: #2F6B19; }
 .avatar.g { width: 50px; height: 50px; }
 .avatar .on-dot { position: absolute; right: 1px; bottom: 1px; width: 13px; height: 13px; border-radius: 7px; background: var(--marca-clara); border: 2px solid #fff; display: block; }
 .item-txt { flex: 1; min-width: 0; display: block; }
-.item-l1 { display: flex; align-items: baseline; gap: 10px; }
+.item-l1 { display: flex; align-items: center; gap: 8px; }
+.item-papel { flex: none; display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border-radius: var(--r-pill); background: #EEF1EC; font-weight: 700; font-size: 11px; color: var(--texto-2); }
+.item-papel.vende { background: #E6F4DD; color: var(--marca-escura); }
 .item-nome { flex: 1; min-width: 0; font-family: inherit; font-weight: 700; font-size: 17px; line-height: 1.2; color: var(--tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-hora { flex: none; font-family: inherit; font-weight: 400; font-size: 13.5px; line-height: 1; color: #9AA39B; }
-.item-anuncio { display: block; font-family: inherit; font-weight: 400; font-size: 14px; line-height: 1.2; color: var(--marca-clara); margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* o produto da conversa: miniatura, título e preço */
+.item-produto { display: flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 8px; padding: 4px 10px 4px 4px; border-radius: 12px; background: #F4F7F1; }
+.item-produto-foto { flex: none; display: grid; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 8px; background: linear-gradient(145deg, #F1F8EC, #E3F0DA); }
+.item-produto-foto img { width: 100%; height: 100%; object-fit: cover; }
+.item-anuncio { flex: 1; min-width: 0; font-family: inherit; font-weight: 500; font-size: 13px; line-height: 1.2; color: var(--texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-produto b { flex: none; font-size: 13px; color: var(--marca); }
 .item-l3 { display: flex; align-items: center; gap: var(--e2); margin-top: var(--e2); }
 .item-msg { flex: 1; min-width: 0; font-family: inherit; font-weight: 400; font-size: 15px; line-height: 1.35; color: var(--texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-conv.nao-lida .item-msg { font-weight: 600; color: var(--tinta); }
-.item-qtd { flex: none; min-width: 22px; height: 22px; border-radius: 11px; background: var(--marca); color: #fff; font-family: inherit; font-weight: 700; font-size: 13px; line-height: 22px; text-align: center; padding: 0 6px; }
+.item-qtd { flex: none; min-width: 22px; height: 22px; border-radius: 11px; background: linear-gradient(135deg, #3f8a22, #6cb338); box-shadow: 0 4px 10px rgba(62, 139, 34, .3); color: #fff; font-family: inherit; font-weight: 700; font-size: 13px; line-height: 22px; text-align: center; padding: 0 6px; }
 .lista-vazia { padding: 32px 20px; text-align: center; color: var(--texto-2); font-size: 15px; }
 
 /* ---------- Conversa aberta ---------- */
 .conversa { flex: 1; min-width: 0; border: 1px solid var(--linha); border-radius: 20px; background: var(--sup); box-shadow: var(--elev-2); display: flex; flex-direction: column; overflow: hidden; }
-.conv-topo { flex: none; border-bottom: 1px solid var(--linha); padding: 18px 26px; display: flex; align-items: center; gap: 14px; }
+.conv-topo { flex: none; border-bottom: 1px solid var(--linha); padding: 18px 26px; display: flex; align-items: center; gap: 14px; background: linear-gradient(120deg, #F3F9EE, #FFFFFF 60%); }
 .conv-voltar { display: none; flex: none; width: 44px; height: 44px; border-radius: var(--r-pill); border: 1px solid var(--linha); background: var(--sup); align-items: center; justify-content: center; }
 .conv-nome { font-family: inherit; font-weight: 700; font-size: 19px; line-height: 1.2; color: var(--tinta); margin: 0; }
 .conv-status { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
@@ -136,7 +150,7 @@
   .camera-fechar:hover { background: var(--sup-3); }
   .camera-virar:hover, .camera-btn.secundario:hover { border-color: var(--marca-clara); }
   .camera-disparo:not(:disabled):hover, .camera-btn.primario:hover { background: var(--marca-clara); }
-  .item-conv:not(.on):hover { background: var(--sup-2); }
+  .item-conv:not(.on):hover { box-shadow: inset 0 0 0 1px #BFD9AE, 0 6px 16px rgba(20, 51, 31, .06); }
   .chip-s:not(.on):hover, .rapida:hover { border-color: var(--linha-forte); }
   .conv-acao:hover, .btn-emoji:hover, .item-conv-mais:hover { background: var(--sup-3); }
   .circ:not(.enviar):hover { border-color: var(--linha-forte); }
@@ -305,7 +319,8 @@
    mensagens em verde com letra branca e as da outra pessoa em cinza claro; balões bem redondos, com o
    "rabinho" só na última mensagem de cada sequência; horário e tiques pequenos no canto. Foto e vídeo
    sem legenda aparecem sem moldura, só a imagem com cantos redondos. */
-.msgs { background: #fff; }
+/* fundo da conversa: pontinhos verdes bem leves, como o papel de parede do WhatsApp, mas discreto */
+.msgs { background: radial-gradient(circle at 1px 1px, rgba(62, 139, 34, .07) 1px, transparent 0) 0 0 / 18px 18px, #FBFDF9; }
 .dia { display: flex; justify-content: center; padding: 10px 0 6px; }
 .dia span { font-family: inherit; font-weight: 600; font-size: 12px; line-height: 1; color: #8E8E93; }
 .linha-msg { display: flex; justify-content: flex-start; padding-top: 2px; }
@@ -464,3 +479,22 @@
 @media (max-width: 600px) {
   .audio-chat { width: 230px; }
 }
+
+/* ---------------------------------------------------------------- fixar (como no WhatsApp) */
+/* conversa fixada: alfinete do lado das não lidas */
+.item-fixada { flex: none; display: inline-flex; align-items: center; }
+/* faixa das mensagens fixadas, entre o anúncio e as mensagens: tocar leva até ela e passa para a próxima */
+.conv-fixadas { flex: none; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 18px; border: 0; border-bottom: 1px solid var(--linha); background: linear-gradient(120deg, #F6FBF2, #FFFFFF 70%); color: var(--tinta); font-family: inherit; text-align: left; cursor: pointer; }
+.conv-fixadas:hover { background: linear-gradient(120deg, #EEF7E8, #FFFFFF 70%); }
+.conv-fixadas-barras { flex: none; display: flex; flex-direction: column; gap: 3px; align-self: stretch; justify-content: center; }
+.conv-fixadas-barras i { display: block; width: 3px; height: 9px; border-radius: 2px; background: #CFE3C2; }
+.conv-fixadas-barras i.on { background: var(--marca); }
+.conv-fixadas-icone { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--marca-suave); }
+.conv-fixadas-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.conv-fixadas-txt small { font-weight: 700; font-size: 12px; color: var(--marca); }
+.conv-fixadas-txt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: 14.5px; color: var(--texto-2); }
+/* a mensagem que a faixa mostrou pisca um instante */
+.linha-msg.realcada .bolha { animation: fixada-realce 1.6s ease-out; }
+@keyframes fixada-realce { 0%, 30% { box-shadow: 0 0 0 4px rgba(108, 179, 56, .55); } 100% { box-shadow: 0 0 0 0 rgba(108, 179, 56, 0); } }
+.meta .fixada { display: inline-flex; align-items: center; opacity: .85; }
+@media (prefers-reduced-motion: reduce) { .linha-msg.realcada .bolha { animation: none; box-shadow: 0 0 0 3px rgba(108, 179, 56, .55); } }

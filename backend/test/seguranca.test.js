@@ -272,6 +272,21 @@ describe('Abuso de requisições (rate limiting)', () => {
     assert.equal(gravadas, 60)
     await db.query("DELETE FROM mensagem WHERE conversa_id = 1 AND texto LIKE 'limite de teste %'")
   })
+
+  test('fotos, vídeos e áudios: o 61º envio em 10 minutos é 429 (cada um passa pela IA da moderação)', async () => {
+    let ultima
+    for (let i = 1; i <= 61; i++) ultima = await chamar('POST', '/anuncios/999999/fotos', { cookie: outro, form: new FormData() })
+    assert.equal(ultima.status, 429)
+    assert.equal(ultima.dados.codigo, 'MUITAS_REQUISICOES')
+    assert.match(ultima.dados.erro, /fotos, vídeos ou áudios/)
+  })
+
+  test('editar, mudar o status e excluir anúncio também têm limite: a 121ª ação no mesmo minuto é 429', async () => {
+    let ultima
+    for (let i = 1; i <= 121; i++) ultima = await chamar('PUT', '/anuncios/999999', { cookie: outro, json: { titulo: 'Limite de teste' } })
+    assert.equal(ultima.status, 429)
+    assert.equal(ultima.dados.codigo, 'MUITAS_REQUISICOES')
+  })
 })
 
 describe('Sessão e pedidos de outro site', () => {

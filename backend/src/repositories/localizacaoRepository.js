@@ -137,6 +137,13 @@ function montarFiltros(f) {
     sql.push("(a.titulo LIKE ? ESCAPE '!' OR a.descricao LIKE ? ESCAPE '!')")
     valores.push(termo, termo)
   }
+  // lista de compras: qualquer um dos termos do tipo ("celular", "iphone", "galaxy"...)
+  if (f.buscaQualquer?.length) {
+    sql.push(`(${f.buscaQualquer.map(() => "a.titulo LIKE ? ESCAPE '!' OR a.descricao LIKE ? ESCAPE '!'").join(' OR ')})`)
+    for (const palavra of f.buscaQualquer) valores.push(`%${escaparLike(palavra)}%`, `%${escaparLike(palavra)}%`)
+  }
+  // os próprios anúncios não entram na lista de compras de quem anunciou
+  if (f.excluirUsuarioId) { sql.push('a.usuario_id <> ?'); valores.push(f.excluirUsuarioId) }
   if (f.categoriaId) { sql.push('a.categoria_id = ?'); valores.push(f.categoriaId) }
   if (f.subcategorias?.length) { sql.push('a.subcategoria_id IN (?)'); valores.push(f.subcategorias) }
   if (f.bairros?.length) { sql.push('a.bairro_id IN (?)'); valores.push(f.bairros) }
@@ -194,6 +201,23 @@ export async function listarAnunciosPorDistancia({ origem, raioKm = null, filtro
       localizacao_aproximada: { latitude: Number(latitude_publica), longitude: Number(longitude_publica) },
     })),
   }
+}
+
+// anúncios escolhidos para comparar (só ativos e reservados), com a distância quando há uma origem
+export async function listarAnunciosPorIds({ ids, origem = null, usuarioId = null }) {
+  if (!ids.length) return []
+  const distancia = origem ? DISTANCIA_M : 'NULL'
+  const [linhas] = await db.query(
+    `${sqlDoCard(`, ${distancia} AS distancia_m,
+                 EXISTS (SELECT 1 FROM favorito fv WHERE fv.anuncio_id = a.id AND fv.usuario_id = ?) AS favoritado_por_mim`)}
+       JOIN localizacao_anuncio la ON la.anuncio_id = a.id
+      WHERE a.id IN (?) AND a.status IN ('ativo', 'reservado')`,
+    [...(origem ? [origem.longitude, origem.latitude] : []), usuarioId ?? 0, ids],
+  )
+  return linhas.map(({ distancia_m, favoritado_por_mim, ...linha }) => ({
+    ...montarCard(linha, Number(favoritado_por_mim) === 1),
+    distancia_km: distancia_m === null ? null : Number((Number(distancia_m) / 1000).toFixed(1)),
+  }))
 }
 
 // marcadores do mapa: só o necessário para desenhar, dentro da área visível

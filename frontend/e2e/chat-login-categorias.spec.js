@@ -2,7 +2,7 @@
 // outras cidades na categoria. Conversa 1 do seed: Larissa (2) comprando a air fryer do Diego (1).
 import { Buffer } from 'node:buffer'
 import { expect, test } from '@playwright/test'
-import { criarAnuncioPelaApi, entrarComo, semMapaDaInternet, vigiarErros } from './ajuda.js'
+import { criarAnuncioPelaApi, entrarComo, semMapaDaInternet, videoDeTeste, vigiarErros } from './ajuda.js'
 
 test.describe('Mensagens do chat', () => {
   test('editar e apagar para todos aparecem na hora para a outra pessoa', async ({ browser }) => {
@@ -24,7 +24,7 @@ test.describe('Mensagens do chat', () => {
     // editar: tocar na mensagem, "Editar", mudar o texto e Enter
     await compradora.locator('.linha-msg.eu .bolha').filter({ hasText: texto }).click()
     const menu = compradora.getByRole('menu', { name: 'Opções da mensagem' })
-    await expect(menu.getByRole('menuitem')).toHaveText(['Editar', 'Apagar para mim', 'Apagar para todos'])
+    await expect(menu.getByRole('menuitem')).toHaveText(['Fixar', 'Editar', 'Apagar para mim', 'Apagar para todos'])
     await menu.getByRole('menuitem', { name: 'Editar' }).click()
     await expect(compradora.getByText('Editando mensagem')).toBeVisible()
     const editado = texto.replace('9h', '10h')
@@ -65,7 +65,7 @@ test.describe('Mensagens do chat', () => {
 
     await bolhaNoVendedor.click()
     const menu = vendedor.getByRole('menu', { name: 'Opções da mensagem' })
-    await expect(menu.getByRole('menuitem')).toHaveText(['Apagar para mim'])
+    await expect(menu.getByRole('menuitem')).toHaveText(['Fixar', 'Apagar para mim'])
     await menu.getByRole('menuitem', { name: 'Apagar para mim' }).click()
     await expect(bolhaNoVendedor).toHaveCount(0)
     await vendedor.reload()
@@ -141,7 +141,7 @@ test.describe('Segurar a mensagem no celular', () => {
     // apertar e segurar: as opções aparecem
     await bolha.dispatchEvent('pointerdown', dedo)
     await page.waitForTimeout(700)
-    await expect(menu.getByRole('menuitem')).toHaveText(['Editar', 'Apagar para mim', 'Apagar para todos'])
+    await expect(menu.getByRole('menuitem')).toHaveText(['Fixar', 'Editar', 'Apagar para mim', 'Apagar para todos'])
     await bolha.dispatchEvent('pointerup', dedo)
     await bolha.dispatchEvent('click', dedo)
     await expect(menu).toBeVisible() // soltar o dedo não fecha nem abre outra coisa
@@ -343,8 +343,8 @@ test.describe('Foto no chat colando ou arrastando', () => {
   })
 })
 
-// começo de um MP4 (caixa ftyp "isom") e bytes quaisquer: o servidor confere que é vídeo pelo começo
-const VIDEO_MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom', 'latin1'), Buffer.alloc(12), Buffer.alloc(32 * 1024, 7)])
+// MP4 de verdade: o servidor confere que é vídeo e a moderação abre e confere os quadros
+const VIDEO_MP4 = videoDeTeste()
 
 test.describe('Vídeo no chat', () => {
   test('anexar um vídeo mostra a prévia, envia com legenda e a outra pessoa recebe o vídeo na conversa', async ({ browser }) => {
@@ -417,7 +417,7 @@ test.describe('Mensagem antiga', () => {
     await expect(menu.getByRole('menuitem', { name: /Apagar para todos/ })).toBeDisabled()
     await expect(menu).toContainText('Só dá para apagar para todos até 2 dias depois de enviar')
     await expect(menu.getByRole('menuitem', { name: 'Apagar para mim' })).toBeEnabled()
-    await expect(menu.getByRole('menuitem', { name: 'Apagar para mim' })).toBeFocused()
+    await expect(menu.getByRole('menuitem', { name: 'Fixar' })).toBeFocused() // o foco vai para a primeira opção que funciona
   })
 })
 

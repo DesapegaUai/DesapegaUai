@@ -1,4 +1,5 @@
 import { db } from '../config/db.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { erroHttp } from '../utils/erroHttp.js'
 import { formatarAudioDoChat, formatarFotoDoChat, formatarVideoDoChat } from '../utils/fotos.js'
 import { lerId, lerTexto } from '../utils/validacao.js'
@@ -138,7 +139,9 @@ export async function buscarMensagens(conversaId, usuarioId) {
 // `foto` e `video` são os nomes dos arquivos já gravados em disco (só o envio de fotos e de vídeo passa).
 // `audio` é { arquivo, segundos, ondas } do áudio já convertido. Com anexo, o texto é opcional e vira a
 // legenda (o áudio não tem legenda); sem anexo, o texto é obrigatório.
-export async function salvarMensagem(conversaId, usuarioId, texto, foto = null, video = null, audio = null) {
+// programadaId: a mensagem programada que está saindo agora. Ela sai da fila na mesma transação em que a
+// mensagem é gravada; se outra pessoa (ou o "Enviar agora") já mandou, nada é gravado (404).
+export async function salvarMensagem(conversaId, usuarioId, texto, foto = null, video = null, audio = null, { programadaId = null } = {}) {
   // Essas validações também são usadas pelo Socket.IO.
   conversaId = lerId(conversaId, 'id da conversa')
   const temAnexo = Boolean(foto || video || audio)
@@ -148,6 +151,8 @@ export async function salvarMensagem(conversaId, usuarioId, texto, foto = null, 
     min: temAnexo ? 0 : 1,
     max: 1000,
   }) ?? ''
+  // moderação (vale para o envio pela API, pelo Socket.IO e para a programada na hora de sair)
+  exigirTextoPermitido({ texto }, { onde: 'chat', usuarioId })
 
   const conexao = await db.getConnection()
 
@@ -187,6 +192,14 @@ export async function salvarMensagem(conversaId, usuarioId, texto, foto = null, 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [conversaId, usuarioId, texto, foto, video, audio?.arquivo ?? null, audio?.segundos ?? null, audio?.ondas ?? null],
     )
+
+    if (programadaId) {
+      const [saiu] = await conexao.query(
+        'DELETE FROM mensagem_programada WHERE id = ? AND conversa_id = ? AND remetente_id = ?',
+        [programadaId, conversaId, usuarioId],
+      )
+      if (saiu.affectedRows !== 1) throw erroHttp(404, 'Mensagem programada não encontrada.')
+    }
 
     const [mensagens] = await conexao.query(
       `SELECT id, conversa_id, remetente_id, texto, foto, video, audio, audio_segundos, audio_ondas, enviada_em, lida, entregue_em, editada_em, apagada_em
@@ -313,6 +326,7 @@ export async function editarMensagem(conversaId, mensagemId, usuarioId, texto) {
     if (mensagem.idade_s > PRAZO_PARA_EDITAR_S) throw erroHttp(409, 'Só dá para editar até 15 minutos depois de enviar.')
     if (mensagem.audio) throw erroHttp(409, 'Áudio não pode ser editado. Apague e grave de novo.')
     const novo = lerTexto(texto, 'texto', { obrigatorio: !mensagem.foto && !mensagem.video, min: mensagem.foto || mensagem.video ? 0 : 1, max: 1000 }) ?? ''
+    exigirTextoPermitido({ texto: novo }, { onde: 'chat', usuarioId })
     if (novo !== mensagem.texto) {
       await conexao.query('UPDATE mensagem SET texto = ?, editada_em = NOW() WHERE id = ?', [novo, mensagemId])
     }

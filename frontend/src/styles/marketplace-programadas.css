@@ -1,0 +1,81 @@
+/* Mensagem programada (como no WhatsApp): janela "Programar mensagem" com rodinhas, lista "Mensagens
+   programadas" e o aviso na conversa. Mesmo visual do resto do site: bloco de ícone em degradê verde,
+   botão com brilho e sombras verdes. No celular a janela sobe de baixo; no computador fica no meio. */
+
+.pm-fundo { position: fixed; inset: 0; z-index: 900; display: flex; align-items: flex-end; justify-content: center; background: rgba(15, 25, 18, .45); animation: pm-escurecer .2s ease-out both; }
+@keyframes pm-escurecer { from { opacity: 0; } }
+.pm-folha { width: 100%; max-height: calc(100dvh - 24px); overflow-y: auto; padding: 10px 20px calc(22px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; background: var(--sup); box-shadow: 0 -10px 34px rgba(0, 0, 0, .18); color: var(--tinta); animation: pm-subir .28s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes pm-subir { from { transform: translateY(40px); opacity: 0; } }
+.pm-alca { display: block; width: 42px; height: 5px; margin: 0 auto 12px; border-radius: 99px; background: #D8DAD4; }
+.pm-cab { display: flex; align-items: center; gap: 12px; }
+.pm-icone { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: linear-gradient(145deg, #5DB236, #2F6B19); box-shadow: 0 6px 14px rgba(47, 107, 25, .28); }
+.pm-cab h2 { flex: 1; margin: 0; font-weight: 800; font-size: 19px; }
+.pm-x { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.pm-x:hover { background: var(--sup-3); }
+.pm-previa { margin: 14px 0 0 !important; padding: 12px 14px; border-radius: 16px; background: var(--sup-2); box-shadow: inset 0 0 0 1px var(--linha); font-size: 15px; line-height: 1.45; color: var(--texto-2); overflow-wrap: anywhere; }
+
+/* rodinhas: dia, hora e minuto */
+.pm-rodas { position: relative; isolation: isolate; display: grid; grid-template-columns: 1.7fr 1fr 1fr; margin-top: 10px; }
+.pm-faixa { position: absolute; z-index: -1; left: 0; right: 0; top: 80px; height: 40px; border-radius: 12px; background: var(--marca-suave); box-shadow: inset 0 0 0 1px rgba(62, 139, 34, .14); }
+.roda { position: relative; border-radius: 12px; outline: none; }
+.roda:focus-visible { box-shadow: 0 0 0 2px var(--marca); }
+.roda-lista { height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none; -webkit-mask: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.roda-lista::-webkit-scrollbar { display: none; }
+.roda-lista button, .roda-vazio { display: flex; align-items: center; justify-content: center; width: 100%; height: 40px; scroll-snap-align: center; }
+.roda-lista button { padding: 0 6px; border: 0; background: none; font-family: inherit; font-size: 18px; line-height: 1; color: #9AA19B; white-space: nowrap; cursor: pointer; }
+.roda-lista button.on { font-weight: 800; font-size: 20px; color: var(--tinta); }
+.roda-dia .roda-lista button { justify-content: flex-end; padding-right: 14px; font-size: 16px; }
+.roda-dia .roda-lista button.on { font-size: 18px; }
+.pm-erro { margin-top: 10px !important; font-size: 14.5px; font-weight: 600; color: var(--erro); }
+.pm-enviar { position: relative; overflow: hidden; width: 100%; min-height: 54px; margin-top: 14px; border: 0; border-radius: var(--r-pill); background: var(--degrade-anunciar); box-shadow: var(--elev-3); color: #fff; font-family: inherit; font-weight: 700; font-size: 16.5px; cursor: pointer; }
+.pm-enviar::after { content: ''; position: absolute; inset: 0 0 50% 0; background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0)); pointer-events: none; }
+.pm-enviar:disabled { background: var(--sup-3); box-shadow: none; color: var(--texto-2); cursor: default; }
+.pm-enviar:disabled::after { display: none; }
+
+/* lista "Mensagens programadas" */
+.pm-lista { margin-top: 6px; }
+.pm-grupo { margin: 16px 0 8px !important; text-align: center; font-weight: 700; font-size: 13px; color: var(--texto-2); }
+.pm-grupo::before, .pm-grupo::after { content: '—'; margin: 0 8px; color: var(--linha-forte); }
+.pm-item + .pm-item { margin-top: 12px; }
+.pm-item .linha-msg { display: flex; justify-content: flex-end; }
+.pm-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.pm-acao { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--sup-2); box-shadow: inset 0 0 0 1px var(--linha); font-family: inherit; font-weight: 700; font-size: 14px; color: var(--tinta); cursor: pointer; }
+.pm-acao:hover { background: var(--marca-suave); box-shadow: inset 0 0 0 1px var(--marca); }
+.pm-acao.perigo { color: var(--erro); }
+.pm-acao.perigo:hover { background: #FDF3F2; box-shadow: inset 0 0 0 1px var(--erro); }
+.pm-acao:disabled { opacity: .5; cursor: wait; }
+.pm-nota { margin: 16px 0 0 !important; text-align: center; font-size: 13.5px; color: var(--texto-3); }
+
+/* aviso na conversa (só quem programou vê) */
+.pm-aviso { display: flex; justify-content: center; padding: 10px 0 4px; }
+.pm-aviso span { display: inline-block; max-width: 92%; padding: 8px 14px; border-radius: 14px; background: linear-gradient(135deg, #F3F9EE, #EAF4E2); box-shadow: inset 0 0 0 1px rgba(62, 139, 34, .14); font-size: 13.5px; line-height: 1.45; color: #4A5A4E; text-align: center; }
+.pm-aviso svg { display: inline; margin-right: 6px; vertical-align: -3px; }
+.pm-aviso button { padding: 0 0 0 4px; border: 0; background: none; font-family: inherit; font-weight: 800; font-size: 13.5px; color: var(--marca); cursor: pointer; }
+.pm-aviso button:hover { text-decoration: underline; }
+
+/* dica da primeira vez: "Segure para programar o envio" */
+.pm-dica { position: absolute; right: 0; bottom: calc(100% + 12px); z-index: 30; padding: 9px 14px; border-radius: 12px; background: var(--tinta); color: #fff; font-weight: 600; font-size: 13.5px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0, 0, 0, .2); animation: pm-subir .25s ease-out both; pointer-events: none; }
+.pm-dica::after { content: ''; position: absolute; right: 14px; bottom: -6px; width: 12px; height: 12px; border-radius: 2px; background: var(--tinta); rotate: 45deg; }
+.btn-enviar { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+@media (min-width: 761px) {
+  .pm-fundo { align-items: center; padding: 16px; }
+  .pm-folha { max-width: 440px; padding: 18px 24px 24px; border-radius: 24px; animation-name: pm-aparecer; }
+  .pm-alca { display: none; }
+}
+@keyframes pm-aparecer { from { transform: scale(.97); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-fundo, .pm-folha, .pm-dica { animation: none; }
+}
+
+/* o botão de enviar fica dentro de um span só para a dica ficar presa nele */
+.enviar-com-dica { position: relative; flex: none; display: flex; }
+
+/* janela "Fixar mensagem": por quanto tempo (24 horas, 7 dias ou 30 dias) */
+.fx-texto { margin: 12px 0 0 !important; font-size: 14.5px; line-height: 1.5; color: var(--texto-2); }
+.fx-opcoes { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; border: 0; }
+.fx-opcao { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 16px; border-radius: 14px; background: var(--sup-2); box-shadow: inset 0 0 0 1px var(--linha); font-weight: 700; font-size: 15.5px; color: var(--tinta); cursor: pointer; }
+.fx-opcao input { width: 18px; height: 18px; margin: 0; accent-color: var(--marca); }
+.fx-opcao.on { background: var(--marca-suave); box-shadow: inset 0 0 0 2px var(--marca); }
+.fx-aviso { margin: 12px 0 0 !important; padding: 10px 12px; border-radius: 12px; background: #FBF3DC; color: #7A5A00; font-weight: 600; font-size: 14px; line-height: 1.45; }

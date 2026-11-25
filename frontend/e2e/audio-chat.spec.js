@@ -77,7 +77,7 @@ test.describe('Áudio no chat', () => {
     // áudio não se edita: o menu da mensagem não tem "Editar"; apagar para todos tira para os dois
     await minha.click({ button: 'right' })
     const menu = compradora.getByRole('menu', { name: 'Opções da mensagem' })
-    await expect(menu.getByRole('menuitem')).toHaveText(['Apagar para mim', 'Apagar para todos'])
+    await expect(menu.getByRole('menuitem')).toHaveText(['Fixar', 'Apagar para mim', 'Apagar para todos'])
     await menu.getByRole('menuitem', { name: 'Apagar para todos' }).click()
     await expect(vendedor.locator('.bolha.com-audio')).toHaveCount(audiosAntes)
     await expect(vendedor.locator('.msgs').getByText('Mensagem apagada').last()).toBeVisible()

@@ -10,11 +10,15 @@ import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
 import CartaoCompromisso from '../components/CartaoCompromisso.jsx';
 import DenunciarUsuario from '../components/DenunciarUsuario.jsx';
 import MenuConversa from '../components/MenuConversa.jsx';
+import MensagensProgramadas from '../components/MensagensProgramadas.jsx';
+import FixarMensagem from '../components/FixarMensagem.jsx';
+import MensagensFixadas from '../components/MensagensFixadas.jsx';
+import { quandoSai } from '../services/programadas.js';
 import { lerArquivadas, salvarArquivadas, posicaoDoMenu } from '../services/conversas.js';
 import { carregarMinhasAvaliacoes, daConversa, useAvaliacoes } from '../services/avaliacoes.js';
 import { formatarPreco } from '../services/formatar.js';
 import {
-  apagarMensagemPelaApi, editarMensagemPelaApi, enviarAudioPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, enviarVideoPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, textoDoUltimoAcesso,
+  apagarMensagemPelaApi, apagarProgramada, desafixarConversa, desafixarMensagem, editarMensagemPelaApi, fixarConversa, fixarMensagem, mensagensFixadas, enviarAudioPelaApi, enviarFotosPelaApi, enviarMensagemPelaApi, enviarProgramadaAgora, enviarVideoPelaApi, excluirConversa, iniciais, listarConversas, listarMensagens, mensagemDaApi, mudarStatus, programadasDaConversa, programarMensagem, textoDoUltimoAcesso,
 } from '../services/mercadoApi.js';
 import { urlDaApi } from '../services/api.js';
 import { useSessao } from '../services/sessao.js';
@@ -108,6 +112,9 @@ export default function Conversas() {
   const avaliacoes = useAvaliacoes();
   const msgsRef = useRef(null);
   const abertaRef = useRef(null);
+  // mensagens programadas (como no WhatsApp): só as de quem programou, da conversa aberta
+  const [programadas, setProgramadas] = useState([]);
+  const [vendoProgramadas, setVendoProgramadas] = useState(false);
   const ultimoAvisoDigitando = useRef(0);
   const conversasRef = useRef([]);
   useLayoutEffect(() => { conversasRef.current = conversas; }, [conversas]);
@@ -159,6 +166,31 @@ export default function Conversas() {
   const selecionada = id ? conversas.find((c) => String(c.id) === String(id)) ?? null : null;
   const selecionadaId = selecionada?.id;
   useLayoutEffect(() => { abertaRef.current = selecionadaId; }, [selecionadaId]);
+
+  const recarregarProgramadas = useCallback((conversaId) => {
+    if (!conversaId) return;
+    programadasDaConversa(conversaId)
+      .then((lista) => { if (String(conversaId) === String(abertaRef.current)) setProgramadas(lista); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => { recarregarProgramadas(selecionadaId); }, [selecionadaId, recarregarProgramadas]);
+  const programadasDaAberta = selecionada ? programadas.filter((p) => p.conversa_id === selecionada.id) : [];
+  const fecharProgramadas = useCallback(() => setVendoProgramadas(false), []);
+
+  // mensagens fixadas (como no WhatsApp): até 3 no topo da conversa, as duas pessoas veem
+  const [fixadas, setFixadas] = useState({ conversaId: null, lista: [] });
+  const [fixando, setFixando] = useState(null); // a mensagem escolhida para fixar (abre a janela do prazo)
+  const [realce, setRealce] = useState(null); // a mensagem que a faixa das fixadas acabou de mostrar
+  const recarregarFixadas = useCallback((conversaId) => {
+    if (!conversaId) return;
+    mensagensFixadas(conversaId)
+      .then((lista) => { if (String(conversaId) === String(abertaRef.current)) setFixadas({ conversaId, lista }); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => { recarregarFixadas(selecionadaId); }, [selecionadaId, recarregarFixadas]);
+  const fixadasDaAberta = selecionada && fixadas.conversaId === selecionada.id ? fixadas.lista : [];
+  const idsFixados = new Set(fixadasDaAberta.map((f) => f.mensagem_id));
+  const fecharFixar = useCallback(() => setFixando(null), []);
   const naoLidas = conversas.reduce((t, c) => t + (c.naoLidas > 0 ? 1 : 0), 0);
   const podeAvaliar = (c) => c.anuncio.vendido && !c.vendendo;
   const [marcandoVendido, setMarcandoVendido] = useState(false);
@@ -217,9 +249,49 @@ export default function Conversas() {
   }
 
   // Arquivar: sai da lista principal e fica no filtro "Arquivadas". Desarquivar: volta.
+  // fixar a conversa no topo da minha lista (até 3), ou desafixar
+  async function alternarFixacaoDaConversa(conversa, { silencioso = false } = {}) {
+    const fixar = !conversa.fixada;
+    try {
+      if (fixar) await fixarConversa(conversa.id);
+      else await desafixarConversa(conversa.id);
+      setConversas((lista) => lista.map((c) => (c.id === conversa.id ? { ...c, fixada: fixar, fixada_em: fixar ? new Date().toISOString() : null } : c)));
+      if (!silencioso) avisar('sucesso', fixar ? 'Conversa fixada' : 'Conversa desafixada', fixar ? 'Ela fica no topo da sua lista.' : 'Ela voltou para o lugar dela na lista.');
+    } catch (erro) {
+      avisar('erro', fixar ? 'Não foi possível fixar a conversa' : 'Não foi possível desafixar a conversa', erro.message);
+    }
+  }
+
+  // fixar a mensagem no topo da conversa: a janela pergunta por quanto tempo (e se a mais antiga pode sair)
+  async function fixarMensagemEscolhida(duracao, substituir) {
+    const lista = await fixarMensagem(selecionada.id, fixando.id, { duracao, substituir });
+    setFixadas({ conversaId: selecionada.id, lista });
+    setFixando(null);
+    avisar('sucesso', 'Mensagem fixada', `Ela fica no topo da conversa por ${{ '24h': '24 horas', '7d': '7 dias', '30d': '30 dias' }[duracao]}.`);
+  }
+
+  async function desafixarMensagemEscolhida(mensagem) {
+    try {
+      const lista = await desafixarMensagem(selecionada.id, mensagem.id);
+      setFixadas({ conversaId: selecionada.id, lista });
+    } catch (erro) {
+      avisar('erro', 'Não foi possível desafixar', erro.message);
+    }
+  }
+
+  // a faixa das fixadas leva até a mensagem, e ela pisca um instante
+  function irParaMensagem(mensagemId) {
+    const linha = msgsRef.current?.querySelector(`[data-mensagem="${mensagemId}"]`);
+    if (!linha) return;
+    linha.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    setRealce(mensagemId);
+    setTimeout(() => setRealce((atual) => (atual === mensagemId ? null : atual)), 1800);
+  }
+
   function arquivarOuDesarquivar(conversa) {
     const arquivar = !arquivadas.has(conversa.id);
     mudarArquivadas(conversa.id, arquivar);
+    if (arquivar && conversa.fixada) alternarFixacaoDaConversa(conversa, { silencioso: true }); // arquivada não fica fixada, como no WhatsApp
     if (arquivar && conversa.id === selecionadaId) navegar('/conversas', { replace: true });
     if (arquivar) avisar('sucesso', 'Conversa arquivada', 'Ela fica no filtro Arquivadas e volta para a lista se chegar mensagem nova.');
     else avisar('sucesso', 'Conversa desarquivada', 'Ela voltou para a lista de conversas.');
@@ -371,15 +443,30 @@ export default function Conversas() {
         if (!status) return;
         setConversas((lista) => lista.map((c) => (c.anuncio.id === anuncioId ? { ...c, anuncio: { ...c.anuncio, status, vendido: status === 'vendido' } } : c)));
       }),
+      // fixaram ou desafixaram uma mensagem (eu ou a outra pessoa), ou uma fixada foi editada
+      ouvir('mensagens_fixadas_mudaram', ({ conversa_id: conversaId }) => {
+        if (String(conversaId) === String(abertaRef.current)) recarregarFixadas(conversaId);
+      }),
+      ouvir('mensagem_editada', ({ conversa_id: conversaId }) => {
+        if (String(conversaId) === String(abertaRef.current)) recarregarFixadas(conversaId);
+      }),
+      // fixei ou desafixei uma conversa em outra aba
+      ouvir('conversas_fixadas_mudaram', () => recarregarLista()),
+      // programou, apagou ou a programada saiu (aqui ou em outra aba)
+      ouvir('programadas_mudaram', ({ conversa_id: conversaId }) => {
+        if (String(conversaId) === String(abertaRef.current)) recarregarProgramadas(conversaId);
+      }),
       quandoReconectar(() => {
         recarregarLista();
+        if (abertaRef.current != null) recarregarProgramadas(abertaRef.current);
+        if (abertaRef.current != null) recarregarFixadas(abertaRef.current);
         // tiques, edições e mensagens apagadas enquanto estava sem conexão; com o site em segundo plano,
         // espera a pessoa voltar (ler a conversa marca como lida, e ninguém está olhando)
         if (!document.hidden) setRecarregarAberta((n) => n + 1);
       }),
     ];
     return () => parares.forEach((parar) => parar());
-  }, [meuId, recarregarLista, mudarArquivadas, trocarMensagem, tirarMensagem]);
+  }, [meuId, recarregarLista, mudarArquivadas, trocarMensagem, tirarMensagem, recarregarProgramadas, recarregarFixadas]);
 
   // voltou para a aba com a conversa aberta: o que chegou enquanto ela estava escondida passa a contar como lido
   useEffect(() => {
@@ -396,13 +483,22 @@ export default function Conversas() {
     const caixa = msgsRef.current;
     if (caixa) caixa.scrollTop = caixa.scrollHeight;
   }, [selecionada?.id, selecionada?.mensagens.length]);
+  // programou uma mensagem: o aviso "Você programou..." aparece no fim da conversa, então rola até ele
+  const qtdProgramadas = programadasDaAberta.length;
+  useLayoutEffect(() => {
+    const caixa = msgsRef.current;
+    if (caixa && qtdProgramadas > 0) caixa.scrollTop = caixa.scrollHeight;
+  }, [qtdProgramadas]);
 
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     const teste = FILTROS.find((f) => f.id === filtro).teste;
     const soArquivadas = filtro === 'arquivadas';
-    return conversas.filter((c) => arquivadas.has(c.id) === soArquivadas && teste(c)
+    const filtradas = conversas.filter((c) => arquivadas.has(c.id) === soArquivadas && teste(c)
       && (!termo || c.nome.toLowerCase().includes(termo) || c.anuncio.titulo.toLowerCase().includes(termo)));
+    // as fixadas no topo (a última fixada primeiro); as outras na ordem da última mensagem
+    const quando = (c) => (c.fixada_em ? new Date(c.fixada_em).getTime() : 0);
+    return [...filtradas.filter((c) => c.fixada).sort((a, b) => quando(b) - quando(a)), ...filtradas.filter((c) => !c.fixada)];
   }, [conversas, filtro, busca, arquivadas]);
 
   function mostrarAnuncio(aberto) {
@@ -461,6 +557,37 @@ export default function Conversas() {
     } catch (erro) {
       avisar('erro', 'Mensagem não enviada', erro.message);
       return false;
+    }
+  }
+
+  // programar (segurar o enviar): a mensagem sai sozinha no horário, mesmo com o site fechado
+  async function programar(texto, data) {
+    const { programada } = await programarMensagem(selecionada.id, texto, data);
+    setProgramadas((lista) => [...lista.filter((p) => p.id !== programada.id), programada].sort((a, b) => new Date(a.enviar_em) - new Date(b.enviar_em)));
+    avisar('sucesso', 'Mensagem programada', `Ela sai ${quandoSai(programada.enviar_em)}, mesmo com o site fechado.`);
+  }
+
+  async function enviarProgramada(programada) {
+    try {
+      const { mensagem } = await enviarProgramadaAgora(selecionada.id, programada.id);
+      const local = mensagemDaApi({ ...mensagem, minha: true }, meuId);
+      setConversas((lista) => lista.map((c) => (c.id === selecionada.id
+        ? { ...c, mensagens: [...c.mensagens.filter((m) => m.id !== local.id), local] }
+        : c)));
+      setProgramadas((lista) => lista.filter((p) => p.id !== programada.id));
+    } catch (erro) {
+      avisar('erro', 'Não foi possível enviar agora', erro.message);
+      recarregarProgramadas(selecionada.id);
+    }
+  }
+
+  async function apagarProgramadaDaLista(programada) {
+    try {
+      await apagarProgramada(selecionada.id, programada.id);
+      setProgramadas((lista) => lista.filter((p) => p.id !== programada.id));
+    } catch (erro) {
+      avisar('erro', 'Não foi possível apagar', erro.message);
+      recarregarProgramadas(selecionada.id);
     }
   }
 
@@ -564,6 +691,10 @@ export default function Conversas() {
       <div className={`conv-corpo${id ? ' aberta' : ''}`}>
         <section className="lista-conv" aria-label="Lista de conversas">
           <div className="lista-topo">
+            <div className="lista-titulo" aria-hidden="true">
+              <span>Mensagens</span>
+              {naoLidas > 0 && <span className="lista-naolidas"><i />{naoLidas} {naoLidas === 1 ? 'não lida' : 'não lidas'}</span>}
+            </div>
             <div className="busca-conv">
               <Icone nome="busca" tamanho={19} cor="#4CA02B" espessura={1.7} />
               <label htmlFor="busca-conversa" className="oculto">Buscar conversa</label>
@@ -585,13 +716,24 @@ export default function Conversas() {
                   <Link to={`/conversas/${c.id}`} className={`item-conv${on ? ' on' : ''}${c.naoLidas ? ' nao-lida' : ''}`} aria-current={on ? 'true' : undefined}>
                     <Avatar conversa={c} />
                     <span className="item-txt">
-                      <span className="item-l1"><span className="item-nome">{c.nome}</span><span className="item-hora">{quando(c)}</span></span>
-                      <span className="item-anuncio">{c.anuncio.titulo}</span>
+                      <span className="item-l1">
+                        <span className="item-nome">{c.nome}</span>
+                        <span className={`item-papel${c.vendendo ? ' vende' : ''}`}>{c.vendendo ? 'Vendendo' : 'Comprando'}</span>
+                        <span className="item-hora">{quando(c)}</span>
+                      </span>
+                      <span className="item-produto">
+                        <span className="item-produto-foto" aria-hidden="true">
+                          {c.anuncio.foto ? <img src={c.anuncio.foto} alt="" loading="lazy" /> : <Icone nome="etiqueta" tamanho={15} cor="#4CA02B" />}
+                        </span>
+                        <span className="item-anuncio">{c.anuncio.titulo}</span>
+                        <b>{formatarPreco(c.anuncio.preco)}</b>
+                      </span>
                       <span className="item-l3">
                         <span className="item-msg">{digitando[c.id] ? 'digitando…' : previa(c)}</span>
                         {!carregandoAvaliacoes && c.naoLidas === 0 && podeAvaliar(c) && !daConversa(avaliacoes, c.id) && (
                           <span className="item-avaliar"><Icone nome="estrela" tamanho={12} cor="none" preenchimento="#3E8B22" espessura={0} />Avaliar</span>
                         )}
+                        {c.fixada && <span className="item-fixada" title="Conversa fixada"><Icone nome="alfinete" tamanho={15} cor="#6B726C" espessura={1.9} /><span className="oculto">Conversa fixada</span></span>}
                         {c.naoLidas > 0 && <span className="item-qtd" aria-label={`${c.naoLidas} não lidas`}>{c.naoLidas}</span>}
                       </span>
                     </span>
@@ -599,6 +741,7 @@ export default function Conversas() {
                   <MenuConversa
                     conversa={c}
                     arquivada={arquivadas.has(c.id)}
+                    onFixar={alternarFixacaoDaConversa}
                     onArquivar={arquivarOuDesarquivar}
                     onAvaliar={abrirAvaliacao}
                     onExcluir={excluirConversaDaLista}
@@ -688,6 +831,7 @@ export default function Conversas() {
               )}
             </div>
 
+            <MensagensFixadas key={selecionada.id} fixadas={fixadasDaAberta} onIr={irParaMensagem} />
             <div className="msgs" ref={msgsRef} role="log" aria-live="polite" aria-label="Mensagens" tabIndex={0}>
               {selecionada.mensagens.length === 0 && <p className="lista-vazia">Mande a primeira mensagem para {selecionada.nome.split(' ')[0]}.</p>}
               {selecionada.mensagens.map((m, i) => {
@@ -700,7 +844,7 @@ export default function Conversas() {
                 return (
                 <Fragment key={m.id}>
                   {m.dia !== anterior?.dia && <div className="dia"><span>{m.dia}</span></div>}
-                  <div className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}${ultima ? ' ultima' : ''}`}>
+                  <div data-mensagem={m.id} className={`linha-msg${m.autor === 'eu' ? ' eu' : ''}${primeira ? ' primeira' : ''}${ultima ? ' ultima' : ''}${realce === m.id ? ' realcada' : ''}`}>
                     <div
                       className={`bolha${m.apagada ? ' apagada' : ''}${midia ? ' midia' : ''}${midia && !m.texto ? ' so-midia' : ''}${m.audio && !m.apagada ? ' com-audio' : ''}${m.editada ? ' com-editada' : ''}${menuMensagem?.mensagem.id === m.id ? ' em-destaque' : ''}`}
                       role="button"
@@ -739,6 +883,7 @@ export default function Conversas() {
                       )}
                       {m.texto && <p>{m.texto}</p>}
                       <div className="meta">
+                        {idsFixados.has(m.id) && <span className="fixada" title="Mensagem fixada"><Icone nome="alfinete" tamanho={13} cor="currentColor" espessura={2} /><span className="oculto">fixada</span></span>}
                         {m.editada && <span className="editada">editada</span>}
                         <span>{m.hora}</span>
                         {/* como no WhatsApp: ✓ enviada, ✓✓ entregue (chegou no aparelho), ✓✓ azul lida */}
@@ -757,6 +902,16 @@ export default function Conversas() {
                 );
               })}
               {digitando[selecionada.id] && <p className="digitando" aria-live="polite">{selecionada.nome.split(' ')[0]} está digitando…</p>}
+              {/* as programadas: só quem programou vê o aviso (como no WhatsApp) */}
+              {programadasDaAberta.map((p) => (
+                <div key={`programada-${p.id}`} className="pm-aviso">
+                  <span>
+                    <Icone nome="relogio" tamanho={16} cor="#4A5A4E" espessura={1.8} />
+                    Você programou uma mensagem para {quandoSai(p.enviar_em)}.
+                    <button type="button" onClick={() => setVendoProgramadas(true)}>Mostrar</button>
+                  </span>
+                </div>
+              ))}
               {selecionada.anuncio.vendido && (
                 <CartaoCompromisso
                   key={`compromisso-${selecionada.id}`}
@@ -774,10 +929,22 @@ export default function Conversas() {
               )}
             </div>
 
+            {fixando && <FixarMensagem onFixar={fixarMensagemEscolhida} onFechar={fecharFixar} />}
+            {vendoProgramadas && (
+              <MensagensProgramadas
+                programadas={programadasDaAberta}
+                onEnviarAgora={enviarProgramada}
+                onApagar={apagarProgramadaDaLista}
+                onFechar={fecharProgramadas}
+              />
+            )}
             {menuMensagem && (
               <MenuMensagem
                 mensagem={menuMensagem.mensagem}
                 posicao={menuMensagem.posicao}
+                fixada={idsFixados.has(menuMensagem.mensagem.id)}
+                onFixar={(m) => setFixando(m)}
+                onDesafixar={desafixarMensagemEscolhida}
                 onEditar={(m) => setEditando(m)}
                 onApagarParaMim={(m) => apagarMensagem(m, 'mim')}
                 onApagarParaTodos={(m) => apagarMensagem(m, 'todos')}
@@ -791,6 +958,7 @@ export default function Conversas() {
               nomeContato={selecionada.nome}
               onEnviar={enviar}
               onEnviarAudio={enviarAudio}
+              onProgramar={programar}
               onDigitar={avisarQueEstouDigitando}
               preco={selecionada.anuncio.preco}
               podeOfertar={!selecionada.vendendo && !selecionada.anuncio.vendido}

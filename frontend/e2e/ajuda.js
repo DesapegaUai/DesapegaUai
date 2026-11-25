@@ -1,6 +1,42 @@
 // Auxiliares dos testes de navegador.
 import { Buffer } from 'node:buffer'
+import { execFileSync } from 'node:child_process'
+import { readFileSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import os from 'node:os'
+import path from 'node:path'
+import process from 'node:process'
 import { expect } from '@playwright/test'
+
+// o banco dos testes (o de conferência, recriado pelo playwright.config.js), para preparar o que a API não
+// faz sozinha (ex.: uma conta de teste a mais). O usuário e a senha vêm do backend/.env, lidos sem mostrar.
+export async function bancoDosTestes() {
+  const mysql = createRequire(path.resolve('../backend/package.json'))('mysql2/promise')
+  const env = {}
+  for (const linha of readFileSync(path.resolve('../backend/.env'), 'utf8').split(/\r?\n/)) {
+    const achou = /^\s*(DB_HOST|DB_PORT|DB_USER|DB_PASSWORD)\s*=\s*(.*?)\s*$/.exec(linha)
+    if (achou) env[achou[1]] = achou[2].replace(/^["']|["']$/g, '')
+  }
+  return mysql.createConnection({
+    host: env.DB_HOST || '127.0.0.1',
+    port: Number(env.DB_PORT || 3306),
+    user: env.DB_USER || 'root',
+    password: env.DB_PASSWORD || '',
+    database: process.env.E2E_DB_NAME || 'desapegauai_conferencia',
+  })
+}
+
+// vídeo MP4 de verdade (2 s de barras coloridas), gerado na hora com o ffmpeg da API: a moderação abre o
+// vídeo e confere os quadros, então um arquivo que só começa como MP4 não passa
+export function videoDeTeste() {
+  const ffmpeg = createRequire(path.resolve('../backend/package.json'))('ffmpeg-static')
+  const arquivo = path.join(os.tmpdir(), `desapegauai-e2e-video-${process.pid}.mp4`)
+  execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=duration=2:size=320x240:rate=15',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', arquivo])
+  const dados = readFileSync(arquivo)
+  rmSync(arquivo, { force: true })
+  return dados
+}
 
 export const CENTRO_VICOSA = { latitude: -20.752736, longitude: -42.881906, accuracy: 15 }
 

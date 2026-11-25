@@ -13,7 +13,7 @@ export const TRANSPORTES = {
   carro: { titulo: 'Cabe em carro de app', descricao: 'Vai no porta-malas ou no banco.', icone: 'veiculos' },
   carreto: { titulo: 'Precisa de carreto', descricao: 'Item grande: combine o frete.', icone: 'caminhao' },
 };
-export const ROTULO_STATUS = { ativo: 'Disponível', reservado: 'Reservado', rascunho: 'Rascunho', vendido: 'Vendido' };
+export const ROTULO_STATUS = { ativo: 'Disponível', reservado: 'Reservado', rascunho: 'Rascunho', vendido: 'Vendido', em_analise: 'Em análise' };
 // aparece na busca e no perfil público: disponível ou reservado
 export const estaVisivel = (anuncio) => anuncio.status === 'ativo' || anuncio.status === 'reservado';
 

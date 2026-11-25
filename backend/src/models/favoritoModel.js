@@ -32,6 +32,7 @@ const ORDENS = {
 export const ORDENS_DE_FAVORITOS = Object.keys(ORDENS)
 
 // cards na ordem pedida; categoriaId null traz todas
+// o anúncio em análise (tirado da busca por denúncias) some dos Favoritos enquanto a equipe revisa
 export async function listarCards(usuarioId, { categoriaId, ordenar, pagina, porPagina }) {
   const filtro = categoriaId ? 'AND a.categoria_id = ?' : ''
   const valores = categoriaId ? [usuarioId, categoriaId] : [usuarioId]
@@ -40,14 +41,14 @@ export async function listarCards(usuarioId, { categoriaId, ordenar, pagina, por
     `SELECT COUNT(*) AS total
        FROM favorito fav
        JOIN anuncio a ON a.id = fav.anuncio_id
-      WHERE fav.usuario_id = ? ${filtro}`,
+      WHERE fav.usuario_id = ? AND a.status <> 'em_analise' ${filtro}`,
     valores,
   )
 
   const [linhas] = await db.query(
     `${sqlDoCard()}
        JOIN favorito fav ON fav.anuncio_id = a.id
-      WHERE fav.usuario_id = ? ${filtro}
+      WHERE fav.usuario_id = ? AND a.status <> 'em_analise' ${filtro}
       ORDER BY ${ORDENS[ordenar]}
       LIMIT ? OFFSET ?`,
     [...valores, porPagina, (pagina - 1) * porPagina],

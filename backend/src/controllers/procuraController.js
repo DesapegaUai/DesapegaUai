@@ -1,6 +1,7 @@
 // Procura-se: o comprador registra o que quer, o bairro e até quanto paga.
 import * as anuncioModel from '../models/anuncioModel.js'
 import * as procuraModel from '../models/procuraModel.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { erroHttp } from '../utils/erroHttp.js'
 import { registrar } from '../utils/log.js'
 import { lerId, lerTexto } from '../utils/validacao.js'
@@ -29,6 +30,7 @@ export async function listar(req, res) {
 export async function criar(req, res) {
   const corpo = req.body ?? {}
   const titulo = lerTexto(corpo.titulo, 'titulo', { obrigatorio: true, min: 3, max: 80 })
+  exigirTextoPermitido({ titulo }, { onde: 'procura', usuarioId: req.usuario.id })
   const bairroId = lerId(corpo.bairro_id, 'bairro_id')
   const categoriaId = vazio(corpo.categoria_id) ? null : lerId(corpo.categoria_id, 'categoria_id')
   const precoMax = lerPrecoMaximo(corpo.preco_max)

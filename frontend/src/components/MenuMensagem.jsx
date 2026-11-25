@@ -6,9 +6,10 @@ import '../styles/marketplace-acoes.css';
 
 /**
  * Opções de uma mensagem do chat, como no WhatsApp:
- * editar (a sua, até 15 minutos), apagar para mim (qualquer uma) e apagar para todos (a sua, até 2 dias).
+ * fixar no topo da conversa (qualquer uma, até 3), editar (a sua, até 15 minutos), apagar para mim (qualquer
+ * uma) e apagar para todos (a sua, até 2 dias).
  */
-export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarParaMim, onApagarParaTodos, onFechar }) {
+export default function MenuMensagem({ mensagem, posicao, fixada = false, onFixar, onDesafixar, onEditar, onApagarParaMim, onApagarParaTodos, onFechar }) {
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +42,11 @@ export default function MenuMensagem({ mensagem, posicao, onEditar, onApagarPara
       {/* no celular, a conversa fica desfocada por trás das opções, como no iPhone */}
       <div className="menu-mensagem-fundo" aria-hidden="true" />
       <div className="acoes-menu menu-mensagem" role="menu" aria-label="Opções da mensagem" ref={menuRef} style={posicao}>
+        {!mensagem.apagada && onFixar && (
+          <button type="button" role="menuitem" onClick={escolher(fixada ? onDesafixar : onFixar)}>
+            <Icone nome="alfinete" tamanho={19} cor="#3E8B22" />{fixada ? 'Desafixar' : 'Fixar'}
+          </button>
+        )}
         {/* áudio não tem texto para editar: a opção nem aparece, como no WhatsApp */}
         {minha && !mensagem.audio && (
           <button type="button" role="menuitem" disabled={!editar} onClick={escolher(onEditar)}>

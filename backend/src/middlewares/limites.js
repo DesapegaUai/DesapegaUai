@@ -59,6 +59,16 @@ export const limiteMensagens = criarLimite({
   mensagem: 'Muitas mensagens em pouco tempo. Aguarde alguns segundos.',
 })
 
+// fotos, vídeos e áudios (chat, foto de perfil e fotos novas de anúncio): cada um passa pela IA da
+// moderação, e o vídeo e o áudio pelo ffmpeg. Folgado para quem conversa, mas segura quem manda em massa
+export const limiteMidia = criarLimite({
+  minutos: 10,
+  maximo: 60,
+  porUsuario: true,
+  sempre: true,
+  mensagem: 'Muitas fotos, vídeos ou áudios em pouco tempo. Aguarde alguns minutos e tente de novo.',
+})
+
 // o resto do que grava (favoritar, abrir conversa, pedido do Procura-se, perfil, avaliação, denúncia)
 export const limiteGravacao = criarLimite({
   minutos: 1,

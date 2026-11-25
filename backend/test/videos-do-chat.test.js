@@ -1,7 +1,12 @@
 // Vídeo no chat: envio com legenda, entrega em tempo real, quem pode ver, assistir em pedaços (Range),
 // arquivo que não é vídeo e apagar para todos (o arquivo sai do disco).
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { readFileSync, rmSync } from 'node:fs'
 import { access } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import caminhoDoFfmpeg from 'ffmpeg-static'
 import { after, before, test } from 'node:test'
 import { io as conectarSocket } from 'socket.io-client'
 
@@ -24,10 +29,18 @@ let comprador // Larissa (2)
 let outraPessoa // Usuário Teste (3), que não participa da conversa
 const sockets = []
 
-// começo de um MP4 de verdade (caixa ftyp "isom") seguido de bytes quaisquer: 64 KB
-const VIDEO_MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom', 'latin1'), Buffer.alloc(12), Buffer.alloc(64 * 1024, 7)])
-// começo de um MOV do iPhone (caixa ftyp "qt  ")
-const VIDEO_MOV = Buffer.concat([Buffer.from([0, 0, 0, 0x14]), Buffer.from('ftypqt  ', 'latin1'), Buffer.alloc(8), Buffer.alloc(4096, 3)])
+// vídeos de verdade de 2 s (barras coloridas), gerados na hora com o ffmpeg da API: a IA da moderação
+// abre o vídeo e confere os quadros, então um arquivo que só começa como MP4 não passa mais
+function videoDeTeste(formato) {
+  const arquivo = path.join(os.tmpdir(), `desapegauai-teste-video-${process.pid}.${formato}`)
+  execFileSync(caminhoDoFfmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=duration=2:size=320x240:rate=15',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-f', formato, arquivo])
+  const dados = readFileSync(arquivo)
+  rmSync(arquivo, { force: true })
+  return dados
+}
+const VIDEO_MP4 = videoDeTeste('mp4') // caixa ftyp "isom"
+const VIDEO_MOV = videoDeTeste('mov') // caixa ftyp "qt  ", como o do iPhone
 
 async function entrarComo(id) {
   const r = await fetch(`${base}/auth/teste`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario_id: id }) })
