@@ -204,8 +204,12 @@ export default function SecaoConectando() {
           <img className="rg-foto" src="/img/fotos/cidade-regiao.webp" alt="" loading="lazy" />
           <div className="rg-veu" />
 
+          {/* marcador: a gota flutua como os cards; a bolinha fica no chão marcando o lugar (o CSS anima as duas) */}
           {pinos.map((p) => (
-            <img key={p} className={`rg-pino ${p}`} src="/img/marcador-mapa.svg" alt="" />
+            <span key={p} className={`rg-pino ${p}`} aria-hidden="true">
+              <img className="rg-gota" src="/img/marcador-mapa.svg" alt="" />
+              <i className="rg-chao" />
+            </span>
           ))}
 
           {/* O card fica sempre no lugar (flutuando); só o conteúdo troca, por isso a key vai na foto e no texto */}

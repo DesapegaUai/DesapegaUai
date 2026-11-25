@@ -117,6 +117,8 @@
   border-radius: 28px;
   container-type: inline-size;
   isolation: isolate;
+  /* o quanto os cards e os marcadores sobem quando flutuam */
+  --rg-sobe: 0.5cqw;
 }
 
 /* A foto começa 20% acima da caixa: o alto do morro (casas soltas no meio do mato) fica de fora. */
@@ -143,18 +145,64 @@
   );
 }
 
+/* Marcador do mapa: a caixa tem o tamanho do desenho inteiro; a gota fica em cima e a bolinha embaixo,
+   no ponto do mapa. Cada marcador flutua no seu ritmo (como os cards, para não subirem todos juntos). */
 .rg-pino {
   position: absolute;
   display: none;
   width: 2.658cqw;
-  max-width: none;
   height: 4.813cqw;
 }
 
-.rg-p1 { display: block; left: 46.408cqw; top: 6.753cqw; }
-.rg-p2 { display: block; left: 72.342cqw; top: 15.589cqw; }
-.rg-p3 { display: block; left: 44.684cqw; top: 33.908cqw; }
-.rg-p4 { display: block; left: 86.422cqw; top: 39.44cqw; }
+.rg-p1 { display: block; left: 46.408cqw; top: 6.753cqw; --rg-ritmo: 5.8s; --rg-atraso: -1s; }
+.rg-p2 { display: block; left: 72.342cqw; top: 15.589cqw; --rg-ritmo: 5.2s; --rg-atraso: -3s; }
+.rg-p3 { display: block; left: 44.684cqw; top: 33.908cqw; --rg-ritmo: 6.2s; --rg-atraso: -0.4s; }
+.rg-p4 { display: block; left: 86.422cqw; top: 39.44cqw; --rg-ritmo: 5.6s; --rg-atraso: -2.6s; }
+
+/* a gota sobe e desce como os cards */
+.rg-gota {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  max-width: none;
+  height: 76.12%;
+  animation: rg-flutua var(--rg-ritmo) ease-in-out var(--rg-atraso) infinite;
+}
+
+/* a bolinha fica no chão marcando o lugar e diminui um pouco quando a gota sobe, como uma sombra */
+.rg-chao {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 14.93%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  translate: -50% 0;
+  animation: rg-sombra var(--rg-ritmo) ease-in-out var(--rg-atraso) infinite;
+}
+
+/* de tempos em tempos sai uma onda clarinha da bolinha, como os mapas fazem para mostrar um lugar */
+.rg-chao::after {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  opacity: 0; /* sem animação (pausada ou movimento reduzido), a onda não aparece */
+  animation: rg-onda 3.2s ease-out var(--rg-atraso) infinite;
+}
+
+@keyframes rg-sombra {
+  0%, 100% { scale: 1; opacity: 1; }
+  50% { scale: 0.7; opacity: 0.8; }
+}
+
+@keyframes rg-onda {
+  0% { scale: 1; opacity: 0.9; }
+  70%, 100% { scale: 3.4; opacity: 0; }
+}
 
 .rg-card {
   position: absolute;
@@ -170,8 +218,7 @@
   box-shadow:
     0 1.006cqw 2.299cqw rgba(10, 30, 10, 0.22),
     0 0.144cqw 0.431cqw rgba(10, 30, 10, 0.08);
-  /* flutua parado no lugar, como um balão: sobe um pouquinho e volta */
-  --rg-sobe: 0.5cqw;
+  /* flutua parado no lugar, como um balão: sobe um pouquinho (--rg-sobe, na .rg-caixa) e volta */
   animation: rg-flutua 5s ease-in-out infinite;
 }
 
@@ -244,7 +291,10 @@
   .rg-card,
   .rg-card > :is(img, .rg-sf),
   .rg-card-txt,
-  .rg-saindo .rg-card-txt {
+  .rg-saindo .rg-card-txt,
+  .rg-gota,
+  .rg-chao,
+  .rg-chao::after {
     animation: none;
   }
 }
@@ -358,12 +408,11 @@
   .rg-btn { height: 54px; margin-top: 22px; padding: 0 32px; gap: 12px; font-size: 16.5px; line-height: 21px; }
   .rg-btn .icone { width: 18px; height: 18px; }
 
-  .rg-caixa { grid-column: 1 / -1; grid-row: 2; aspect-ratio: 802 / 486; margin-top: 36px; border-radius: 24px; }
+  .rg-caixa { grid-column: 1 / -1; grid-row: 2; aspect-ratio: 802 / 486; margin-top: 36px; border-radius: 24px; --rg-sobe: 0.85cqw; }
   .rg-veu,
   .rg-p4 { display: none; }
   .rg-foto { left: -26.79cqw; top: -15.4cqw; width: 133.93cqw; height: 77cqw; }
   .rg-pino { width: 4.115cqw; height: 7.731cqw; }
-  .rg-card { --rg-sobe: 0.85cqw; }
   .rg-novo { --rg-selo: 1.4cqw; }
   .rg-p1 { left: 15.586cqw; top: 8.603cqw; }
   .rg-p2 { left: 56.858cqw; top: 22.693cqw; }
@@ -412,14 +461,13 @@
   .rg-cab-cta { display: contents; }
   .rg-tit { font-size: 38px; line-height: 40px; letter-spacing: -0.015em; }
   .rg-apoio { grid-column: 1; grid-row: 2; margin-top: 14px; }
-  .rg-caixa { grid-column: 1; grid-row: 3; aspect-ratio: 358 / 431; margin-top: 24px; }
+  .rg-caixa { grid-column: 1; grid-row: 3; aspect-ratio: 358 / 431; margin-top: 24px; --rg-sobe: 1.7cqw; }
   .rg-btn { grid-column: 1; grid-row: 4; width: 100%; height: 52px; margin-top: 16px; }
   .rg-p1,
   .rg-sofa,
   .rg-mesa { display: none; }
   .rg-foto { left: -52.88cqw; top: -30.4cqw; width: 264.39cqw; height: 152cqw; }
   .rg-pino { width: 6.983cqw; height: 12.849cqw; }
-  .rg-card { --rg-sobe: 1.7cqw; }
   .rg-novo { --rg-selo: 2.9cqw; }
   .rg-p2 { left: 95.81cqw; top: 47.486cqw; }
   .rg-p3 { left: 21.788cqw; top: 96.369cqw; }
