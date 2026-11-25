@@ -77,6 +77,8 @@ export default function ProcuraSe() {
       carregar();
       avisar('sucesso', 'Pedido publicado', 'Quando alguém anunciar algo parecido na sua cidade, você recebe um aviso no sininho.');
     } catch (falha) {
+      // a moderação recusou o que foi escrito: a mensagem fica também embaixo do campo
+      if (falha.campos?.includes('titulo')) setErros({ titulo: falha.message });
       avisar('erro', 'Não foi possível publicar o pedido', falha.message);
     } finally {
       setEnviando(false);

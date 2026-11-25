@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import SemFoto from './SemFoto.jsx';
 import { formatarPreco } from '../services/formatar.js';
+import { textoDaFaixa } from '../services/comparador.js';
 
 const formatoKm = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
@@ -9,8 +10,9 @@ const formatoKm = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
  * Card de anúncio: foto 4:3 (634×470), coração, título, preço, bairro e distância.
  * O card inteiro é clicável (link no título); o coração fica por cima e não abre o anúncio.
  * A distância vem calculada pela API (em linha reta, a partir da sua referência).
+ * faixa (na busca): o preço comparado com a média dos parecidos, pela IA do DesapegaUai.
  */
-export default function CardAnuncioMarketplace({ anuncio, favorito = false, onFavoritar, selo = null }) {
+export default function CardAnuncioMarketplace({ anuncio, favorito = false, onFavoritar, selo = null, faixa = null }) {
   const { id, titulo, preco, unidade, bairro, cidade, foto } = anuncio;
   const local = anuncio.local ?? [bairro, cidade].filter(Boolean).join(', ');
   const distancia = typeof anuncio.distancia_km === 'number'
@@ -44,7 +46,10 @@ export default function CardAnuncioMarketplace({ anuncio, favorito = false, onFa
         <h3 className="card-titulo">
           <Link className="card-link" to={`/anuncio/${id}`}>{titulo}</Link>
         </h3>
-        <div className="card-preco">{formatarPreco(preco, unidade)}</div>
+        <div className="card-preco">
+          {formatarPreco(preco, unidade)}
+          {faixa && <span className={`card-faixa ${faixa.tipo}`}>{textoDaFaixa(faixa)}</span>}
+        </div>
         <div className="card-local">
           <Icone nome="local" tamanho={17} cor="#4CA02B" />
           <span>{local}{distancia && <> · <b className="card-distancia">{distancia}</b></>}</span>

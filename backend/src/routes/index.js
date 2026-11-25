@@ -7,8 +7,10 @@ import { anuncioRoutes, meusAnunciosRoutes } from './anuncioRoutes.js'
 import { avaliacaoRoutes } from './avaliacaoRoutes.js'
 import { authRoutes } from './authRoutes.js'
 import { categoriaRoutes } from './categoriaRoutes.js'
+import { comparacaoRoutes } from './comparacaoRoutes.js'
 import { conversaRoutes } from './conversaRoutes.js'
 import { favoritoRoutes } from './favoritoRoutes.js'
+import { listaDeComprasRoutes } from './listaDeComprasRoutes.js'
 import { localRoutes } from './localRoutes.js'
 import { localizacaoRoutes } from './localizacaoRoutes.js'
 import { notificacaoRoutes } from './notificacaoRoutes.js'
@@ -34,3 +36,5 @@ rotas.use('/conversas', conversaRoutes)
 rotas.use('/avaliacoes', avaliacaoRoutes)
 rotas.use('/notificacoes', notificacaoRoutes)
 rotas.use('/procuras', procuraRoutes)
+rotas.use('/comparacao', comparacaoRoutes)
+rotas.use('/lista-compras', listaDeComprasRoutes)

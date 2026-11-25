@@ -1,6 +1,7 @@
 import { app } from './app.js'
 import { env } from './config/env.js'
 import { aplicarRetencao } from './services/localizacaoService.js'
+import { iniciarFilaDeProgramadas } from './services/mensagemProgramadaService.js'
 import { iniciarSocket } from './socket.js'
 
 const servidor = app.listen(env.porta, env.host, (erro) => {
@@ -19,6 +20,9 @@ const servidor = app.listen(env.porta, env.host, (erro) => {
 })
 
 iniciarSocket(servidor)
+
+// mensagens programadas no chat: confere a fila a cada 10 segundos (as atrasadas saem assim que a API sobe)
+iniciarFilaDeProgramadas()
 
 // LGPD: localização de usuário parada há mais de 30 dias é apagada (ao subir e a cada 6 horas)
 const retencao = () => aplicarRetencao().catch((erro) => console.error('Erro na retenção de localizações:', erro.message))

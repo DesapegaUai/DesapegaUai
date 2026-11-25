@@ -22,6 +22,12 @@ function quando(data) {
 }
 
 /** Sininho do cabeçalho: abre a caixa de avisos (lista, ativar avisos e distância). */
+// o ícone de cada tipo de aviso (quando o aviso não tem a foto do anúncio)
+const ICONE_DO_AVISO = {
+  nova_avaliacao: 'estrela', procura_atendida: 'busca', lista_compras: 'sacola', queda_preco: 'seta-baixo',
+  anuncio_em_analise: 'alerta', anuncio_liberado: 'check', anuncio_removido: 'lixeira',
+};
+
 export default function CaixaNotificacoes() {
   const n = useContext(ContextoNotificacoes);
   const [aberta, setAberta] = useState(false);
@@ -115,10 +121,10 @@ export default function CaixaNotificacoes() {
               {pendentes.length === 0 && <li className="notif-vazio">Nenhum aviso por enquanto.</li>}
               {pendentes.map((aviso) => (
                 <li key={aviso.id} className={aviso.lida ? undefined : 'nova'}>
-                  <Link to={aviso.anuncio_id ? `/anuncio/${aviso.anuncio_id}` : '/perfil'} onClick={() => { n.marcarLida(aviso.id); setAberta(false); }}>
+                  <Link to={aviso.anuncio_id ? `/anuncio/${aviso.anuncio_id}` : aviso.tipo === 'anuncio_removido' ? '/meus-anuncios' : '/perfil'} onClick={() => { n.marcarLida(aviso.id); setAberta(false); }}>
                     {aviso.foto
                       ? <img className="notif-foto" src={urlDaApi(aviso.foto)} alt="" loading="lazy" />
-                      : <Icone nome={{ nova_avaliacao: 'estrela', procura_atendida: 'busca' }[aviso.tipo] ?? 'etiqueta'} tamanho={18} cor="#3E8B22" />}
+                      : <Icone nome={ICONE_DO_AVISO[aviso.tipo] ?? 'etiqueta'} tamanho={18} cor="#3E8B22" />}
                     <span>
                       <b>{aviso.titulo}</b>
                       <i>{aviso.texto}</i>

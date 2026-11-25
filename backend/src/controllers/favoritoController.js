@@ -51,7 +51,7 @@ export async function favoritar(req, res) {
 
   const anuncio = await anuncioModel.buscarPorId(anuncioId)
 
-  if (!anuncio || anuncio.status === 'rascunho') {
+  if (!anuncio || anuncioModel.STATUS_SO_DO_DONO.includes(anuncio.status)) {
     throw erroHttp(404, 'Anúncio não encontrado.')
   }
 

@@ -79,3 +79,31 @@
   .det-grade { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .det-grade > :nth-child(3) { display: block; }
 }
+
+/* título com os três pontinhos (Compartilhar e Denunciar anúncio) */
+.det-titulo-linha { display: flex; align-items: flex-start; gap: 8px; }
+.det-titulo-linha h1 { flex: 1; min-width: 0; }
+.det-mais { flex: none; display: grid; place-items: center; width: 42px; height: 42px; margin: -4px -10px 0 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.det-mais:hover, .det-mais[aria-expanded="true"] { background: var(--sup-3); }
+
+/* baixou: a última mudança de preço foi uma queda (aparece por 30 dias) */
+.det-baixou { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 0 !important; padding: 5px 12px 5px 9px; border-radius: 999px; background: linear-gradient(135deg, #EAF6E2, #DCEFCF); box-shadow: inset 0 0 0 1px rgba(62, 139, 34, .18); color: #2F6B19; font-weight: 800; font-size: 14.5px; }
+.det-baixou span { font-weight: 600; color: var(--texto-2); }
+
+/* favoritou, acompanha: quem salvou é avisado quando o preço baixa */
+.det-dica-preco { display: flex; align-items: center; gap: 7px; margin: 10px 2px 0 !important; font-size: 13.5px; line-height: 1.4; color: var(--texto-2); }
+.det-dica-preco svg { flex: none; }
+
+/* histórico do preço: degraus de 2 px, pontos com anel da cor do fundo e grade bem clara */
+.hp-grafico { display: block; width: 100%; height: auto; margin-top: 12px; overflow: visible; }
+.hp-grade { stroke: #E6E9E4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.hp-linha { fill: none; stroke: var(--marca); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.hp-ponto { fill: var(--marca); stroke: var(--sup); stroke-width: 2; }
+.hp-alvo { fill: transparent; cursor: default; }
+.hp-eixo { display: flex; justify-content: space-between; margin-top: 2px; font-size: 12.5px; color: var(--texto-3); }
+.hp-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.hp-lista li { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 10px; background: var(--sup-2); box-shadow: inset 0 0 0 1px var(--linha); font-size: 13px; color: var(--texto-2); }
+.hp-lista b { font-size: 13.5px; color: var(--tinta); }
+.hp-lista i { font-style: normal; font-weight: 700; font-size: 12px; }
+.hp-lista li.baixou i { color: #2F6B19; }
+.hp-lista li.subiu i { color: #8A5A00; }

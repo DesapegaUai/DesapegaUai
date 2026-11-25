@@ -7,8 +7,8 @@ USE desapegauai;
 SET NAMES utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS comparecimento, procura, denuncia, inscricao_push, notificacao, preferencia_localizacao, localizacao_usuario, localizacao_anuncio,
-  avaliacao, mensagem_oculta, mensagem, conversa, favorito, foto_anuncio, anuncio, subcategoria, categoria, usuario,
+DROP TABLE IF EXISTS comparecimento, procura, lista_compras, denuncia_anuncio, historico_preco, denuncia, inscricao_push, notificacao, preferencia_localizacao, localizacao_usuario, localizacao_anuncio,
+  avaliacao, mensagem_programada, mensagem_fixada, conversa_fixada, mensagem_oculta, mensagem, conversa, favorito, foto_anuncio, anuncio, subcategoria, categoria, usuario,
   rua, bairro, cidade;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -129,7 +129,9 @@ CREATE TABLE anuncio (
   forma_entrega   ENUM('retirada', 'combinar')       NULL,   -- NULL só em rascunho
   transporte      ENUM('mochila', 'carro', 'carreto') NULL,  -- como levar o item; NULL em Serviços e em anúncio antigo
   localizacao     VARCHAR(120)   NULL,       -- ponto de referência que o dono quer mostrar (público)
-  status          ENUM('rascunho', 'ativo', 'reservado', 'vendido') NOT NULL DEFAULT 'ativo',   -- reservado continua na busca
+  -- reservado continua na busca; em_analise saiu da busca por denúncias (3 pessoas) até a equipe revisar
+  status          ENUM('rascunho', 'ativo', 'reservado', 'vendido', 'em_analise') NOT NULL DEFAULT 'ativo',
+  status_antes_da_analise ENUM('ativo', 'reservado') NULL,   -- para voltar como estava quando a equipe liberar
   visualizacoes   INT UNSIGNED   NOT NULL DEFAULT 0,
   criado_em       DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   data_publicacao DATETIME       NULL DEFAULT CURRENT_TIMESTAMP,   -- NULL enquanto for rascunho
@@ -149,6 +151,19 @@ CREATE TABLE anuncio (
     status = 'rascunho' OR (titulo IS NOT NULL AND categoria_id IS NOT NULL AND bairro_id IS NOT NULL
       AND preco IS NOT NULL AND forma_entrega IS NOT NULL AND data_publicacao IS NOT NULL)
   )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Histórico de preço do anúncio publicado ("baixou R$ 70" e o gráfico da página do anúncio). Cada mudança
+-- de preço vira uma linha; o anúncio sem linha nenhuma usa o preço atual desde a data de publicação.
+CREATE TABLE historico_preco (
+  id            INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+  anuncio_id    INT UNSIGNED   NOT NULL,
+  preco         DECIMAL(10,2)  NOT NULL,
+  registrado_em DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_historico_anuncio (anuncio_id, registrado_em),
+  CONSTRAINT fk_historico_anuncio FOREIGN KEY (anuncio_id) REFERENCES anuncio (id) ON DELETE CASCADE,
+  CONSTRAINT ck_historico_preco CHECK (preco > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE foto_anuncio (
@@ -311,6 +326,52 @@ CREATE TABLE mensagem_oculta (
   CONSTRAINT fk_mensagem_oculta_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuario (id)  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Conversas fixadas (como no WhatsApp): cada pessoa fixa até 3 conversas no topo da própria lista.
+-- Só quem fixou vê. Excluir a conversa (para si) tira a fixação junto.
+CREATE TABLE conversa_fixada (
+  usuario_id   INT UNSIGNED   NOT NULL,
+  conversa_id  INT UNSIGNED   NOT NULL,
+  fixada_em    DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),   -- com milissegundos: a ordem não empata
+  PRIMARY KEY (usuario_id, conversa_id),
+  KEY ix_conversa_fixada_conversa (conversa_id),
+  CONSTRAINT fk_conversa_fixada_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuario (id)  ON DELETE CASCADE,
+  CONSTRAINT fk_conversa_fixada_conversa FOREIGN KEY (conversa_id) REFERENCES conversa (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mensagens fixadas (como no WhatsApp): até 3 por conversa, no topo da conversa para as duas pessoas.
+-- Quem fixa escolhe por quanto tempo (24 horas, 7 dias ou 30 dias); depois disso ela sai sozinha.
+-- Apagar a mensagem para todos tira a fixação junto.
+CREATE TABLE mensagem_fixada (
+  mensagem_id  INT UNSIGNED   NOT NULL,
+  conversa_id  INT UNSIGNED   NOT NULL,
+  fixada_por   INT UNSIGNED   NOT NULL,
+  fixada_em    DATETIME(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3),   -- com milissegundos: "a mais antiga" não empata
+  expira_em    DATETIME       NOT NULL,
+  PRIMARY KEY (mensagem_id),
+  KEY ix_mensagem_fixada_conversa (conversa_id, expira_em),
+  CONSTRAINT fk_mensagem_fixada_mensagem FOREIGN KEY (mensagem_id) REFERENCES mensagem (id) ON DELETE CASCADE,
+  CONSTRAINT fk_mensagem_fixada_conversa FOREIGN KEY (conversa_id) REFERENCES conversa (id) ON DELETE CASCADE,
+  CONSTRAINT fk_mensagem_fixada_usuario  FOREIGN KEY (fixada_por)  REFERENCES usuario (id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mensagem programada (como no WhatsApp): sai sozinha no horário escolhido, mesmo com o site fechado.
+-- Até lá só quem programou vê, e pode enviar na hora ou apagar. Na hora certa vira uma linha de mensagem,
+-- e a programada sai daqui na mesma transação (nunca sai duas vezes, nem se perde).
+CREATE TABLE mensagem_programada (
+  id             INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+  conversa_id    INT UNSIGNED   NOT NULL,
+  remetente_id   INT UNSIGNED   NOT NULL,
+  texto          VARCHAR(1000)  NOT NULL,
+  enviar_em      DATETIME       NOT NULL,
+  criada_em      DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_programada_hora (enviar_em),
+  KEY ix_programada_conversa (conversa_id, remetente_id),
+  CONSTRAINT fk_programada_conversa  FOREIGN KEY (conversa_id)  REFERENCES conversa (id) ON DELETE CASCADE,
+  CONSTRAINT fk_programada_remetente FOREIGN KEY (remetente_id) REFERENCES usuario (id)  ON DELETE CASCADE,
+  CONSTRAINT ck_programada_texto CHECK (TRIM(texto) <> '')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Avaliação do vendedor, feita por quem comprou. Fica guardada mesmo se o anúncio for excluído
 -- (conversa_id vira NULL), para o vendedor não apagar uma nota ruim excluindo o anúncio.
 CREATE TABLE avaliacao (
@@ -356,6 +417,26 @@ CREATE TABLE denuncia (
   CONSTRAINT ck_denuncia_usuarios CHECK (denunciante_id <> denunciado_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Denúncia de anúncio (os três pontinhos da página do anúncio). Cada pessoa denuncia um anúncio uma vez.
+-- Com 3 pessoas diferentes, o anúncio sai da busca (status em_analise) e o vendedor é avisado, sem saber
+-- quem denunciou. A equipe revisa com npm run denuncias: libera (improcedente) ou remove (procedente).
+CREATE TABLE denuncia_anuncio (
+  id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  anuncio_id     INT UNSIGNED  NOT NULL,
+  denunciante_id INT UNSIGNED  NOT NULL,
+  motivo         VARCHAR(20)   NOT NULL,
+  descricao      VARCHAR(500)  NULL,
+  situacao       VARCHAR(12)   NOT NULL DEFAULT 'aberta',
+  criada_em      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_denuncia_anuncio_denunciante (anuncio_id, denunciante_id),
+  KEY ix_denuncia_anuncio_situacao (situacao, anuncio_id),
+  CONSTRAINT fk_denuncia_anuncio_anuncio     FOREIGN KEY (anuncio_id)     REFERENCES anuncio (id) ON DELETE CASCADE,
+  CONSTRAINT fk_denuncia_anuncio_denunciante FOREIGN KEY (denunciante_id) REFERENCES usuario (id) ON DELETE CASCADE,
+  CONSTRAINT ck_denuncia_anuncio_motivo   CHECK (motivo IN ('proibido', 'golpe', 'improprio', 'falso', 'outro')),
+  CONSTRAINT ck_denuncia_anuncio_situacao CHECK (situacao IN ('aberta', 'procedente', 'improcedente'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Compromisso nas entregas: depois da venda, cada lado diz se o outro apareceu no combinado.
 -- Fica guardado mesmo se o anúncio for excluído (conversa_id vira NULL), como a avaliação.
 CREATE TABLE comparecimento (
@@ -394,11 +475,29 @@ CREATE TABLE procura (
   CONSTRAINT ck_procura_preco  CHECK (preco_max IS NULL OR preco_max > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Lista de compras: o que a pessoa quer encontrar, do jeito que ela escreveu ("celular usado até R$ 800").
+-- A IA do site entende o texto e mostra os anúncios que combinam. Diferente do Procura-se, ninguém mais
+-- vê a lista. Quando sai um anúncio que combina perto da cidade do item, a pessoa recebe um aviso.
+CREATE TABLE lista_compras (
+  id         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  usuario_id INT UNSIGNED  NOT NULL,
+  texto      VARCHAR(80)   NOT NULL,
+  cidade_id  INT UNSIGNED  NULL,                                       -- cidade de referência quando o item entrou (para os avisos)
+  comprado   BOOLEAN       NOT NULL DEFAULT FALSE,
+  criado_em  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_lista_compras_usuario (usuario_id, comprado),
+  CONSTRAINT fk_lista_compras_usuario FOREIGN KEY (usuario_id) REFERENCES usuario (id) ON DELETE CASCADE,
+  CONSTRAINT fk_lista_compras_cidade  FOREIGN KEY (cidade_id)  REFERENCES cidade (id)  ON DELETE SET NULL,
+  CONSTRAINT ck_lista_compras_texto CHECK (TRIM(texto) <> '')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Avisos do sininho (o histórico fica aqui; o push e o Socket.IO só entregam)
 CREATE TABLE notificacao (
   id         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   usuario_id INT UNSIGNED  NOT NULL,
-  tipo       ENUM('novo_anuncio', 'nova_avaliacao', 'procura_atendida') NOT NULL,
+  tipo       ENUM('novo_anuncio', 'nova_avaliacao', 'procura_atendida', 'lista_compras', 'queda_preco',
+                  'anuncio_em_analise', 'anuncio_liberado', 'anuncio_removido') NOT NULL,
   anuncio_id INT UNSIGNED  NULL,
   titulo     VARCHAR(120)  NOT NULL,
   texto      VARCHAR(255)  NOT NULL,

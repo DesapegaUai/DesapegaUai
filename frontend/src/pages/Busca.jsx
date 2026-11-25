@@ -5,9 +5,11 @@ import CardAnuncio from '../components/CardAnuncioMarketplace.jsx'
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx'
 import OutrasCidades from '../components/OutrasCidades.jsx'
 import Paginacao from '../components/Paginacao.jsx'
+import PainelComparacao from '../components/PainelComparacao.jsx'
 import SeletorOrdem from '../components/SeletorOrdem.jsx'
 import Icone from '../components/IconeMarketplace.jsx'
 import Toast from '../components/Toast.jsx'
+import useComparacaoDaBusca from '../hooks/useComparacaoDaBusca.js'
 import useFavoritar from '../hooks/useFavoritar.js'
 import useFeedProximo from '../hooks/useFeedProximo.js'
 import { ORDENACOES, POR_PAGINA } from '../services/anuncios.js'
@@ -28,6 +30,9 @@ export default function Busca() {
     aoErrar: (erro) => setToast({ tipo: 'erro', titulo: 'Não foi possível salvar o favorito', texto: erro.message, chave: Date.now() }),
   })
   const dados = feed.dados
+  // IA do DesapegaUai: os parecidos da busca comparados (preços e nota de custo-benefício), em tempo real
+  const comparacao = useComparacaoDaBusca(termo)
+  const faixaDe = (id) => comparacao?.anuncios.find((a) => a.id === id)?.faixa ?? null
 
   useEffect(() => {
     document.title = termo ? `DesapegaUai — Busca por ${termo}` : 'DesapegaUai — Anúncios perto de você'
@@ -60,6 +65,8 @@ export default function Busca() {
 
       <BarraDeRaio total={dados?.total} carregando={feed.carregando} semConexao={feed.semConexao} />
 
+      <PainelComparacao dados={comparacao} />
+
       {!dados && !feed.erro && <p className="bus-vazio" role="status">Carregando anúncios…</p>}
       {feed.erro && !dados && (
         <div className="bus-vazio" role="alert">
@@ -71,7 +78,7 @@ export default function Busca() {
       {dados && (dados.itens.length ? (
         <div className="bus-grade">
           {dados.itens.map((anuncio) => (
-            <CardAnuncio key={anuncio.id} anuncio={anuncio} favorito={anuncio.favoritado} onFavoritar={favoritarAnuncio} />
+            <CardAnuncio key={anuncio.id} anuncio={anuncio} favorito={anuncio.favoritado} onFavoritar={favoritarAnuncio} faixa={faixaDe(anuncio.id)} />
           ))}
         </div>
       ) : (

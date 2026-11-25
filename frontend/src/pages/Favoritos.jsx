@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import LayoutMarketplace from '../components/LayoutMarketplace.jsx';
 import CardAnuncio from '../components/CardAnuncioMarketplace.jsx';
+import ListaDeCompras from '../components/ListaDeCompras.jsx';
 import Paginacao from '../components/Paginacao.jsx';
 import SeletorOrdem from '../components/SeletorOrdem.jsx';
 import Icone from '../components/IconeMarketplace.jsx';
 import Toast from '../components/Toast.jsx';
 import { CATEGORIAS } from '../services/categorias.js';
-import { formatarQuantidade } from '../services/formatar.js';
 import { desfavoritar, favoritar, listarFavoritos, obterCategorias } from '../services/mercadoApi.js';
 import '../styles/marketplace-favoritos.css';
 
@@ -18,8 +18,14 @@ const ORDENACOES = [
 ];
 const POR_PAGINA = 12;
 
-/** Favoritos da conta (da API): filtro por categoria, ordenação, paginação e remover com "desfazer". */
+/**
+ * Favoritos da conta (da API): filtro por categoria, ordenação, paginação e remover com "desfazer".
+ * A outra aba é a lista de compras (/favoritos?aba=lista), com a IA do DesapegaUai.
+ */
 export default function Favoritos() {
+  const [parametros, setParametros] = useSearchParams();
+  const aba = parametros.get('aba') === 'lista' ? 'lista' : 'salvos';
+  const [totalLista, setTotalLista] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState('todas');
   const [ordem, setOrdem] = useState('recentes');
@@ -30,9 +36,15 @@ export default function Favoritos() {
   const [removido, setRemovido] = useState(null);
 
   useEffect(() => {
-    document.title = 'DesapegaUai — Favoritos';
     obterCategorias().then(setCategorias).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    document.title = aba === 'lista' ? 'DesapegaUai — Lista de compras' : 'DesapegaUai — Favoritos';
+  }, [aba]);
+
+  const trocarAba = (nova) => setParametros(nova === 'lista' ? { aba: 'lista' } : {}, { replace: true });
+  const avisarErro = useCallback((titulo, texto) => setToast({ tipo: 'erro', titulo, texto, chave: Date.now() }), []);
 
   const categoriaId = categorias.find((c) => c.slug === categoria)?.id;
   const carregar = useCallback(() => {
@@ -82,9 +94,23 @@ export default function Favoritos() {
 
       <div className="titulo-pagina fav-cabeca">
         <h1 className="t-titulo-1 fav-titulo">Favoritos</h1>
-        {dados && dados.total > 0 && <span className="titulo-selo">{formatarQuantidade(dados.total)} {dados.total === 1 ? 'salvo' : 'salvos'}</span>}
       </div>
 
+      <div className="fav-abas" role="group" aria-label="O que mostrar">
+        <button type="button" className={`chip${aba === 'salvos' ? ' on' : ''}`} aria-pressed={aba === 'salvos'} onClick={() => trocarAba('salvos')}>
+          <Icone nome="favorito" tamanho={17} cor="#3E8B22" />
+          <span>Anúncios salvos</span>
+          {dados && <span className="lc-contagem">{dados.total.toLocaleString('pt-BR')}</span>}
+        </button>
+        <button type="button" className={`chip${aba === 'lista' ? ' on' : ''}`} aria-pressed={aba === 'lista'} onClick={() => trocarAba('lista')}>
+          <Icone nome="sacola" tamanho={17} cor="#3E8B22" />
+          <span>Lista de compras</span>
+          {totalLista !== null && <span className="lc-contagem">{totalLista}</span>}
+        </button>
+      </div>
+
+      {aba === 'lista' ? <ListaDeCompras onTotal={setTotalLista} onErro={avisarErro} /> : (
+      <>
       <div className="barra-chips">
         <div className="chips">
           <button type="button" className={`chip${categoria === 'todas' ? ' on' : ''}`} aria-pressed={categoria === 'todas'} onClick={() => trocar(setCategoria)('todas')}>
@@ -116,6 +142,8 @@ export default function Favoritos() {
         ))}
         {dados && dados.total_paginas > 1 && <Paginacao pagina={pagina} totalPaginas={dados.total_paginas} onMudar={setPagina} />}
       </div>
+      </>
+      )}
 
       {removido && (
         <div className="aviso-flutuante" role="status">

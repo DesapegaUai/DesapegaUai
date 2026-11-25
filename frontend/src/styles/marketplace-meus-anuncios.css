@@ -67,3 +67,8 @@
 
 /* título com a quantidade numa etiqueta ao lado */
 .ma-titulo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* em análise: saiu da busca por denúncias até a equipe revisar */
+.ma-tag.em_analise { background: #FDECEA; color: #B42318; }
+.ma-analise { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 0 !important; padding: 10px 12px; border-radius: 12px; background: #FDF3F2; color: #7A271A; font-size: 14px; line-height: 1.45; }
+.ma-analise svg { flex: none; margin-top: 2px; }

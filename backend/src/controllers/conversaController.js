@@ -7,11 +7,38 @@ import { abrirConversa, listarConversas, contarConversasNaoLidas, ocultarConvers
 import { erroHttp } from '../utils/erroHttp.js'
 import { LARGURAS_FOTO_DO_CHAT, caminhoDaFotoDoChat, caminhoDoArquivoDoChat, caminhoDoAudioDoChat, caminhoDoVideoDoChat, pastaDaConversa } from '../utils/fotos.js'
 import { converterAudio } from '../services/audioDoChat.js'
+import { conversasFixadas } from '../models/fixadasModel.js'
+import * as fixadas from '../services/fixadasService.js'
+import { exigirFotoPermitida, exigirVideoPermitido } from '../services/moderacaoDeImagem.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import { apagarParaMim, apagarParaTodos, buscarMensagens, editarMensagem as editarNoBanco, liberarMidiasQueNinguemVe, participantesDaConversa, salvarMensagem } from '../models/mensagemModel.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { avisarUsuarios, estaOnline, marcarEntregueSeOnline } from '../socket.js'
 import { avisarMensagemNova } from '../services/notificacaoService.js'
+import * as programadas from '../services/mensagemProgramadaService.js'
+
+// GET /api/conversas/:id/programadas: as mensagens programadas de quem pediu (a outra pessoa não vê)
+export async function listarProgramadas(req, res) {
+  res.json({ programadas: await programadas.listar(req.params.id, req.usuario.id) })
+}
+
+// POST /api/conversas/:id/programadas { texto, enviar_em }: sai sozinha no horário (como no WhatsApp)
+export async function programarMensagem(req, res) {
+  res.status(201).json({ programada: await programadas.programar(req.params.id, req.usuario.id, req.body) })
+}
+
+// POST /api/conversas/:id/programadas/:programadaId/enviar: "Enviar agora"
+export async function enviarProgramadaAgora(req, res) {
+  const mensagem = await programadas.enviarAgora(req.params.id, req.params.programadaId, req.usuario.id)
+  res.status(201).json({ mensagem: { ...mensagem, minha: true } })
+}
+
+// DELETE /api/conversas/:id/programadas/:programadaId: "Apagar" (antes de sair)
+export async function apagarProgramada(req, res) {
+  await programadas.apagar(req.params.id, req.params.programadaId, req.usuario.id)
+  res.status(204).end()
+}
 
 // POST /api/conversas (A2)
 export async function abrir(req, res) {
@@ -51,14 +78,44 @@ export async function listar(req, res) {
   }
 
   const resultado = await listarConversas(req.usuario.id, filtro)
+  const fixadasDaPessoa = await conversasFixadas(req.usuario.id)
 
-  // online agora: quem está com o site aberto (Socket.IO conectado)
+  // online agora: quem está com o site aberto (Socket.IO conectado); fixada: no topo da lista (até 3)
   resultado.itens = resultado.itens.map((conversa) => ({
     ...conversa,
+    fixada: fixadasDaPessoa.has(conversa.id),
+    fixada_em: fixadasDaPessoa.get(conversa.id) ?? null,
     outro_usuario: { ...conversa.outro_usuario, online: estaOnline(conversa.outro_usuario.id) },
   }))
+  // as fixadas primeiro (a fixada por último no alto, como no WhatsApp); as outras na ordem de antes
+  const quando = (conversa) => (conversa.fixada_em ? new Date(conversa.fixada_em).getTime() : 0)
+  resultado.itens = [
+    ...resultado.itens.filter((conversa) => conversa.fixada).sort((a, b) => quando(b) - quando(a)),
+    ...resultado.itens.filter((conversa) => !conversa.fixada),
+  ]
 
   res.json(resultado)
+}
+
+// PUT/DELETE /api/conversas/:id/fixar: fixar a conversa no topo da minha lista (até 3), ou desafixar
+export async function fixarConversa(req, res) {
+  res.json(await fixadas.fixarConversa(req.params.id, req.usuario.id))
+}
+export async function desafixarConversa(req, res) {
+  res.json(await fixadas.desafixarConversa(req.params.id, req.usuario.id))
+}
+
+// GET /api/conversas/:id/mensagens-fixadas: as mensagens fixadas no topo da conversa (as duas pessoas veem)
+export async function listarMensagensFixadas(req, res) {
+  res.json(await fixadas.listarMensagensFixadas(req.params.id, req.usuario.id))
+}
+
+// PUT /api/conversas/:id/mensagens/:mensagemId/fixar { duracao: '24h' | '7d' | '30d', substituir? }; DELETE desafixa
+export async function fixarMensagem(req, res) {
+  res.json(await fixadas.fixarMensagem(req.params.id, req.params.mensagemId, req.usuario.id, req.body))
+}
+export async function desafixarMensagem(req, res) {
+  res.json(await fixadas.desafixarMensagem(req.params.id, req.params.mensagemId, req.usuario.id))
 }
 
 // GET /api/conversas/nao-lidas (A2)
@@ -152,6 +209,7 @@ export async function apagarMensagem(req, res) {
     if (caminho) await apagarDoDisco(caminho, { tipo: 'audio_chat', conversa_id: resultado.mensagem.conversa_id, mensagem_id: resultado.mensagem.id })
   }
   avisarUsuarios(resultado.participantes, 'mensagem_apagada', resultado.mensagem)
+  await fixadas.aoApagarParaTodos(resultado.mensagem, resultado.participantes) // apagada não fica fixada
   res.json({ mensagem: { ...resultado.mensagem, minha: true } })
 }
 
@@ -175,6 +233,7 @@ export async function enviarVideo(req, res) {
   const usuarioId = req.usuario.id
   if (!req.file) throw erroHttp(400, 'Envie o vídeo no campo video.')
   const legenda = lerTexto(req.body?.texto, 'texto', { max: 1000 })
+  exigirTextoPermitido({ legenda }, { onde: 'chat', usuarioId })
   await exigirParticipante(conversaId, usuarioId)
 
   const extensao = extensaoDoVideo(req.file.buffer)
@@ -184,6 +243,14 @@ export async function enviarVideo(req, res) {
   const caminho = caminhoDoVideoDoChat(conversaId, arquivo)
   await mkdir(pastaDaConversa(conversaId), { recursive: true })
   await writeFile(caminho, req.file.buffer)
+
+  // a IA confere quadros espalhados pelo vídeo: nudez ou conteúdo sexual não entra (e o arquivo sai do disco)
+  try {
+    await exigirVideoPermitido(caminho, { usuarioId })
+  } catch (erro) {
+    await rm(caminho, { force: true }).catch(() => {})
+    throw erro
+  }
 
   let resultado
   try {
@@ -284,8 +351,9 @@ async function exigirParticipante(conversaId, usuarioId) {
 }
 
 // confere se o arquivo é mesmo uma imagem e gera os dois tamanhos em WebP (já girada pelo EXIF,
-// que é como a foto tirada com o celular vem; o WebP gerado sai sem a localização da foto)
-async function converterFotoDoChat(buffer) {
+// que é como a foto tirada com o celular vem; o WebP gerado sai sem a localização da foto).
+// Antes, a IA confere a foto: nudez ou conteúdo sexual é recusado (422).
+async function converterFotoDoChat(buffer, { usuarioId = null, posicao = 1, total = 1 } = {}) {
   let formato
   try {
     formato = (await sharp(buffer, { limitInputPixels: MAXIMO_DE_PIXELS }).metadata()).format
@@ -293,6 +361,7 @@ async function converterFotoDoChat(buffer) {
     throw erroHttp(400, 'A foto não é válida. Envie uma imagem JPG, PNG ou WebP.')
   }
   if (!FORMATOS_DE_FOTO.includes(formato)) throw erroHttp(400, 'Envie somente fotos JPG, PNG ou WebP.')
+  await exigirFotoPermitida(buffer, { onde: 'chat', usuarioId, posicao, total })
 
   try {
     const tamanhos = []
@@ -319,12 +388,15 @@ export async function enviarFotos(req, res) {
 
   if (arquivos.length === 0) throw erroHttp(400, 'Envie pelo menos uma foto no campo fotos.')
   const legenda = lerTexto(req.body?.texto, 'texto', { max: 1000 })
+  // a legenda vai na última foto: confere antes, senão as primeiras sairiam e a última não
+  exigirTextoPermitido({ legenda }, { onde: 'chat', usuarioId })
   await exigirParticipante(conversaId, usuarioId)
 
-  // converte tudo antes de gravar: se uma foto for inválida, nenhuma é enviada
+  // converte (e a IA confere) tudo antes de gravar: se uma foto for inválida ou proibida, nenhuma é enviada
   const fotos = []
-  for (const arquivo of arquivos) {
-    fotos.push({ nome: randomUUID().replaceAll('-', ''), tamanhos: await converterFotoDoChat(arquivo.buffer) })
+  for (const [i, arquivo] of arquivos.entries()) {
+    const tamanhos = await converterFotoDoChat(arquivo.buffer, { usuarioId, posicao: i + 1, total: arquivos.length })
+    fotos.push({ nome: randomUUID().replaceAll('-', ''), tamanhos })
   }
 
   const apagar = (foto) => Promise.all(
@@ -389,6 +461,7 @@ export async function verFoto(req, res) {
 export async function excluir(req, res) {
   const conversaId = lerId(req.params.id, 'id da conversa')
   await ocultarConversa(conversaId, req.usuario.id)
+  await fixadas.aoExcluirConversa(conversaId, req.usuario.id) // excluída não fica fixada
   // as outras abas e aparelhos da mesma pessoa tiram a conversa da lista na hora
   avisarUsuarios([req.usuario.id], 'conversa_excluida', { conversa_id: conversaId })
   await apagarArquivosQueNinguemVe(conversaId) // a outra pessoa também já tinha excluído: as fotos e os vídeos saem

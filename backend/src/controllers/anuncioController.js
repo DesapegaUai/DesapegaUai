@@ -8,7 +8,11 @@ import * as favoritoModel from '../models/favoritoModel.js'
 import * as fotoModel from '../models/fotoModel.js'
 import { idsDasConversasDoAnuncio } from '../models/mensagemModel.js'
 import * as localizacao from '../services/localizacaoService.js'
+import { avisarQuedaDePreco, historicoDoAnuncio, registrarMudancaDePreco } from '../services/historicoDePrecoService.js'
+import { exigirFotoPermitida } from '../services/moderacaoDeImagem.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { avisarAnuncioNovo } from '../services/notificacaoService.js'
+import { avisarListasDeCompras } from '../services/listaDeComprasService.js'
 import { avisarProcurasAtendidas } from '../services/procuraService.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { publicarParaTodos } from '../socket.js'
@@ -89,7 +93,8 @@ function validarPreco(valor) {
 
 // As regras do M1, iguais na publicação e na edição. Confere no banco se a categoria, a
 // subcategoria e o bairro existem: sem isso, o MySQL recusa e a API responde 500.
-async function validarAnuncio(corpo) {
+// A moderação recusa (422) texto com o que não pode na plataforma (armas, drogas, conteúdo sexual, ameaça).
+async function validarAnuncio(corpo, usuarioId = null) {
   const dados = {
     titulo: lerTexto(corpo.titulo, 'titulo', { obrigatorio: true, min: 3, max: 80 }),
     descricao: lerTexto(corpo.descricao, 'descricao', { max: 1000 }),
@@ -103,6 +108,7 @@ async function validarAnuncio(corpo) {
     transporte: lerOpcao(corpo.transporte, 'transporte', TRANSPORTES, { obrigatorio: false }),
     localizacao: lerTexto(corpo.localizacao, 'localizacao', { max: 120 }),
   }
+  exigirTextoPermitido({ titulo: dados.titulo, descricao: dados.descricao, localizacao: dados.localizacao }, { onde: 'anuncio', usuarioId })
 
   const categoria = await anuncioModel.buscarCategoria(dados.categoria_id)
 
@@ -129,7 +135,8 @@ async function validarAnuncio(corpo) {
 }
 
 // Rascunho: confere só o que já foi preenchido. As regras completas valem ao publicar.
-async function validarRascunho(corpo) {
+// A moderação vale desde o rascunho: o que não pode na plataforma não fica guardado nem escondido.
+async function validarRascunho(corpo, usuarioId = null) {
   const dados = {
     titulo: lerTexto(corpo.titulo, 'titulo', { max: 80 }),
     descricao: lerTexto(corpo.descricao, 'descricao', { max: 1000 }),
@@ -142,6 +149,7 @@ async function validarRascunho(corpo) {
     transporte: lerOpcao(corpo.transporte, 'transporte', TRANSPORTES, { obrigatorio: false }),
     localizacao: lerTexto(corpo.localizacao, 'localizacao', { max: 120 }),
   }
+  exigirTextoPermitido({ titulo: dados.titulo, descricao: dados.descricao, localizacao: dados.localizacao }, { onde: 'anuncio', usuarioId })
 
   if (dados.subcategoria_id && !dados.categoria_id) {
     throw erroHttp(400, 'Escolha a categoria antes da subcategoria.')
@@ -209,6 +217,8 @@ async function montarDetalhe(anuncioId, usuarioId) {
   const ehMeu = Number(usuarioId) === anuncio.vendedor.id
   // aproximada para todo mundo; o dono vê também o ponto exato, a rua e o CEP
   const { localizacao: localizacaoDoAnuncio } = await localizacao.localizacaoDoAnuncio(anuncioId, usuarioId)
+  // o preço é público: o histórico (gráfico) e quanto baixou nos últimos 30 dias também
+  const { historico, baixou } = await historicoDoAnuncio(anuncio)
 
   return {
     ...anuncio,
@@ -216,6 +226,8 @@ async function montarDetalhe(anuncioId, usuarioId) {
     favoritado: usuarioId ? await favoritoModel.existe(usuarioId, anuncioId) : false,
     eh_meu: ehMeu,
     localizacao_anuncio: localizacaoDoAnuncio,
+    historico_preco: historico,
+    baixou,
   }
 }
 
@@ -242,6 +254,7 @@ function avisarAnuncioPublicado(anuncio) {
   publicarParaTodos('anuncio_publicado', resumoParaFeed(anuncio))
   avisarAnuncioNovo({ ...anuncio, localizacao_aproximada: anuncio.localizacao_anuncio })
   avisarProcurasAtendidas(anuncio) // Procura-se: avisa quem pediu algo parecido
+  avisarListasDeCompras(anuncio) // lista de compras: avisa quem tem um item que combina
   registrar('anuncio.publicado', { anuncio_id: anuncio.id, usuario_id: anuncio.vendedor.id, cidade_id: anuncio.localizacao_anuncio?.cidade.id })
 }
 
@@ -249,17 +262,23 @@ function avisarAnuncioPublicado(anuncio) {
 // O tipo que o navegador manda pode mentir, então o sharp confere o formato de verdade.
 // Cada foto vira 3 WebP (400, 800 e 1600 px), sem aumentar foto pequena. O sharp descarta
 // o EXIF (inclusive o GPS), por isso o .rotate() vem antes, senão foto de celular sai deitada.
-async function converterFotos(arquivos) {
+// Antes de converter, a IA confere cada foto: nudez ou conteúdo sexual é recusado (422), biquíni pode.
+async function converterFotos(arquivos, { usuarioId = null } = {}) {
   const fotos = []
 
-  for (const arquivo of arquivos) {
+  for (const [i, arquivo] of arquivos.entries()) {
+    let formato
     try {
-      const { format } = await sharp(arquivo.buffer, { limitInputPixels: MAXIMO_DE_PIXELS }).metadata()
+      formato = (await sharp(arquivo.buffer, { limitInputPixels: MAXIMO_DE_PIXELS }).metadata()).format
+    } catch {
+      formato = null
+    }
+    if (!FORMATOS_ACEITOS.includes(formato)) {
+      throw erroHttp(400, 'Uma das fotos não abriu. Envie fotos JPG, PNG ou WebP.')
+    }
+    await exigirFotoPermitida(arquivo.buffer, { onde: 'anuncio', usuarioId, posicao: i + 1, total: arquivos.length })
 
-      if (!FORMATOS_ACEITOS.includes(format)) {
-        throw new Error(`formato ${format}`)
-      }
-
+    try {
       const tamanhos = []
 
       for (const largura of LARGURAS_FOTO) {
@@ -310,8 +329,8 @@ export async function verAnuncio(req, res) {
   const usuarioId = req.usuario?.id ?? null
   const atual = await anuncioModel.buscarPorId(id)
 
-  // rascunho só existe para o dono
-  if (atual?.status === 'rascunho' && Number(atual.usuario_id) !== Number(usuarioId)) {
+  // rascunho e anúncio em análise (denunciado) só existem para o dono
+  if (anuncioModel.STATUS_SO_DO_DONO.includes(atual?.status) && Number(atual.usuario_id) !== Number(usuarioId)) {
     throw erroHttp(404, 'Anúncio não encontrado.')
   }
 
@@ -337,7 +356,7 @@ export async function publicar(req, res) {
     throw erroHttp(400, 'Envie pelo menos uma foto do anúncio.')
   }
 
-  const dados = rascunho ? await validarRascunho(corpo) : await validarAnuncio(corpo)
+  const dados = rascunho ? await validarRascunho(corpo, req.usuario.id) : await validarAnuncio(corpo, req.usuario.id)
 
   if (rascunho && arquivos.length === 0 && Object.values(dados).every((valor) => valor === null)) {
     throw erroHttp(400, 'Preencha algum campo para salvar o rascunho.')
@@ -357,7 +376,7 @@ export async function publicar(req, res) {
     local = preparada.dados
   }
 
-  const fotos = await converterFotos(arquivos)
+  const fotos = await converterFotos(arquivos, { usuarioId: req.usuario.id })
 
   // anúncio, localização e fotos numa transação: se algo falhar, não sobra nada pela metade
   let id
@@ -410,7 +429,7 @@ export async function editar(req, res) {
     novo.subcategoria_id = null
   }
 
-  const dados = atual.status === 'rascunho' ? await validarRascunho(novo) : await validarAnuncio(novo)
+  const dados = atual.status === 'rascunho' ? await validarRascunho(novo, req.usuario.id) : await validarAnuncio(novo, req.usuario.id)
 
   // localização nova (GPS ou mapa) só se o dono mandou; o GPS dele nunca muda o anúncio sozinho
   let local = null
@@ -422,14 +441,21 @@ export async function editar(req, res) {
     }
   }
 
+  let mudancaDePreco = null
   await anuncioModel.emTransacao(async (conexao) => {
     await anuncioModel.atualizar(id, req.usuario.id, dados, conexao)
     if (local) await localizacao.gravarLocalizacaoDoAnuncio(conexao, id, local)
     else await localizacao.ajustarLocalizacaoAoBairro(conexao, id, dados.bairro_id)
+    // preço novo em anúncio publicado: vai para o histórico junto com a edição
+    mudancaDePreco = await registrarMudancaDePreco(atual, dados.preco, conexao)
   })
 
   const anuncio = await montarDetalhe(id, req.usuario.id)
-  if (STATUS_VISIVEIS.includes(anuncio.status)) publicarParaTodos('anuncio_atualizado', resumoParaFeed(anuncio))
+  if (STATUS_VISIVEIS.includes(anuncio.status)) {
+    publicarParaTodos('anuncio_atualizado', resumoParaFeed(anuncio))
+    avisarListasDeCompras(anuncio, { antes: atual }) // passou a combinar com a lista de alguém (preço baixou, por exemplo)
+    if (mudancaDePreco?.avisar) avisarQuedaDePreco(anuncio, mudancaDePreco.precoAntes) // "Baixou!" para quem favoritou
+  }
   res.json(anuncio)
 }
 
@@ -440,6 +466,10 @@ export async function mudarStatus(req, res) {
 
   const atual = await exigirDono(id, req.usuario.id)
   const status = lerOpcao(lerCorpo(req.body).status, 'status', ['ativo', 'reservado', 'vendido'])
+
+  if (atual.status === 'em_analise') {
+    throw erroHttp(409, 'Este anúncio está em análise pela equipe do DesapegaUai por causa de denúncias. Ele volta para a busca se a equipe liberar.')
+  }
 
   if (atual.status !== 'rascunho') {
     await anuncioModel.mudarStatus(id, req.usuario.id, status)
@@ -468,7 +498,7 @@ export async function mudarStatus(req, res) {
       throw erro
     }
 
-    await validarAnuncio(atual)
+    await validarAnuncio(atual, req.usuario.id)
     // todo anúncio publicado tem localização: se o rascunho não tinha, vale o centro do bairro
     await localizacao.ajustarLocalizacaoAoBairro(conexao, id, atual.bairro_id)
     await anuncioModel.publicarRascunho(id, req.usuario.id, conexao)
@@ -515,7 +545,7 @@ export async function adicionarFotos(req, res) {
     throw erroHttp(400, 'Envie pelo menos uma foto.')
   }
 
-  const fotos = await converterFotos(arquivos)
+  const fotos = await converterFotos(arquivos, { usuarioId: req.usuario.id })
 
   try {
     await anuncioModel.emTransacao(async (conexao) => {

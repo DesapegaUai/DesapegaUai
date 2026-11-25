@@ -51,6 +51,7 @@ export const especificacao = {
     { name: 'Locais', description: 'Cidades, bairros, ruas e CEPs da Zona da Mata (IBGE, Censo 2022)' },
     { name: 'Anúncios', description: 'Busca, publicação, edição, fotos, status (disponível, reservado e vendido) e categorias' },
     { name: 'Procura-se', description: 'Pedidos de quem quer comprar algo e o aviso quando aparece um anúncio compatível' },
+    { name: 'Comparador e lista de compras', description: 'IA do DesapegaUai (roda no servidor, só com dados públicos dos anúncios): compara os parecidos, dá a nota de custo-benefício de 0 a 10 com o motivo e mantém a lista de compras particular, com aviso quando aparece um anúncio que combina' },
     { name: 'Notificações', description: 'Avisos do sininho, preferências e notificações no aparelho (push)' },
     { name: 'Conversas', description: 'Chat entre quem compra e quem vende: mensagens, fotos, vídeos, denúncia e compromisso nas entregas' },
     { name: 'Avaliações', description: 'Avaliação do vendedor por quem comprou' },
@@ -299,7 +300,7 @@ export const especificacao = {
       post: { tags: ['Anúncios'], summary: 'Publicar (multipart, fotos no campo fotos). Aceita transporte (mochila, carro ou carreto) e latitude, longitude, origem_localizacao, rua, cep e precisao_m', security: login, responses: { 201: ok('Anúncio', { type: 'object' }), 400: E400, 401: E401, 422: E422 } },
     },
     '/api/anuncios/{id}': {
-      get: { tags: ['Anúncios'], summary: 'Detalhe (com localizacao_anuncio aproximada; exata só para o dono). O vendedor vem com vinculo_academico (verdadeiro ou falso), sem e-mail', parameters: [caminho('id', 'Id')], responses: { 200: ok('Anúncio', { type: 'object' }), 404: E404 } },
+      get: { tags: ['Anúncios'], summary: 'Detalhe (com localizacao_anuncio aproximada; exata só para o dono). O vendedor vem com vinculo_academico (verdadeiro ou falso), sem e-mail. historico_preco traz cada mudança de preço ({ preco, em }) e baixou ({ de, para, diferenca, em }) aparece por 30 dias depois de uma queda. Rascunho e anúncio em análise (denunciado) só existem para o dono', parameters: [caminho('id', 'Id')], responses: { 200: ok('Anúncio', { type: 'object' }), 404: E404 } },
       put: { tags: ['Anúncios'], summary: 'Editar (só o dono; também aceita os campos de localização)', security: login, parameters: [caminho('id', 'Id')], responses: { 200: ok('Anúncio', { type: 'object' }), 403: E403 } },
       delete: { tags: ['Anúncios'], summary: 'Excluir (só o dono); some das buscas na hora', security: login, parameters: [caminho('id', 'Id')], responses: { 204: { description: 'Excluído' }, 403: E403 } },
     },
@@ -312,6 +313,76 @@ export const especificacao = {
     },
     '/api/procuras/{id}': {
       delete: { tags: ['Procura-se'], summary: 'Excluir o pedido (só quem publicou)', security: login, parameters: [caminho('id', 'Id do pedido')], responses: { 204: { description: 'Excluído' }, 403: E403, 404: E404 } },
+    },
+    '/api/comparacao/busca': {
+      get: { tags: ['Comparador e lista de compras'], summary: 'Compara os anúncios parecidos da busca (mesmos filtros e mesmo raio): menor preço, média e maior, a nota de 0 a 10 de cada um (preço 35%, estado 20%, características 20%, fotos e informações 15%, distância 10%) com o motivo, e os que ficaram fora da conta. Sem termo de busca ou com menos de 2 parecidos, anuncios vem vazio', parameters: [query('cidade_id', { type: 'integer' }, 'Referência de local (ou bairro_id, ou latitude e longitude)'), query('bairro_id', { type: 'integer' }, ''), query('latitude', { type: 'number' }, ''), query('longitude', { type: 'number' }, ''), query('raio_km', { type: 'number' }, 'Padrão: o das preferências, ou 5 km'), ...filtrosDaBusca], responses: { 200: ok('Comparação', { type: 'object', properties: { tipo: { type: 'object', nullable: true }, precos: { type: 'object', nullable: true }, total: { type: 'integer' }, anuncios: { type: 'array', items: { type: 'object' } }, fora: { type: 'array', items: { type: 'object' } } } }), 400: E400, 404: E404 } },
+    },
+    '/api/comparacao/sugestao-de-preco': {
+      get: {
+        tags: ['Comparador e lista de compras'],
+        summary: 'Sugestão de preço ao anunciar: a IA entende o produto pelo título, junta os parecidos perto (no mínimo 30 km) e sugere a faixa do meio dos preços (1º ao 3º quartil) e o preço do meio. Com o mesmo estado quando há pelo menos 3; sem o produto reconhecido ou com menos de 3 parecidos, sugestao vem null. Os anúncios da própria pessoa não entram',
+        parameters: [
+          query('titulo', { type: 'string', example: 'Bicicleta aro 29 Caloi' }, 'Título do anúncio (3 a 80 letras)', true),
+          query('condicao', { type: 'string', enum: ['novo', 'seminovo', 'usado'] }, 'Estado do produto'),
+          query('anuncio_id', { type: 'integer' }, 'Editando um anúncio: ele mesmo fica de fora'),
+          query('cidade_id', { type: 'integer' }, 'Onde o produto está'), query('bairro_id', { type: 'integer' }, ''),
+          query('latitude', { type: 'number' }, ''), query('longitude', { type: 'number' }, ''),
+        ],
+        responses: {
+          200: ok('Sugestão', { type: 'object', properties: { tipo: { type: 'object', nullable: true }, total: { type: 'integer' }, mesmo_estado: { type: 'boolean' }, sugestao: { type: 'object', nullable: true, properties: { de: { type: 'number' }, ate: { type: 'number' }, preco: { type: 'number' }, media: { type: 'number' } } } } }),
+          400: E400, 429: E429,
+        },
+      },
+    },
+    '/api/anuncios/{id}/denuncia': {
+      get: { tags: ['Anúncios'], summary: 'A denúncia que eu fiz neste anúncio (ou null)', security: login, parameters: [caminho('id', 'Id do anúncio')], responses: { 200: ok('Denúncia', { type: 'object', properties: { denuncia: { type: 'object', nullable: true } } }), 400: E400, 401: E401 } },
+      post: {
+        tags: ['Anúncios'],
+        summary: 'Denunciar o anúncio (os três pontinhos da página): motivo proibido, golpe, improprio, falso ou outro (com descricao). Cada pessoa denuncia uma vez; com 3 pessoas diferentes, o anúncio sai da busca (em_analise) até a equipe revisar com npm run denuncias, e o vendedor é avisado sem saber quem denunciou',
+        security: login,
+        parameters: [caminho('id', 'Id do anúncio')],
+        requestBody: corpo({ type: 'object', required: ['motivo'], properties: { motivo: { type: 'string', enum: ['proibido', 'golpe', 'improprio', 'falso', 'outro'] }, descricao: { type: 'string', maxLength: 500 } } }, { motivo: 'golpe', descricao: 'Pediu pagamento adiantado por Pix.' }),
+        responses: { 201: ok('Denúncia registrada', { type: 'object' }), 400: E400, 401: E401, 404: E404, 409: erro('Já denunciou este anúncio', { erro: 'Você já denunciou este anúncio. A equipe do DesapegaUai vai analisar.', codigo: 'CONFLITO', status: 409 }), 429: E429 },
+      },
+    },
+    '/api/comparacao': {
+      get: { tags: ['Comparador e lista de compras'], summary: 'Compara de 2 a 4 anúncios escolhidos, na ordem pedida. Vendido ou excluído sai da conta (vem em fora)', parameters: [query('ids', { type: 'string', example: '3,7,9' }, 'Ids separados por vírgula'), query('cidade_id', { type: 'integer' }, 'Referência da distância (ou bairro_id, ou latitude e longitude)'), query('bairro_id', { type: 'integer' }, ''), query('latitude', { type: 'number' }, ''), query('longitude', { type: 'number' }, '')], responses: { 200: ok('Comparação', { type: 'object' }), 400: E400, 404: E404 } },
+    },
+    '/api/lista-compras': {
+      get: { tags: ['Comparador e lista de compras'], summary: 'A minha lista de compras, com o que a IA entendeu de cada item e até 3 anúncios que combinam (melhor custo-benefício primeiro). Os meus próprios anúncios não entram', security: login, parameters: [query('cidade_id', { type: 'integer' }, 'Referência de local (ou bairro_id, ou latitude e longitude; sem nada, a guardada)'), query('bairro_id', { type: 'integer' }, ''), query('latitude', { type: 'number' }, ''), query('longitude', { type: 'number' }, ''), query('raio_km', { type: 'number' }, 'Padrão: o das preferências')], responses: { 200: ok('Lista', { type: 'object', properties: { itens: { type: 'array', items: { type: 'object' } }, total_estimado: { type: 'number' } } }), 401: E401 } },
+      post: { tags: ['Comparador e lista de compras'], summary: 'Colocar um item na lista, do jeito que a pessoa escreve ("celular usado até R$ 800"). Até 30 itens; ninguém mais vê a lista', security: login, requestBody: corpo({ type: 'object', required: ['texto'], properties: { texto: { type: 'string', minLength: 2, maxLength: 80 }, cidade_id: { type: 'integer', nullable: true } } }), responses: { 201: ok('Item', { type: 'object' }), 400: E400, 401: E401, 409: erro('Lista cheia (30 itens) ou item repetido') } },
+    },
+    '/api/lista-compras/{id}': {
+      patch: { tags: ['Comparador e lista de compras'], summary: 'Marcar o item como comprado (ou desmarcar)', security: login, parameters: [caminho('id', 'Id do item')], requestBody: corpo({ type: 'object', required: ['comprado'], properties: { comprado: { type: 'boolean' } } }), responses: { 200: ok('Item', { type: 'object' }), 400: E400, 401: E401, 404: E404 } },
+      delete: { tags: ['Comparador e lista de compras'], summary: 'Tirar o item da lista', security: login, parameters: [caminho('id', 'Id do item')], responses: { 204: { description: 'Tirado' }, 401: E401, 404: E404 } },
+    },
+    '/api/conversas/{id}/fixar': {
+      put: { tags: ['Conversas'], summary: 'Fixar a conversa no topo da minha lista (como no WhatsApp; até 3, só eu vejo). Já fixada: continua', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 200: ok('Fixada', { type: 'object', properties: { conversa_id: { type: 'integer' }, fixada: { type: 'boolean' } } }), 401: E401, 403: E403, 404: E404, 409: erro('Já tem 3 conversas fixadas', { erro: 'Você só pode fixar até 3 conversas. Desafixe uma para fixar esta.', codigo: 'LIMITE_DE_FIXADAS', status: 409 }), 429: E429 } },
+      delete: { tags: ['Conversas'], summary: 'Desafixar a conversa', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 200: ok('Desafixada', { type: 'object' }), 401: E401, 403: E403, 404: E404, 429: E429 } },
+    },
+    '/api/conversas/{id}/mensagens-fixadas': {
+      get: { tags: ['Conversas'], summary: 'Mensagens fixadas no topo da conversa (as duas pessoas veem; até 3, da mais antiga para a mais nova). A que venceu o prazo não vem', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 200: ok('Fixadas', { type: 'object', properties: { fixadas: { type: 'array', items: { type: 'object', properties: { mensagem_id: { type: 'integer' }, fixada_por: { type: 'integer' }, fixada_em: { type: 'string' }, expira_em: { type: 'string' }, mensagem: { type: 'object' } } } } } }), 401: E401, 403: E403, 404: E404 } },
+    },
+    '/api/conversas/{id}/mensagens/{mensagemId}/fixar': {
+      put: {
+        tags: ['Conversas'],
+        summary: 'Fixar a mensagem no topo da conversa (como no WhatsApp) por 24 horas, 7 dias (padrão) ou 30 dias. Já fixada: renova o prazo. Com 3 fixadas, só entra com substituir: true (a mais antiga sai)',
+        security: login,
+        parameters: [caminho('id', 'Id da conversa'), caminho('mensagemId', 'Id da mensagem')],
+        requestBody: corpo({ type: 'object', properties: { duracao: { type: 'string', enum: ['24h', '7d', '30d'] }, substituir: { type: 'boolean' } } }, { duracao: '7d' }),
+        responses: { 200: ok('As fixadas depois da mudança', { type: 'object', properties: { substituida: { type: 'integer', nullable: true }, fixadas: { type: 'array', items: { type: 'object' } } } }), 400: E400, 401: E401, 403: E403, 404: E404, 409: erro('Mensagem apagada ou já há 3 fixadas', { erro: 'Já há 3 mensagens fixadas nesta conversa. Para fixar esta, a mais antiga deixa de ficar fixada.', codigo: 'LIMITE_DE_FIXADAS', status: 409 }), 429: E429 },
+      },
+      delete: { tags: ['Conversas'], summary: 'Desafixar a mensagem (qualquer uma das duas pessoas)', security: login, parameters: [caminho('id', 'Id da conversa'), caminho('mensagemId', 'Id da mensagem')], responses: { 200: ok('As fixadas depois da mudança', { type: 'object' }), 401: E401, 403: E403, 404: E404, 429: E429 } },
+    },
+    '/api/conversas/{id}/programadas': {
+      get: { tags: ['Conversas'], summary: 'As minhas mensagens programadas nesta conversa (a outra pessoa não vê)', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 200: ok('Programadas', { type: 'object', properties: { programadas: { type: 'array', items: { type: 'object' } } } }), 403: E403, 404: E404 } },
+      post: { tags: ['Conversas'], summary: 'Programar uma mensagem (como no WhatsApp): sai sozinha no horário escolhido, mesmo com o site fechado. Horário no futuro, até 30 dias; até 20 por conversa', security: login, parameters: [caminho('id', 'Id da conversa')], requestBody: corpo({ type: 'object', required: ['texto', 'enviar_em'], properties: { texto: { type: 'string', minLength: 1, maxLength: 1000 }, enviar_em: { type: 'string', format: 'date-time' } } }), responses: { 201: ok('Programada', { type: 'object' }), 400: E400, 403: E403, 404: E404, 409: erro('Limite de 20 programadas na conversa') } },
+    },
+    '/api/conversas/{id}/programadas/{programadaId}/enviar': {
+      post: { tags: ['Conversas'], summary: 'Enviar agora a mensagem programada (só quem programou)', security: login, parameters: [caminho('id', 'Id da conversa'), caminho('programadaId', 'Id da mensagem programada')], responses: { 201: ok('Mensagem', { type: 'object' }), 403: E403, 404: E404 } },
+    },
+    '/api/conversas/{id}/programadas/{programadaId}': {
+      delete: { tags: ['Conversas'], summary: 'Apagar a mensagem programada antes de sair (só quem programou)', security: login, parameters: [caminho('id', 'Id da conversa'), caminho('programadaId', 'Id da mensagem programada')], responses: { 204: { description: 'Apagada' }, 403: E403, 404: E404 } },
     },
     '/api/conversas/{id}/comparecimento': {
       get: { tags: ['Conversas'], summary: 'A minha resposta sobre o combinado desta conversa (ou null)', security: login, parameters: [caminho('id', 'Id da conversa')], responses: { 200: ok('Resposta', { type: 'object' }), 403: E403, 404: E404 } },
@@ -392,4 +463,31 @@ export const especificacao = {
     '/api/auth/google': { post: { tags: ['Perfil e login'], summary: 'Login com Google', requestBody: corpo({ type: 'object', properties: { credential: { type: 'string' } } }), responses: { 200: ok('Usuário', { type: 'object' }) } } },
     '/api/auth/logout': { post: { tags: ['Perfil e login'], summary: 'Sair (com { push_endpoint }, desinscreve este aparelho)', responses: { 204: { description: 'Saiu' } } } },
   },
+}
+
+// Moderação (IA própria, sem serviço pago): estas rotas recusam com 422 CONTEUDO_PROIBIDO o texto, a foto ou
+// o vídeo com o que não pode na plataforma (armas de fogo, drogas, conteúdo sexual e ameaça no texto; nudez e
+// pornografia na foto e no vídeo, mas biquíni pode). O "campos" diz o que revisar.
+const CONTEUDO_PROIBIDO = {
+  erro: 'Não é permitido anunciar ou negociar armas de fogo, munição, explosivos ou simulacros no DesapegaUai. Revise a descrição.',
+  codigo: 'CONTEUDO_PROIBIDO',
+  status: 422,
+  campos: ['descricao'],
+}
+const COM_MODERACAO = [
+  ['/api/anuncios', 'post'], ['/api/anuncios/{id}', 'put'], ['/api/anuncios/{id}/status', 'patch'], ['/api/anuncios/{id}/fotos', 'post'],
+  ['/api/conversas/{id}/mensagens', 'post'], ['/api/conversas/{id}/mensagens/{mensagemId}', 'patch'], ['/api/conversas/{id}/fotos', 'post'],
+  ['/api/conversas/{id}/videos', 'post'], ['/api/conversas/{id}/programadas', 'post'], ['/api/perfil', 'put'], ['/api/perfil/foto', 'put'],
+  ['/api/procuras', 'post'], ['/api/lista-compras', 'post'], ['/api/avaliacoes/conversas/{id}', 'post'],
+]
+for (const [rota, metodo] of COM_MODERACAO) {
+  const operacao = especificacao.paths[rota]?.[metodo]
+  if (!operacao) throw new Error(`Documentação: ${metodo.toUpperCase()} ${rota} não existe`)
+  const antes = operacao.responses[422]
+  operacao.responses[422] = antes
+    ? {
+        description: `${antes.description}; ou conteúdo proibido pela moderação (o "campos" diz o que revisar)`,
+        content: { 'application/json': { schema: ref('Erro'), examples: { antes: { value: antes.content['application/json'].example }, conteudo_proibido: { value: CONTEUDO_PROIBIDO } } } },
+      }
+    : erro('Conteúdo proibido pela moderação (o "campos" diz o que revisar)', CONTEUDO_PROIBIDO)
 }

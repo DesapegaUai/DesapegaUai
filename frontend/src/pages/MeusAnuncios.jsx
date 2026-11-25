@@ -45,6 +45,12 @@ function Item({ anuncio, onAviso, onMudou }) {
         </div>
         <Link className="ma-titulo" to={destino}>{titulo}</Link>
         <p className="ma-preco">{anuncio.preco ? formatarPreco(anuncio.preco) : 'Preço a definir'}</p>
+        {anuncio.status === 'em_analise' && (
+          <p className="ma-analise" role="note">
+            <Icone nome="alerta" tamanho={16} cor="#B42318" espessura={2} />
+            Saiu da busca porque recebeu denúncias. A equipe do DesapegaUai está revisando e avisa você quando terminar.
+          </p>
+        )}
         {rascunho ? (
           <>
             <p className="ma-falta">{faltando.length ? `Falta preencher: ${faltando.join(', ')}.` : 'Tudo pronto para publicar.'}</p>

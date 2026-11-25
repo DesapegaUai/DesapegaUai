@@ -9,7 +9,8 @@ import SeloVinculo from '../components/SeloVinculo.jsx';
 import SemFoto from '../components/SemFoto.jsx';
 import Toast from '../components/Toast.jsx';
 import useFavoritar from '../hooks/useFavoritar.js';
-import CompartilharAnuncio from '../components/CompartilharAnuncio.jsx';
+import HistoricoDePreco from '../components/HistoricoDePreco.jsx';
+import MenuDoAnuncio from '../components/MenuDoAnuncio.jsx';
 import { carregarAvaliacoesUsuario, resumoDe, textoDaMedia, useAvaliacoes } from '../services/avaliacoes.js';
 import { caminhoCategoria, buscarCategoria } from '../services/categorias.js';
 import { formatarPreco } from '../services/formatar.js';
@@ -101,6 +102,7 @@ function Conteudo({ anuncio: inicial }) {
   useEffect(() => ouvir('anuncio_removido', ({ id, motivo }) => {
     if (id !== anuncio.id) return;
     if (motivo === 'vendido') setAnuncio((a) => ({ ...a, status: 'vendido' }));
+    else if (motivo === 'em_analise') avisar('info', 'Este anúncio saiu da busca', 'Ele recebeu denúncias e está em análise pela equipe do DesapegaUai.');
     else avisar('info', 'Este anúncio foi excluído pelo vendedor');
   }), [anuncio.id]);
 
@@ -192,8 +194,18 @@ function Conteudo({ anuncio: inicial }) {
           <section className="det-bloco det-resumo">
             {vendido && <span className="det-vendido">Vendido</span>}
             {reservado && <span className="det-vendido reservado">Reservado</span>}
-            <h1>{anuncio.titulo}</h1>
+            {/* três pontinhos (opção B): Compartilhar e Denunciar anúncio */}
+            <div className="det-titulo-linha">
+              <h1>{anuncio.titulo}</h1>
+              <MenuDoAnuncio anuncio={anuncio} logado={Boolean(usuario)} onAviso={avisar} onEntrar={() => navegar('/entrar')} />
+            </div>
             <p className="det-preco">{formatarPreco(anuncio.preco)}</p>
+            {anuncio.baixou && (
+              <p className="det-baixou">
+                <Icone nome="seta-baixo" tamanho={16} cor="#2F6B19" espessura={2.4} />
+                Baixou {formatarPreco(anuncio.baixou.diferenca)} <span>· era {formatarPreco(anuncio.baixou.de)}</span>
+              </p>
+            )}
             <p className="det-local"><Icone nome="local" tamanho={19} cor="#4CA02B" />{anuncio.bairro ? `${anuncio.bairro}, ` : ''}{anuncio.cidade}</p>
 
             {anuncio.meu ? (
@@ -205,7 +217,6 @@ function Conteudo({ anuncio: inicial }) {
                   </Link>
                 )}
                 <Link className="det-btn" to="/meus-anuncios">Ver meus anúncios</Link>
-                <CompartilharAnuncio anuncio={anuncio} onAviso={avisar} />
               </>
             ) : (
               <>
@@ -216,10 +227,18 @@ function Conteudo({ anuncio: inicial }) {
                   <Icone nome="favorito" tamanho={21} cor="#3E8B22" preenchimento={anuncio.favoritado ? '#3E8B22' : 'none'} />
                   {anuncio.favoritado ? 'Salvo nos favoritos' : 'Favoritar'}
                 </button>
-                <CompartilharAnuncio anuncio={anuncio} onAviso={avisar} />
+                {/* favoritou, acompanha: quem salvou é avisado quando o preço baixa */}
+                {!vendido && (
+                  <p className="det-dica-preco">
+                    <Icone nome="sino" tamanho={15} cor="#6B726C" espessura={1.9} />
+                    {anuncio.favoritado ? 'Você é avisado se o preço baixar.' : 'Salve nos favoritos para ser avisado se o preço baixar.'}
+                  </p>
+                )}
               </>
             )}
           </section>
+
+          <HistoricoDePreco historico={anuncio.historico_preco} />
 
           <section className="det-bloco det-vendedor" aria-labelledby="det-vendedor">
             <h2 id="det-vendedor">Vendedor</h2>

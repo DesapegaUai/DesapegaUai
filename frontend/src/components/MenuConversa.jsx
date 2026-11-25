@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import Icone from './IconeMarketplace.jsx';
 import '../styles/marketplace-acoes.css';
 
-const ALTURA_MENU = 170;
+const ALTURA_MENU = 220;
 
-/** Três pontinhos ao lado da conversa, na lista: arquivar, avaliação e excluir. */
-export default function MenuConversa({ conversa, arquivada, onArquivar, onAvaliar, onExcluir }) {
+/** Três pontinhos ao lado da conversa, na lista: fixar no topo (até 3), arquivar, avaliação e excluir. */
+export default function MenuConversa({ conversa, arquivada, onFixar, onArquivar, onAvaliar, onExcluir }) {
   const [posicao, setPosicao] = useState(null);
   const botaoRef = useRef(null);
   const menuRef = useRef(null);
@@ -62,6 +62,11 @@ export default function MenuConversa({ conversa, arquivada, onArquivar, onAvalia
       {posicao && createPortal(
         <div className="telas-marketplace">
           <div className="acoes-menu" role="menu" ref={menuRef} style={posicao}>
+            {onFixar && !arquivada && (
+              <button type="button" role="menuitem" onClick={escolher(onFixar)}>
+                <Icone nome="alfinete" tamanho={19} cor="#3E8B22" />{conversa.fixada ? 'Desafixar conversa' : 'Fixar conversa'}
+              </button>
+            )}
             <button type="button" role="menuitem" onClick={escolher(onArquivar)}>
               <Icone nome="arquivo" tamanho={19} cor="#3E8B22" />{arquivada ? 'Desarquivar conversa' : 'Arquivar conversa'}
             </button>

@@ -229,3 +229,65 @@ export function textoDoUltimoAcesso(data) {
   const d = new Date(data)
   return `Visto por último ${diaDaMensagem(d).toLowerCase()} às ${formatoHora.format(d)}`
 }
+
+// ---------------------------------------------------------------- comparador e lista de compras (IA do DesapegaUai)
+
+// anúncio comparado: o card de sempre, mais o que a IA concluiu (nota, motivo, características, pontos de atenção)
+const comparadoDaApi = (anuncio) => ({
+  ...cardDaApi(anuncio),
+  vendedor: anuncio.vendedor ? { ...anuncio.vendedor, foto_url: urlDaApi(anuncio.vendedor.foto_url) } : null,
+})
+
+// os parecidos da busca (a mesma referência de local e o mesmo raio da busca)
+export async function compararBusca(filtros, { sinal } = {}) {
+  const resultado = await api.get(`/comparacao/busca${parametros(filtros)}`, { sinal })
+  return { ...resultado, anuncios: resultado.anuncios.map(comparadoDaApi) }
+}
+
+// de 2 a 4 anúncios escolhidos, na ordem pedida
+export async function compararAnuncios(ids, referencia, { sinal } = {}) {
+  const resultado = await api.get(`/comparacao${parametros({ ids, ...referencia })}`, { sinal })
+  return { ...resultado, anuncios: resultado.anuncios.map(comparadoDaApi) }
+}
+
+export async function listaDeCompras(referencia, { sinal } = {}) {
+  const resultado = await api.get(`/lista-compras${parametros(referencia)}`, { sinal })
+  return { ...resultado, itens: resultado.itens.map((item) => ({ ...item, anuncios: item.anuncios.map(cardDaApi) })) }
+}
+export const adicionarNaLista = (texto, cidadeId) => api.post('/lista-compras', { texto, cidade_id: cidadeId ?? null })
+export const marcarComoComprado = (id, comprado) => api.patch(`/lista-compras/${id}`, { comprado })
+export const tirarDaLista = (id) => api.delete(`/lista-compras/${id}`)
+
+// ---------------------------------------------------------------- mensagens programadas (como no WhatsApp)
+
+export async function programadasDaConversa(conversaId, { sinal } = {}) {
+  return (await api.get(`/conversas/${conversaId}/programadas`, { sinal })).programadas
+}
+export const programarMensagem = (conversaId, texto, enviarEm) =>
+  api.post(`/conversas/${conversaId}/programadas`, { texto, enviar_em: enviarEm.toISOString() })
+export const enviarProgramadaAgora = (conversaId, programadaId) => api.post(`/conversas/${conversaId}/programadas/${programadaId}/enviar`)
+export const apagarProgramada = (conversaId, programadaId) => api.delete(`/conversas/${conversaId}/programadas/${programadaId}`)
+
+// ---------------------------------------------------------------- denúncia de anúncio e sugestão de preço
+
+// os três pontinhos da página do anúncio: com 3 pessoas diferentes, o anúncio sai da busca até a equipe revisar
+export const denunciarAnuncio = (anuncioId, dados) => api.post(`/anuncios/${anuncioId}/denuncia`, dados)
+export const minhaDenunciaDoAnuncio = (anuncioId) => api.get(`/anuncios/${anuncioId}/denuncia`)
+// ao anunciar: a IA sugere a faixa de preço dos parecidos perto de onde o produto está
+export const sugerirPreco = (consulta, { sinal } = {}) => api.get(`/comparacao/sugestao-de-preco${parametros(consulta)}`, { sinal })
+
+// ---------------------------------------------------------------- fixar (como no WhatsApp)
+
+// conversa: até 3 no topo da minha lista (só eu vejo)
+export const fixarConversa = (conversaId) => api.put(`/conversas/${conversaId}/fixar`)
+export const desafixarConversa = (conversaId) => api.delete(`/conversas/${conversaId}/fixar`)
+// mensagem: até 3 no topo da conversa (as duas pessoas veem), por 24 horas, 7 dias ou 30 dias
+export async function mensagensFixadas(conversaId, { sinal } = {}) {
+  return (await api.get(`/conversas/${conversaId}/mensagens-fixadas`, { sinal })).fixadas
+}
+export async function fixarMensagem(conversaId, mensagemId, { duracao, substituir = false }) {
+  return (await api.put(`/conversas/${conversaId}/mensagens/${mensagemId}/fixar`, { duracao, substituir })).fixadas
+}
+export async function desafixarMensagem(conversaId, mensagemId) {
+  return (await api.delete(`/conversas/${conversaId}/mensagens/${mensagemId}/fixar`)).fixadas
+}

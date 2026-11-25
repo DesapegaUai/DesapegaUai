@@ -3,7 +3,12 @@
 // Enquanto uma das duas ainda vê, o arquivo fica.
 // Usa uma conversa só do teste: o Usuário Teste (3) chama o Diego (1) no anúncio 1 (sofá).
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { readFileSync, rmSync } from 'node:fs'
 import { access, rm } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import caminhoDoFfmpeg from 'ffmpeg-static'
 import { after, before, test } from 'node:test'
 import sharp from 'sharp'
 
@@ -15,7 +20,15 @@ const { caminhoDaFotoDoChat, caminhoDoVideoDoChat, LARGURAS_FOTO_DO_CHAT, pastaD
 const servidor = await new Promise((ok) => { const s = app.listen(0, '127.0.0.1', () => ok(s)) })
 const base = `http://127.0.0.1:${servidor.address().port}/api`
 let diego, teste, conversa, foto
-const VIDEO_MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom', 'latin1'), Buffer.alloc(12), Buffer.alloc(4096, 7)])
+// vídeo de verdade (1 s), gerado com o ffmpeg da API: a moderação abre o vídeo e confere os quadros
+const VIDEO_MP4 = (() => {
+  const arquivo = path.join(os.tmpdir(), `desapegauai-ninguem-ve-${process.pid}.mp4`)
+  execFileSync(caminhoDoFfmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=duration=1:size=160x120:rate=10',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-f', 'mp4', arquivo])
+  const dados = readFileSync(arquivo)
+  rmSync(arquivo, { force: true })
+  return dados
+})()
 
 const entrar = async (id) => (await fetch(`${base}/auth/teste`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario_id: id }) })).headers.getSetCookie()[0].split(';')[0]
 const existe = (caminho) => access(caminho).then(() => true, () => false)

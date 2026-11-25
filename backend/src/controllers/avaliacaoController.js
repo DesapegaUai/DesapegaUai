@@ -1,4 +1,5 @@
 import * as avaliacaoModel from '../models/avaliacaoModel.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { avisarAvaliacaoRecebida } from '../services/notificacaoService.js'
 import { avisarUsuarios } from '../socket.js'
 import { erroHttp } from '../utils/erroHttp.js'
@@ -55,6 +56,7 @@ export async function criar(req, res) {
 
   const qualidades = lerQualidades(req.body?.qualidades)
   const comentario = lerTexto(req.body?.comentario, 'comentário', { max: 300 })
+  exigirTextoPermitido({ comentario }, { onde: 'avaliacao', usuarioId: req.usuario.id })
   const resultado = await avaliacaoModel.criar({
     conversaId,
     avaliadorId: req.usuario.id,

@@ -28,10 +28,17 @@ const enviar = async (cookie, texto, conversa = 1) => (await chamar('POST', `/co
 const mensagensDe = async (cookie, conversa = 1) => (await chamar('GET', `/conversas/${conversa}/mensagens`, { cookie })).dados.mensagens
 const envelhecer = (id, minutos) => db.query('UPDATE mensagem SET enviada_em = NOW() - INTERVAL ? MINUTE WHERE id = ?', [minutos, id])
 
+// o que o teste cria sai no fim: as mensagens novas da conversa 1 e a conversa do Usuário Teste
+// (sem isso, rodar a bateria duas vezes seguidas muda os totais do perfil)
+let ultimaMensagemAntes = 0
+const conversasCriadas = []
 before(async () => {
   diego = await entrar(1); larissa = await entrar(2); teste = await entrar(3)
+  ultimaMensagemAntes = (await db.query('SELECT COALESCE(MAX(id), 0) AS id FROM mensagem'))[0][0].id
 })
 after(async () => {
+  await db.query('DELETE FROM mensagem WHERE conversa_id = 1 AND id > ?', [ultimaMensagemAntes])
+  for (const id of conversasCriadas) await db.query('DELETE FROM conversa WHERE id = ?', [id])
   servidor.close(); servidor.closeAllConnections(); await db.end()
 })
 
@@ -57,6 +64,7 @@ describe('Editar mensagem', () => {
 
   test('o id de uma mensagem de outra conversa não vale nesta conversa', async () => {
     const outra = (await chamar('POST', '/conversas', { cookie: teste, json: { anuncio_id: 2 } })).dados.conversa
+    conversasCriadas.push(outra.id)
     const m = await enviar(teste, 'Ainda está disponível?', outra.id)
     // a Larissa participa da conversa 1 e tenta usar o id de uma mensagem da conversa do Usuário Teste
     assert.equal((await chamar('PATCH', `/conversas/1/mensagens/${m.id}`, { cookie: larissa, json: { texto: 'x' } })).status, 404)

@@ -6,6 +6,8 @@ import sharp from 'sharp'
 // telefone e e-mail só aparecem aqui, para o próprio dono (LGPD)
 import * as usuarioModel from '../models/usuarioModel.js'
 import { excluirContaComFotos } from '../services/exclusaoDeConta.js'
+import { exigirFotoPermitida } from '../services/moderacaoDeImagem.js'
+import { exigirTextoPermitido } from '../services/moderacaoDeTexto.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { erroHttp } from '../utils/erroHttp.js'
 import { apagarCookieDeLogin } from '../utils/token.js'
@@ -43,6 +45,8 @@ export async function editarPerfil(req, res) {
     'nome' in corpo ? lerTexto(corpo.nome, 'nome', { obrigatorio: true, min: 2, max: 120 }) : atual.nome
   const telefone = 'telefone' in corpo ? lerTelefone(corpo.telefone) : atual.telefone
   const bio = 'bio' in corpo ? lerTexto(corpo.bio, 'bio', { max: 300 }) : atual.bio
+  // só o que a pessoa mandou agora (o nome que veio da conta Google não é conferido de novo a cada edição)
+  exigirTextoPermitido({ ...('nome' in corpo ? { nome } : {}), ...('bio' in corpo ? { bio } : {}) }, { onde: 'perfil', usuarioId: req.usuario.id })
 
   await usuarioModel.atualizarPerfil(req.usuario.id, { nome, telefone, bio })
   const perfil = await usuarioModel.buscarPerfil(req.usuario.id)
@@ -68,6 +72,8 @@ export async function atualizarFoto(req, res) {
   if (!FORMATOS_DE_FOTO.includes(formato)) {
     throw erroHttp(400, 'Envie somente fotos JPG, PNG ou WebP.')
   }
+  // a IA confere a foto: nudez ou conteúdo sexual é recusado (422)
+  await exigirFotoPermitida(req.file.buffer, { onde: 'perfil', usuarioId })
 
   let imagem
   try {
