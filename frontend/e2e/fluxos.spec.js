@@ -1,5 +1,5 @@
 // Fluxos completos, como uma pessoa usando o DesapegaUai (comprador e vendedor ao mesmo tempo).
-import { expect, test } from '@playwright/test'
+import { devices, expect, test } from '@playwright/test'
 import { CENTRO_VICOSA, FOTO_PNG, criarAnuncioPelaApi, entrarComo, negarGps, semMapaDaInternet, vigiarErros } from './ajuda.js'
 
 // anúncios de perto: a primeira grade da busca (embaixo dela fica a seção "Em outras cidades da região")
@@ -382,6 +382,56 @@ test.describe('Diferenciais', () => {
     expect(erros).toEqual([])
     await doComprador.close()
     await doVendedor.close()
+  })
+
+  test('Procura-se no celular: sem cidade, o aviso fica na cidade; escolhendo depois, os bairros aparecem; sem internet, dá para tentar de novo', async ({ browser }) => {
+    const celular = await browser.newContext({ ...devices['Pixel 7'] })
+    const page = await celular.newPage()
+    const erros = vigiarErros(page)
+    await semMapaDaInternet(page)
+    await entrarComo(page, 2)
+    // a lista de cidades falha na primeira vez (internet fraca)
+    let falhar = true
+    await page.route('**/api/cidades', (rota) => (falhar ? rota.fulfill({ status: 503, json: { erro: 'Fora do ar' } }) : rota.continue()))
+    await page.goto('/procura-se')
+    const cidade = page.locator('#pro-cidade')
+    const bairro = page.getByLabel('Bairro ou localidade')
+    await expect(page.getByText('Não foi possível carregar as cidades.')).toBeVisible()
+    falhar = false
+    await page.getByRole('button', { name: 'Tentar de novo' }).click()
+    await expect(page.getByText('Não foi possível carregar as cidades.')).toHaveCount(0)
+    await expect(cidade.locator('option')).not.toHaveCount(1)
+
+    // como no print: escolhe "Selecione a cidade" e tenta publicar
+    const titulo = `PlayStation 5 ${Date.now()}`
+    await page.getByLabel('O que você procura?').fill(titulo)
+    await page.locator('#pro-categoria').selectOption({ label: 'Games' })
+    await cidade.selectOption('')
+    await page.getByLabel('Até quanto você paga? (R$)').fill('8.000')
+    await expect(bairro).toBeDisabled()
+    expect(await bairro.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe('rgb(255, 255, 255)') // parece desligado
+    await page.getByRole('button', { name: 'Publicar pedido' }).click()
+    await expect(cidade).toHaveAttribute('aria-invalid', 'true')
+    await expect(cidade).toBeFocused()
+    await expect(page.getByText('Escolha a cidade.')).toBeVisible()
+    await expect(bairro).not.toHaveAttribute('aria-invalid', 'true')
+
+    // volta e escolhe a cidade: o aviso some e os bairros aparecem
+    await cidade.selectOption({ label: 'Viçosa' })
+    await expect(page.getByText('Escolha a cidade.')).toHaveCount(0)
+    await expect(bairro).toBeEnabled()
+    await expect(bairro.locator('option')).not.toHaveCount(1)
+    await page.getByRole('button', { name: 'Publicar pedido' }).click()
+    await expect(bairro).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.getByText('Escolha o bairro.')).toBeVisible()
+    await bairro.selectOption({ index: 1 })
+    await page.getByRole('button', { name: 'Publicar pedido' }).click()
+    await expect(page.locator('.pro-item').first()).toContainText(titulo)
+    page.once('dialog', (dialogo) => dialogo.accept())
+    await page.locator('.pro-item').first().getByRole('button', { name: 'Excluir' }).click()
+    await expect(page.getByText(titulo)).toHaveCount(0)
+    expect(erros.filter((e) => !e.includes('503'))).toEqual([]) // o 503 de mentira aparece no console
+    await celular.close()
   })
 
   test('anúncio reservado continua na busca com a etiqueta e a página mostra como levar', async ({ page, browser }) => {

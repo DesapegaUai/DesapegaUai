@@ -522,7 +522,7 @@ export default function CaixaMensagem({ onEnviar, onEnviarAudio, onProgramar, no
           type="file"
           className="oculto"
           tabIndex={-1}
-          accept={ANEXOS.aceitos}
+          accept={ANEXOS.aceitosCamera}
           capture="environment"
           onChange={escolherArquivos}
           aria-hidden="true"

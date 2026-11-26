@@ -1,0 +1,74 @@
+/* Tela de carregamento do app instalado (o #carregamento do index.html): a carinha do "Uai" se desenha
+   (1,3 segundo) e depois fica viva (o sorriso abre e fecha, o pingo do i dá pulinhos e os brilhos piscam)
+   até o app abrir. Quem tira a tela é o src/services/telaDeCarregamento.js.
+   Só aparece no app (display-mode: standalone). No navegador o site abre direto, como sempre.
+   Entra pelo <link> do index.html (não pelo React, que ainda não carregou quando a tela aparece): no build
+   o Vite junta este arquivo ao CSS do site, que o celular guarda por 1 ano. */
+
+#carregamento {
+  display: none;
+}
+
+@media (display-mode: standalone) {
+  #carregamento {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #E9FDB0 0%, #D4FE6E 35%, #C6FE32 55%, #98FD49 85%, #83FC55 100%);
+    /* se o app não abrir em 10 segundos (sem internet, por exemplo), a tela sai sozinha */
+    animation: cg-desiste 0.3s ease 10s forwards;
+  }
+}
+
+#carregamento.carregamento-saindo {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.cg-carinha {
+  width: min(34vw, 170px);
+  height: auto;
+  overflow: visible;
+}
+
+.cg-a, .cg-pingo, .cg-sorriso, .cg-brilho {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* 1. desenha (os traços como caneta; o "a", o pingo e os brilhos aparecem) */
+.cg-u, .cg-haste, .cg-sorriso {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+.cg-u { animation: cg-desenhar 0.3s ease-out 0.05s forwards; }
+.cg-a { opacity: 0; animation: cg-surgir 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) 0.28s forwards; }
+.cg-haste { animation: cg-desenhar 0.15s ease-out 0.42s forwards; }
+
+/* 2. fica viva (a segunda animação de cada peça começa quando a primeira acaba) */
+.cg-pingo { opacity: 0; animation: cg-cair 0.3s cubic-bezier(0.3, 1.5, 0.6, 1) 0.55s forwards, cg-pulinho 1.6s ease-in-out 1.3s infinite; }
+.cg-sorriso { animation: cg-desenhar 0.3s ease-out 0.7s forwards, cg-sorrir 1.6s ease-in-out 1.3s infinite; }
+.cg-brilho { opacity: 0; animation: cg-surgir 0.18s ease-out 0.98s forwards, cg-piscar 1.6s ease-in-out 1.3s infinite; }
+.cg-b2 { animation-delay: 1.06s, 1.5s; }
+.cg-b3 { animation-delay: 1.14s, 1.7s; }
+
+@keyframes cg-desenhar { to { stroke-dashoffset: 0; } }
+@keyframes cg-surgir { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+@keyframes cg-cair { 0% { opacity: 0; transform: translateY(-160%); } 30% { opacity: 1; } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes cg-sorrir { 0%, 100% { transform: scaleX(1) scaleY(1); } 50% { transform: scaleX(1.06) scaleY(1.35); } }
+@keyframes cg-pulinho { 0%, 40%, 100% { transform: translateY(0); } 20% { transform: translateY(-55%); } 30% { transform: translateY(0); } 35% { transform: translateY(-18%); } }
+@keyframes cg-piscar { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
+@keyframes cg-desiste { to { opacity: 0; visibility: hidden; } }
+
+/* quem pediu ao celular para reduzir movimento vê a carinha pronta, parada */
+@media (prefers-reduced-motion: reduce) {
+  .cg-carinha * {
+    animation: none !important;
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

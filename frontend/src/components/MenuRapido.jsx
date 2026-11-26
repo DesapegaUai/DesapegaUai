@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icone from './IconeMarketplace.jsx';
+import useFecharAoMexer from '../hooks/useFecharAoMexer.js';
 import '../styles/marketplace-acoes.css';
 
 /** Botão das respostas rápidas do chat que abre uma lista curta de opções (ponto de encontro, oferta). */
@@ -28,15 +29,12 @@ export default function MenuRapido({ rotulo, icone, itens, onEscolher }) {
     };
     document.addEventListener('mousedown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('scroll', fechar, true);
-    window.addEventListener('resize', fechar);
     return () => {
       document.removeEventListener('mousedown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('scroll', fechar, true);
-      window.removeEventListener('resize', fechar);
     };
   }, [posicao, fechar]);
+  useFecharAoMexer(Boolean(posicao), botaoRef, fechar);
 
   return (
     <>

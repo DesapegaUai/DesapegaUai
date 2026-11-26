@@ -9,6 +9,9 @@ export const RESPOSTAS_RAPIDAS = [
 /** Fotos aceitas no chat (os mesmos limites do servidor: POST /api/conversas/:id/fotos) */
 export const ANEXOS = {
   aceitos: 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm',
+  // botão Câmera: só foto. Com vídeo na lista o Android não sabe se abre a câmera de foto ou a de vídeo
+  // e abre a galeria no lugar
+  aceitosCamera: 'image/jpeg,image/png,image/webp',
   tipos: ['image/jpeg', 'image/png', 'image/webp'],
   tiposDeVideo: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'],
   maxArquivos: 5,

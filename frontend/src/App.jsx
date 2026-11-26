@@ -34,11 +34,12 @@ import { registrarServiceWorker } from './services/push.js'
 import { carregarSessao } from './services/sessao.js'
 import { conectarTempoReal } from './services/tempoReal.js'
 import PortaDoApp from './components/PortaDoApp.jsx'
+import { esconderTelaDeCarregamento } from './services/telaDeCarregamento.js'
 
 // Rotas (páginas) do site. Cada página nova entra aqui com um <Route>.
 export default function App() {
   useEffect(() => {
-    carregarSessao()
+    carregarSessao().finally(esconderTelaDeCarregamento) // a carinha do app sai quando o site sabe quem está logado
     conectarTempoReal()
     retomarGpsSalvo()
     registrarServiceWorker()?.catch(() => {})

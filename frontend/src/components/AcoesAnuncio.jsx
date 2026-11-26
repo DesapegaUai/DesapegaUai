@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import Icone from './IconeMarketplace.jsx';
 import useGaveta from '../hooks/useGaveta.js';
+import useFecharAoMexer from '../hooks/useFecharAoMexer.js';
 import { excluirAnuncio, mudarStatus } from '../services/mercadoApi.js';
 import '../styles/marketplace-acoes.css';
 
@@ -62,15 +63,12 @@ export default function AcoesAnuncio({ anuncio, classeBotao = 'acoes-abrir', onA
     };
     document.addEventListener('mousedown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('scroll', fechar, true);
-    window.addEventListener('resize', fechar);
     return () => {
       document.removeEventListener('mousedown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('scroll', fechar, true);
-      window.removeEventListener('resize', fechar);
     };
   }, [posicao, fechar]);
+  useFecharAoMexer(Boolean(posicao), botaoRef, fechar);
 
   async function trocarStatus(status) {
     fechar();
