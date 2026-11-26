@@ -6,6 +6,9 @@ import { entrarComo, semMapaDaInternet } from './ajuda.js'
 
 const TELA_DO_CELULAR = { width: 412, height: 915 }
 
+// a cor das barras do celular que vale agora
+const temaDaPagina = (pagina) => pagina.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].find((m) => !m.media || matchMedia(m.media).matches)?.content)
+
 // Abre o Chrome como app no endereço pedido (a janela já nasce nele)
 async function abrirApp(base, caminho) {
   const contexto = await chromium.launchPersistentContext('', {
@@ -34,9 +37,51 @@ test('no app, quem não está logado abre na tela de entrar e pode continuar sem
     await expect(pagina.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(pagina).toHaveURL(/\/$/)
 
-    // barras do celular brancas no app (a regra do theme-color com display-mode: standalone vale aqui)
-    const tema = await pagina.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].find((m) => !m.media || matchMedia(m.media).matches)?.content)
-    expect(tema).toBe('#FFFFFF')
+    // barras do celular brancas no app quando a carinha sai (a regra do theme-color com display-mode: standalone vale aqui)
+    await expect(pagina.locator('#carregamento')).toHaveCount(0)
+    expect(await temaDaPagina(pagina)).toBe('#FFFFFF')
+  } finally {
+    await contexto.close()
+  }
+})
+
+test('no app, a carinha se desenha no verde-limão e só sai depois de pronta e de o site saber quem entrou', async ({ baseURL }) => {
+  const { contexto, pagina } = await abrirApp(baseURL, '/api/saude')
+  try {
+    // anota quando a tela de carregamento sai (em ms desde que a página começou a abrir)
+    await pagina.addInitScript(() => {
+      let viu = false
+      window.carregamentoSaiuEm = null
+      new MutationObserver(() => {
+        if (document.getElementById('carregamento')) viu = true
+        else if (viu && window.carregamentoSaiuEm === null) window.carregamentoSaiuEm = performance.now()
+      }).observe(document, { childList: true, subtree: true })
+    })
+
+    // internet lenta: a sessão demora 3 s; a carinha fica viva enquanto isso, com as barras verde-limão
+    await contexto.route('**/api/auth/sessao', async (rota) => {
+      await new Promise((pronto) => setTimeout(pronto, 3000))
+      await rota.continue()
+    })
+    await pagina.goto('/')
+    const tela = pagina.locator('#carregamento')
+    await expect(tela).toBeVisible()
+    await expect(tela).toHaveAttribute('role', 'status')
+    await expect(tela.locator('.cg-sorriso')).toBeVisible()
+    expect(await temaDaPagina(pagina)).toBe('#C6FE32')
+    await pagina.waitForTimeout(1500) // a carinha já terminou de se desenhar
+    await expect(tela).toBeVisible()
+    expect(await tela.locator('.cg-pingo').evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
+    await expect(tela).toHaveCount(0, { timeout: 5000 })
+    expect(await pagina.evaluate(() => window.carregamentoSaiuEm)).toBeGreaterThan(3000)
+    expect(await temaDaPagina(pagina)).toBe('#FFFFFF')
+    await expect(pagina).toHaveURL(/\/entrar$/) // e quem não entrou cai na tela de entrar
+
+    // internet rápida: mesmo assim a carinha termina de se desenhar (1,35 s) antes de sair
+    await contexto.unroute('**/api/auth/sessao')
+    await pagina.goto('/entrar')
+    await expect(pagina.locator('#carregamento')).toHaveCount(0)
+    expect(await pagina.evaluate(() => window.carregamentoSaiuEm)).toBeGreaterThanOrEqual(1350 + 250)
   } finally {
     await contexto.close()
   }
@@ -62,7 +107,8 @@ test('no app, a aba de acessibilidade começa recolhida na borda e abre ao tocar
   try {
     await contexto.request.post('/api/auth/teste', { data: { usuario_id: 2 } })
     await pagina.goto('/busca')
-    const alca = pagina.getByRole('button', { name: 'Mostrar os botões de acessibilidade e Libras' })
+    await expect(pagina.locator('#carregamento')).toHaveCount(0) // enquanto a carinha está na tela, nada embaixo recebe o toque
+    const alca =pagina.getByRole('button', { name: 'Mostrar os botões de acessibilidade e Libras' })
     const menu = pagina.getByRole('button', { name: 'Acessibilidade', exact: true })
     await expect(alca).toBeVisible()
     await expect(menu).toBeHidden()
@@ -100,6 +146,7 @@ test('no navegador continua como antes: botões inteiros, sem alça e sem ir par
   await semMapaDaInternet(page)
   await page.setViewportSize(TELA_DO_CELULAR)
   await page.goto('/')
+  await expect(page.locator('#carregamento')).toBeHidden() // a carinha de carregamento é só do app
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page).toHaveURL(/\/$/)
   await expect(page.locator('html')).not.toHaveClass(/modo-app/)
@@ -107,8 +154,7 @@ test('no navegador continua como antes: botões inteiros, sem alça e sem ir par
   await expect(page.locator('.acs-alca')).toBeHidden()
   await page.goto('/entrar')
   await expect(page.getByRole('button', { name: 'Continuar sem entrar' })).toHaveCount(0)
-  const tema = await page.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].find((m) => !m.media || matchMedia(m.media).matches)?.content)
-  expect(tema).toBe('#3E8B22')
+  expect(await temaDaPagina(page)).toBe('#3E8B22')
 })
 
 test('o "+ Anunciar" flutuante fica só na busca, nas categorias e em todos os anúncios', async ({ page }) => {

@@ -43,13 +43,17 @@ export default function MenuCidade({ posicao, ancoraRef, onFechar }) {
     const tecla = (e) => {
       if (e.key === 'Escape') { onFechar(); ancoraRef.current?.focus(); }
     };
+    // fecha só se a largura mudar (o celular virou): o teclado e a barra do navegador do celular mudam só a
+    // altura, e fechar com eles fecharia o menu ao tocar na busca de cidade
+    const larguraInicial = window.innerWidth;
+    const mudouTamanho = () => { if (window.innerWidth !== larguraInicial) onFechar(); };
     document.addEventListener('mousedown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('resize', onFechar);
+    window.addEventListener('resize', mudouTamanho);
     return () => {
       document.removeEventListener('mousedown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('resize', onFechar);
+      window.removeEventListener('resize', mudouTamanho);
     };
   }, [ancoraRef, onFechar]);
 

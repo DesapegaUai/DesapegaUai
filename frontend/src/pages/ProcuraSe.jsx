@@ -26,7 +26,11 @@ export default function ProcuraSe() {
   const [erroDaLista, setErroDaLista] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [cidades, setCidades] = useState([]);
-  const [bairros, setBairros] = useState([]);
+  // os bairros vêm junto com a cidade a que pertencem: trocou de cidade, a lista antiga não aparece
+  const [bairrosDe, setBairrosDe] = useState({ cidadeId: '', lista: [], falhou: false });
+  const [tentativaBairros, setTentativaBairros] = useState(0);
+  // a lista de cidades não veio (internet fraca no celular): mostra o aviso com "Tentar de novo"
+  const [cidadesFalharam, setCidadesFalharam] = useState(false);
   const [form, setForm] = useState(() => ({ titulo: '', categoriaId: '', cidadeId: String(local.cidade?.id ?? ''), bairroId: String(local.bairro?.id ?? ''), preco: '' }));
   const [erros, setErros] = useState({});
   const [enviando, setEnviando] = useState(false);
@@ -37,18 +41,29 @@ export default function ProcuraSe() {
     listarProcuras().then((lista) => { setPedidos(lista); setErroDaLista(null); }).catch((falha) => setErroDaLista(falha.message));
   }, []);
 
+  const buscarCidades = useCallback(() => {
+    listarCidades().then(setCidades).catch(() => setCidadesFalharam(true));
+  }, []);
+
   useEffect(() => {
     document.title = 'DesapegaUai — Procura-se';
     carregar();
     obterCategorias().then(setCategorias).catch(() => {});
-    listarCidades().then(setCidades).catch(() => {});
-  }, [carregar]);
+    buscarCidades();
+  }, [carregar, buscarCidades]);
 
   useEffect(() => {
     let ativo = true;
-    if (form.cidadeId) bairrosDaCidade(Number(form.cidadeId)).then((lista) => { if (ativo) setBairros(lista); }).catch(() => {});
+    const cidadeId = form.cidadeId;
+    if (cidadeId) {
+      bairrosDaCidade(Number(cidadeId))
+        .then((lista) => { if (ativo) setBairrosDe({ cidadeId, lista, falhou: false }); })
+        .catch(() => { if (ativo) setBairrosDe({ cidadeId, lista: [], falhou: true }); });
+    }
     return () => { ativo = false; };
-  }, [form.cidadeId]);
+  }, [form.cidadeId, tentativaBairros]);
+  const bairros = bairrosDe.cidadeId === form.cidadeId ? bairrosDe.lista : [];
+  const bairrosFalharam = bairrosDe.cidadeId === form.cidadeId && bairrosDe.falhou;
 
   function mudar(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor, ...(campo === 'cidadeId' ? { bairroId: '' } : {}) }));
@@ -60,10 +75,19 @@ export default function ProcuraSe() {
     if (!usuario) { navegar('/entrar'); return; }
     const encontrados = {};
     if (form.titulo.trim().length < 3) encontrados.titulo = 'Diga o que você procura (de 3 a 80 letras).';
-    if (!form.bairroId) encontrados.bairroId = 'Escolha a cidade e o bairro.';
+    // o erro fica no campo que falta: sem cidade, na cidade (o bairro só abre depois dela)
+    if (!form.cidadeId) encontrados.cidadeId = 'Escolha a cidade.';
+    else if (!form.bairroId) encontrados.bairroId = 'Escolha o bairro.';
     if (form.preco && !(textoParaPreco(form.preco) > 0)) encontrados.preco = 'Informe um valor maior que zero ou deixe em branco.';
     setErros(encontrados);
-    if (Object.keys(encontrados).length) return;
+    const primeiro = ['titulo', 'cidadeId', 'bairroId', 'preco'].find((campo) => encontrados[campo]);
+    if (primeiro) {
+      // leva a pessoa até o campo que falta (no celular ele pode estar fora da tela)
+      const campo = document.getElementById({ titulo: 'pro-titulo', cidadeId: 'pro-cidade', bairroId: 'pro-bairro', preco: 'pro-preco' }[primeiro]);
+      campo?.focus({ preventScroll: true });
+      campo?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -126,10 +150,17 @@ export default function ProcuraSe() {
           </div>
           <div className="cad-campo">
             <label htmlFor="pro-cidade">Cidade<em aria-hidden="true"> *</em></label>
-            <select id="pro-cidade" className="cad-input" value={form.cidadeId} onChange={(e) => mudar('cidadeId', e.target.value)}>
+            <select id="pro-cidade" className="cad-input" value={form.cidadeId} aria-invalid={Boolean(erros.cidadeId)} onChange={(e) => mudar('cidadeId', e.target.value)}>
               <option value="">Selecione a cidade</option>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
+            {erros.cidadeId && <p className="cad-erro" role="alert">{erros.cidadeId}</p>}
+            {cidadesFalharam && (
+              <p className="cad-erro" role="alert">
+                Não foi possível carregar as cidades.{' '}
+                <button type="button" className="pro-tentar" onClick={() => { setCidadesFalharam(false); buscarCidades(); }}>Tentar de novo</button>
+              </p>
+            )}
           </div>
           <div className="cad-campo">
             <label htmlFor="pro-bairro">Bairro ou localidade<em aria-hidden="true"> *</em></label>
@@ -138,6 +169,12 @@ export default function ProcuraSe() {
               {bairros.map((b) => <option key={b.id} value={b.id}>{nomeDoBairro(b)}</option>)}
             </select>
             {erros.bairroId && <p className="cad-erro" role="alert">{erros.bairroId}</p>}
+            {bairrosFalharam && (
+              <p className="cad-erro" role="alert">
+                Não foi possível carregar os bairros.{' '}
+                <button type="button" className="pro-tentar" onClick={() => { setBairrosDe((b) => ({ ...b, falhou: false })); setTentativaBairros((t) => t + 1); }}>Tentar de novo</button>
+              </p>
+            )}
           </div>
           <div className="cad-campo">
             <label htmlFor="pro-preco">Até quanto você paga? (R$)</label>

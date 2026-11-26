@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icone from './IconeMarketplace.jsx';
+import useFecharAoMexer from '../hooks/useFecharAoMexer.js';
 import '../styles/marketplace-acoes.css';
 
 const ALTURA_MENU = 220;
@@ -33,15 +34,12 @@ export default function MenuConversa({ conversa, arquivada, onFixar, onArquivar,
     };
     document.addEventListener('mousedown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('scroll', fechar, true);
-    window.addEventListener('resize', fechar);
     return () => {
       document.removeEventListener('mousedown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('scroll', fechar, true);
-      window.removeEventListener('resize', fechar);
     };
   }, [posicao, fechar]);
+  useFecharAoMexer(Boolean(posicao), botaoRef, fechar);
 
   const escolher = (acao) => () => { fechar(); acao(conversa); };
 

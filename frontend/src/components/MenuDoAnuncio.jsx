@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import Icone from './IconeMarketplace.jsx';
 import CompartilharAnuncio from './CompartilharAnuncio.jsx';
 import DenunciarAnuncio from './DenunciarAnuncio.jsx';
+import useFecharAoMexer from '../hooks/useFecharAoMexer.js';
 import { compartilharNoAparelho } from '../services/compartilhar.js';
 import '../styles/marketplace-acoes.css';
 
@@ -41,15 +42,12 @@ export default function MenuDoAnuncio({ anuncio, logado, onAviso, onEntrar }) {
     };
     document.addEventListener('mousedown', clicouFora);
     document.addEventListener('keydown', tecla);
-    window.addEventListener('scroll', fecharMenu, true);
-    window.addEventListener('resize', fecharMenu);
     return () => {
       document.removeEventListener('mousedown', clicouFora);
       document.removeEventListener('keydown', tecla);
-      window.removeEventListener('scroll', fecharMenu, true);
-      window.removeEventListener('resize', fecharMenu);
     };
   }, [posicao, fecharMenu]);
+  useFecharAoMexer(Boolean(posicao), botaoRef, fecharMenu);
 
   // o foco volta para os três pontinhos antes de abrir a janela: ao fechar, ela devolve o foco para eles
   function abrir(qual) {

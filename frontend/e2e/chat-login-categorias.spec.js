@@ -1,7 +1,7 @@
 // Editar e apagar mensagem no chat (como no WhatsApp), login indo para a tela inicial e anúncios de
 // outras cidades na categoria. Conversa 1 do seed: Larissa (2) comprando a air fryer do Diego (1).
 import { Buffer } from 'node:buffer'
-import { expect, test } from '@playwright/test'
+import { devices, expect, test } from '@playwright/test'
 import { criarAnuncioPelaApi, entrarComo, semMapaDaInternet, videoDeTeste, vigiarErros } from './ajuda.js'
 
 test.describe('Mensagens do chat', () => {
@@ -100,6 +100,35 @@ test.describe('Caixa de escrever', () => {
     await expect(enviar).toBeEnabled()
     await page.locator('#campo-mensagem').fill('')
     await expect(enviar).toBeDisabled()
+  })
+
+  // O Android só abre a câmera direto quando o campo pede câmera (capture) e aceita só foto. Com vídeo na
+  // lista ele não sabe qual câmera abrir e mostra a galeria.
+  test('no celular, "Câmera" abre a câmera (só foto) e "Foto ou vídeo" abre a galeria', async ({ browser }) => {
+    const celular = await browser.newContext({ ...devices['Pixel 7'] })
+    const page = await celular.newPage()
+    try {
+      await entrarComo(page, 2)
+      await page.goto('/conversas/1')
+      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true)
+      const escolherNoMenu = async (item) => {
+        await page.getByRole('button', { name: 'Anexar foto ou vídeo' }).click()
+        const [janela] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('menuitem', { name: item }).click()])
+        return janela.element()
+      }
+
+      const camera = await escolherNoMenu('Câmera')
+      expect(await camera.getAttribute('capture')).toBe('environment')
+      expect((await camera.getAttribute('accept')).split(',')).toEqual(['image/jpeg', 'image/png', 'image/webp'])
+      await expect(page.getByRole('dialog', { name: 'Tirar foto' })).toHaveCount(0) // no celular não abre a câmera da página
+
+      const galeria = await escolherNoMenu('Foto ou vídeo')
+      expect(await galeria.getAttribute('capture')).toBeNull()
+      expect(await galeria.getAttribute('accept')).toContain('video/mp4')
+      expect(await galeria.getAttribute('multiple')).not.toBeNull()
+    } finally {
+      await celular.close()
+    }
   })
 })
 
