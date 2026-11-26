@@ -184,6 +184,10 @@ export default function Acessibilidade() {
   const [abrindoLibras, setAbrindoLibras] = useState(false)
   const [erroLibras, setErroLibras] = useState('')
   const [maximo, setMaximo] = useState(nivelMaximo)
+  // Só no app instalado (html.modo-app): a aba começa recolhida numa alça na borda e abre ao tocar.
+  // No navegador o CSS mostra os dois botões sempre, como antes.
+  const [expandida, setExpandida] = useState(false)
+  const aba = useRef(null)
   const painel = useRef(null)
   const botaoMenu = useRef(null)
 
@@ -206,10 +210,20 @@ export default function Acessibilidade() {
     if (vlibrasFicouAberto()) carregarVLibras().catch(() => {})
   }, [])
 
+  // Esc devolve o foco ao botão (a aba continua aberta); clicar fora fecha o painel e recolhe a aba no app
   const fechar = useCallback((devolverFoco = true) => {
     setAberto(false)
     if (devolverFoco) botaoMenu.current?.focus()
+    else setExpandida(false)
   }, [])
+
+  // no app, tocar fora da aba aberta (sem o painel) recolhe a aba
+  useEffect(() => {
+    if (!expandida || aberto) return undefined
+    const aoClicar = (e) => { if (!aba.current?.contains(e.target)) setExpandida(false) }
+    document.addEventListener('pointerdown', aoClicar)
+    return () => document.removeEventListener('pointerdown', aoClicar)
+  }, [expandida, aberto])
 
   // Esc fecha; clicar fora também
   useEffect(() => {
@@ -238,6 +252,7 @@ export default function Acessibilidade() {
       const vlibras = await carregarVLibras()
       vlibras.open()
       setAberto(false)
+      setExpandida(false)
     } catch (erro) {
       setErroLibras(erro.message)
       setAberto(true)
@@ -248,29 +263,45 @@ export default function Acessibilidade() {
 
   return createPortal(
     <>
-      <div className="acs-aba">
-        <button
-          ref={botaoMenu}
-          type="button"
-          className="acs-botao"
-          aria-label="Acessibilidade"
-          title="Acessibilidade"
-          aria-expanded={aberto}
-          aria-controls="acs-painel"
-          onClick={() => (aberto ? fechar() : setAberto(true))}
-        >
-          <IconeAcessibilidade />
-        </button>
+      <div ref={aba} className={`acs-aba${expandida ? ' acs-aba-aberta' : ''}`}>
+        {/* alça: só aparece no app instalado (CSS); no navegador fica escondida */}
         <button
           type="button"
-          className="acs-botao"
-          aria-label="Traduzir para Libras com o VLibras"
-          title="Libras (VLibras)"
-          aria-busy={abrindoLibras}
-          onClick={abrirLibras}
+          className="acs-alca"
+          aria-label={expandida ? 'Esconder os botões de acessibilidade' : 'Mostrar os botões de acessibilidade e Libras'}
+          title={expandida ? 'Esconder' : 'Acessibilidade e Libras'}
+          aria-expanded={expandida}
+          aria-controls="acs-botoes"
+          onClick={() => setExpandida((atual) => !atual)}
         >
-          <IconeLibras />
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
+        <div id="acs-botoes" className="acs-botoes">
+          <button
+            ref={botaoMenu}
+            type="button"
+            className="acs-botao"
+            aria-label="Acessibilidade"
+            title="Acessibilidade"
+            aria-expanded={aberto}
+            aria-controls="acs-painel"
+            onClick={() => (aberto ? fechar() : setAberto(true))}
+          >
+            <IconeAcessibilidade />
+          </button>
+          <button
+            type="button"
+            className="acs-botao"
+            aria-label="Traduzir para Libras com o VLibras"
+            title="Libras (VLibras)"
+            aria-busy={abrindoLibras}
+            onClick={abrirLibras}
+          >
+            <IconeLibras />
+          </button>
+        </div>
       </div>
 
       {aberto && (

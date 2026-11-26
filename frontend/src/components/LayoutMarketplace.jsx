@@ -7,7 +7,7 @@ import '../styles/marketplace.css';
 
 /**
  * Moldura das telas do marketplace: cabeçalho · [abas] · conteúdo · rodapé · [botão flutuante].
- * Usada por Categorias, Favoritos e Conversas.
+ * O "+ Anunciar" flutuante (comFab) fica só onde faz sentido anunciar: busca, categorias e todos os anúncios.
  */
 export default function LayoutMarketplace({ comAbas = true, comFab = true, classeConteudo = '', children }) {
   return (
