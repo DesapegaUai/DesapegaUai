@@ -66,7 +66,7 @@ export default function Mapa() {
   }
 
   return (
-    <LayoutMarketplace comAbas={false}>
+    <LayoutMarketplace comAbas={false} comFab={false}>
       <Toast aviso={toast} onFechar={() => setToast(null)} />
       <div className="mapa-pagina">
         <div className="titulo-pagina">

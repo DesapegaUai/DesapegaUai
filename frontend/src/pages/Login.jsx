@@ -4,6 +4,7 @@ import LogoAnimado from '../components/LogoAnimado.jsx'
 import Toast from '../components/Toast.jsx'
 import useAvisoDaNavegacao from '../hooks/useAvisoDaNavegacao.js'
 import { api } from '../services/api.js'
+import { emModoApp, lembrarContinuarSemEntrar } from '../services/modoApp.js'
 import { entrou } from '../services/sessao.js'
 import './Login.css'
 
@@ -448,6 +449,15 @@ export default function Login() {
                 Criar conta
               </button>
             </p>
+
+            {/* só no app instalado, que abre nesta tela quando a pessoa não está logada */}
+            {emModoApp() && (
+              <p className="login-criar">
+                <button type="button" className="login-link" onClick={() => { lembrarContinuarSemEntrar(); navegar('/', { replace: true }) }}>
+                  Continuar sem entrar
+                </button>
+              </p>
+            )}
           </div>
         )}
       </div>

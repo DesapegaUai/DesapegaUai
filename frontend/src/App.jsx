@@ -33,6 +33,7 @@ import { retomarGpsSalvo } from './services/localizacao.js'
 import { registrarServiceWorker } from './services/push.js'
 import { carregarSessao } from './services/sessao.js'
 import { conectarTempoReal } from './services/tempoReal.js'
+import PortaDoApp from './components/PortaDoApp.jsx'
 
 // Rotas (páginas) do site. Cada página nova entra aqui com um <Route>.
 export default function App() {
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
       <Acessibilidade />
+      <PortaDoApp />
     </NotificacoesAnunciosProvider>
   )
 }

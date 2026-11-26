@@ -82,7 +82,7 @@ export default function Favoritos() {
   const trocar = (setter) => (valor) => { setter(valor); setPagina(1); };
 
   return (
-    <LayoutMarketplace>
+    <LayoutMarketplace comFab={false}>
       <Toast aviso={toast} onFechar={() => setToast(null)} />
       <nav aria-label="Você está em">
         <ol className="trilha">
