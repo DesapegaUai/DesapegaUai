@@ -15,6 +15,54 @@ if (pushConfigurado) {
 
 export const chavePublica = () => (pushConfigurado ? env.vapid.publica : null)
 
+// ---------------------------------------------------------------- conteúdo dos avisos no celular
+// No padrão dos apps grandes (Mercado Livre, OLX, WhatsApp): título curto, porque no Android ele divide a
+// linha com o nome do app e a hora (título comprido corta: "Novo anúncio: Ca..."); o resto vai no texto; e
+// a imagem do próprio aviso à direita. O sininho do site tem espaço e continua com os textos completos.
+// O aparelho (public/sw.js) põe a carinha do Uai no lugar do sino e troca imagem que não carregar pela logo.
+
+const formatarPreco = (preco) => Number(preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+// as mesmas iniciais do avatar sem foto do site (primeira letra de até dois nomes)
+export const iniciaisDe = (nome) => String(nome ?? '').split(' ').filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase()
+
+// ★★★★☆
+export const estrelas = (nota) => {
+  const cheias = Math.max(0, Math.min(5, Math.round(Number(nota) || 0)))
+  return '★'.repeat(cheias) + '☆'.repeat(5 - cheias)
+}
+
+/**
+ * Aviso sobre um anúncio: "título curto" + "anúncio · preço · bairro, cidade", a foto pequena à direita e
+ * a foto média quando a pessoa puxa a notificação para baixo. detalhe troca o preço (ex.: "de R$ 900 por
+ * R$ 750"); chamada vem antes do nome do anúncio (ex.: "Achamos: ").
+ */
+export function avisoDeAnuncio(anuncio, { titulo, detalhe = null, chamada = '', tag }) {
+  const foto = anuncio.fotos?.[0] ?? null
+  const local = [anuncio.bairro, anuncio.cidade].filter(Boolean).join(', ')
+  return {
+    titulo,
+    texto: [`${chamada}${anuncio.titulo}`, detalhe ?? formatarPreco(anuncio.preco), local].filter(Boolean).join(' · ').slice(0, 255),
+    url: `/anuncio/${anuncio.id}`,
+    icone: foto?.pequena ?? null,
+    imagem: foto?.media ?? null,
+    tag,
+  }
+}
+
+/** Avaliação recebida: as estrelas e quem avaliou, com a foto (ou as iniciais) dessa pessoa à direita */
+export function avisoDeAvaliacao(avaliacao) {
+  const quem = avaliacao.avaliador_nome ?? 'Alguém'
+  return {
+    titulo: 'Nova avaliação',
+    texto: `${estrelas(avaliacao.nota)} ${quem} avaliou a negociação de ${avaliacao.anuncio_titulo}.`.slice(0, 255),
+    url: '/perfil',
+    icone: avaliacao.avaliador_foto ?? null,
+    iniciais: avaliacao.avaliador_foto ? null : iniciaisDe(quem),
+    tag: `avaliacao-${avaliacao.id}`,
+  }
+}
+
 /**
  * Envia o mesmo conteúdo para todos os aparelhos das pessoas. Não espera a entrega: quem chama
  * segue em frente. Aparelho que não existe mais (404/410) sai do banco.

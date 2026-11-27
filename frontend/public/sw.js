@@ -28,6 +28,55 @@ async function avatarDeIniciais(iniciais) {
   }
 }
 
+// Baixa a imagem e devolve ela pronta (data:), ou null se não carregou. Assim a notificação nunca fica com
+// a imagem quebrada: o Android trocava a que não carregava por uma letra cinza ("D", de desapegauai).
+async function imagemQueCarrega(endereco, esperarMs = 4000) {
+  if (!endereco) return null
+  if (endereco.startsWith('data:')) return endereco
+  const parar = new AbortController()
+  const relogio = setTimeout(() => parar.abort(), esperarMs)
+  try {
+    const resposta = await fetch(new URL(endereco, self.location.origin).href, { signal: parar.signal })
+    const tipo = resposta.headers.get('content-type') || ''
+    if (!resposta.ok || !tipo.startsWith('image/')) return null
+    const bytes = new Uint8Array(await resposta.arrayBuffer())
+    let binario = ''
+    for (const byte of bytes) binario += String.fromCharCode(byte)
+    return `data:${tipo.split(';')[0]};base64,${btoa(binario)}`
+  } catch {
+    return null
+  } finally {
+    clearTimeout(relogio)
+  }
+}
+
+// O aviso no padrão dos apps grandes:
+// - no lugar do sino, a carinha do Uai em silhueta (o Android usa só o desenho e pinta do jeito dele);
+// - à direita, a imagem do próprio aviso: a foto do anúncio, ou a foto (ou as iniciais) de quem falou com
+//   a pessoa; se ela não carregar, a logo do app;
+// - puxando a notificação para baixo, a foto do anúncio grande (dados.imagem).
+// O título vem curto do servidor: no Android ele divide a linha com o nome do app e a hora.
+// No iPhone o próprio sistema põe o ícone do app e ignora as imagens.
+async function montarNotificacao(dados) {
+  const [icone, imagem] = await Promise.all([
+    (async () => (await imagemQueCarrega(dados.icone)) || (await avatarDeIniciais(dados.iniciais)) || '/apple-touch-icon.png')(),
+    imagemQueCarrega(dados.imagem),
+  ])
+  return {
+    titulo: dados.titulo || 'DesapegaUai',
+    opcoes: {
+      body: dados.texto || '',
+      icon: icone,
+      ...(imagem ? { image: imagem } : {}),
+      badge: '/icone-notificacao-96.png',
+      tag: dados.tag || undefined,
+      renotify: Boolean(dados.tag), // mensagem nova da mesma conversa troca a notificação e avisa de novo
+      data: { url: dados.url || '/' },
+      lang: 'pt-BR',
+    },
+  }
+}
+
 self.addEventListener('push', (evento) => {
   let dados
   try {
@@ -35,17 +84,10 @@ self.addEventListener('push', (evento) => {
   } catch {
     dados = { titulo: 'DesapegaUai', texto: evento.data?.text() ?? '' }
   }
-  const titulo = dados.titulo || 'DesapegaUai'
-  evento.waitUntil((async () => self.registration.showNotification(titulo, {
-    body: dados.texto || '',
-    // mensagem do chat: a foto de quem mandou (sem foto, as iniciais); os outros avisos usam o ícone do site
-    icon: dados.icone || (await avatarDeIniciais(dados.iniciais)) || '/icon-192.png',
-    badge: '/favicon-48x48.png',
-    tag: dados.tag || undefined,
-    renotify: Boolean(dados.tag), // mensagem nova da mesma conversa troca a notificação e avisa de novo
-    data: { url: dados.url || '/' },
-    lang: 'pt-BR',
-  }))())
+  evento.waitUntil((async () => {
+    const { titulo, opcoes } = await montarNotificacao(dados)
+    return self.registration.showNotification(titulo, opcoes)
+  })())
 })
 
 self.addEventListener('notificationclick', (evento) => {

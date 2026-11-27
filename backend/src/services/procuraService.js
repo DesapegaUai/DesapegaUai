@@ -62,12 +62,8 @@ export async function avisarProcurasAtendidas(anuncio) {
     })
     avisarUsuarios([anuncio.vendedor.id], 'nova_notificacao', paraVendedor)
 
-    await push.enviarPara([...avisados], {
-      titulo: `Apareceu o que você procura: ${anuncio.titulo}`.slice(0, 120),
-      texto: `${formatarPreco(anuncio.preco)} · ${local}`,
-      url: `/anuncio/${anuncio.id}`,
-      tag: `procura-${anuncio.id}`,
-    }).catch(() => {})
+    await push.enviarPara([...avisados], push.avisoDeAnuncio(anuncio, { titulo: 'Procura-se', chamada: 'Achamos: ', tag: `procura-${anuncio.id}` }))
+      .catch(() => {})
     registrar('procura.atendida', { anuncio_id: anuncio.id, avisados: total })
   } catch (erro) {
     console.error('Não foi possível avisar quem procura:', erro.message)

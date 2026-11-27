@@ -1,7 +1,10 @@
+// Tela de carregamento do app (o #carregamento do index.html, estilo em src/styles/carregamento.css).
+// Só aparece quando o app é aberto. Recarregar a página (puxar a tela para baixo) ou voltar não é abrir o
+// app: aí o site abre direto, sem a carinha (html.sem-carregamento).
+//
 // Abertura do app no Android: o próprio Android mostra a carinha (o ícone do app) no verde-limão enquanto o
-// site carrega. Quando o app acabou de ser aberto, a tela de carregamento (src/styles/carregamento.css) começa
-// com a mesma carinha, pronta e no mesmo lugar, e ela só ganha vida, sem sumir e se desenhar de novo.
-// Recarregar o app, iPhone e computador: a carinha se desenha.
+// site carrega. A tela de carregamento começa com a mesma carinha, pronta e no mesmo lugar, e ela só ganha
+// vida, sem sumir e se desenhar de novo (html.carinha-pronta). iPhone e computador: a carinha se desenha.
 //
 // "No mesmo lugar": o Android centraliza a carinha na tela inteira, e o site fica entre a barra de cima
 // (status) e a de baixo (gestos). A barra de cima é maior, então a carinha do Android fica mais alta pela
@@ -13,10 +16,13 @@
 // do arquivo e no index.html.
 (() => {
   try {
+    const html = document.documentElement
     const navegacao = performance.getEntriesByType?.('navigation')[0]
-    const abriuAgora = !navegacao || navegacao.type === 'navigate'
-    if (abriuAgora && /Android/i.test(navigator.userAgent) && matchMedia('(display-mode: standalone)').matches) {
-      const html = document.documentElement
+    if (navegacao && navegacao.type !== 'navigate') {
+      html.classList.add('sem-carregamento')
+      return
+    }
+    if (/Android/i.test(navigator.userAgent) && matchMedia('(display-mode: standalone)').matches) {
       html.classList.add('carinha-pronta')
       const barras = screen.height - innerHeight // a de cima mais a de baixo
       if (barras >= 40 && barras <= 120) {
