@@ -11,9 +11,9 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=5" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <!-- no app instalado: verde-limão enquanto a carinha carrega e depois branco nas duas barras do celular
-         (o telaDeCarregamento.js troca); no navegador, verde -->
-    <meta name="theme-color" content="#C6FE32" media="(display-mode: standalone)" />
+    <!-- no app instalado: as duas barras do celular sempre brancas, também na abertura (no Android a de baixo
+         pega o theme_color do site.webmanifest, que também é branco); no navegador, verde -->
+    <meta name="theme-color" content="#FFFFFF" media="(display-mode: standalone)" />
     <meta name="theme-color" content="#3E8B22" />
     <!-- primeira tela do app no iPhone: só o degradê verde-limão, e a carinha se desenha em cima
          (imagens geradas por scripts/gerar-telas-de-abertura.mjs) -->
@@ -32,7 +32,7 @@
     <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/abertura/iphone-se.jpg" />
     <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
     <!-- tela de carregamento do app: no Android, quando o app acabou de abrir, começa com a carinha pronta -->
-    <script src="/assets/abertura-1.js"></script>
+    <script src="/assets/abertura-2.js"></script>
     <link rel="stylesheet" href="/src/styles/carregamento.css" />
     <title>DesapegaUai: compre e venda usados em Viçosa e região</title>
   </head>

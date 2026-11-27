@@ -5,11 +5,16 @@
 // parte escura (o "Uai", o sorriso e os brilhos) fica no meio do ícone. Centralizar pela caixa em volta deixa
 // a carinha torta para o olho: os brilhos e o pingo do "i" pesam do lado direito.
 //
-// - public/icone-app-maskable-512.png: o ícone do app no Android (o celular recorta em círculo ou gota) e a
+// - public/icone-app-android-512.png: o ícone do app no Android (o celular recorta em círculo ou gota) e a
 //   primeira tela do app, que o próprio Android desenha: o ícone no meio, em cima do background_color do
 //   site.webmanifest (o mesmo #C6FE32). Como o fundo do ícone é o mesmo verde-limão, fica só a carinha, e a
 //   tela de carregamento (src/styles/carregamento.css) continua com ela no mesmo lugar e tamanho.
 //   A carinha ocupa 74% do ícone e fica dentro do círculo de 80% que o Android nunca corta.
+//   A beirada é transparente (verde até 82% do meio, sumindo até 86%): a abertura do Android mostra o miolo
+//   de 87% do ícone e escurecia a beira desse recorte, desenhando uma linha em volta da carinha. Com a beira
+//   transparente não sobra o que escurecer. O ícone da tela inicial só mostra o miolo (até uns 80%), então
+//   ele não muda. O verde fica guardado também nos pontos transparentes, para nenhum programa que aumente
+//   ou diminua a imagem misturar a beira com preto.
 // - public/apple-touch-icon.png: o ícone do app no iPhone.
 // - public/icone-app-192.png e icone-app-512.png: os ícones "any" do manifest (instalar no computador).
 // - public/icon-192.png e icon-512.png: a logo da notificação (sw.js) e a que o Google mostra (seo.js), com o
@@ -18,7 +23,48 @@
 //   carinha começa a se desenhar na tela de carregamento sem pulo. Em JPEG: o degradê em PNG fica pesado.
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import zlib from 'node:zlib'
 import { chromium } from '@playwright/test'
+
+// PNG colorido com transparência, gravado aqui mesmo: o navegador zera a cor dos pontos transparentes ao
+// salvar, e aqui ela continua verde
+function pngComTransparencia(lado, rgba) {
+  const pedaco = (tipo, dados) => {
+    const tamanho = Buffer.alloc(4)
+    tamanho.writeUInt32BE(dados.length)
+    const tipoEDados = Buffer.concat([Buffer.from(tipo, 'ascii'), dados])
+    const conferencia = Buffer.alloc(4)
+    conferencia.writeUInt32BE(zlib.crc32(tipoEDados))
+    return Buffer.concat([tamanho, tipoEDados, conferencia])
+  }
+  const cabecalho = Buffer.alloc(13)
+  cabecalho.writeUInt32BE(lado, 0)
+  cabecalho.writeUInt32BE(lado, 4)
+  cabecalho[8] = 8 // 8 bits por cor
+  cabecalho[9] = 6 // vermelho, verde, azul e transparência
+  const linhas = Buffer.alloc(lado * (lado * 4 + 1))
+  for (let y = 0; y < lado; y++) {
+    linhas[y * (lado * 4 + 1)] = 0 // linha sem filtro
+    Buffer.from(rgba.buffer, rgba.byteOffset + y * lado * 4, lado * 4).copy(linhas, y * (lado * 4 + 1) + 1)
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pedaco('IHDR', cabecalho),
+    pedaco('IDAT', zlib.deflateSync(linhas, { level: 9 })),
+    pedaco('IEND', Buffer.alloc(0)),
+  ])
+}
+
+// transparência da beirada do ícone do Android: opaco até 82% do meio, some até 86% (distância medida em
+// quadrado, como o recorte da abertura do Android)
+const BEIRA_OPACA = 0.82
+const BEIRA_SOME = 0.86
+function transparenciaDaBeira(lado, x, y) {
+  const distancia = Math.max(Math.abs(x + 0.5 - lado / 2), Math.abs(y + 0.5 - lado / 2)) / (lado / 2)
+  if (distancia <= BEIRA_OPACA) return 255
+  if (distancia >= BEIRA_SOME) return 0
+  return Math.round(255 * (BEIRA_SOME - distancia) / (BEIRA_SOME - BEIRA_OPACA))
+}
 
 const PUBLICO = path.join(import.meta.dirname, '..', 'public')
 const INDEX = path.join(import.meta.dirname, '..', 'index.html')
@@ -101,7 +147,21 @@ try {
   }
   const quadradoLimao = `<rect width="512" height="512" fill="${LIMAO}"/>`
   const arredondadoLimao = `<rect width="512" height="512" rx="120" fill="${LIMAO}"/>`
-  await salvar('icone-app-maskable-512.png', icone({ fundo: quadradoLimao, tamanho: 0.74, dx, dy }), 512)
+  // Android: desenha opaco no navegador, pega os pontos e põe a beirada transparente (mantendo o verde)
+  const pontosDoAndroid = await pagina.evaluate(async (svg) => {
+    const imagem = new Image()
+    imagem.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`
+    await imagem.decode()
+    const tela = Object.assign(document.createElement('canvas'), { width: 512, height: 512 })
+    const desenho = tela.getContext('2d')
+    desenho.drawImage(imagem, 0, 0, 512, 512)
+    return Array.from(desenho.getImageData(0, 0, 512, 512).data)
+  }, icone({ fundo: quadradoLimao, tamanho: 0.74, dx, dy }))
+  const rgba = Uint8Array.from(pontosDoAndroid)
+  for (let y = 0; y < 512; y++) {
+    for (let x = 0; x < 512; x++) rgba[(y * 512 + x) * 4 + 3] = transparenciaDaBeira(512, x, y)
+  }
+  await fs.writeFile(path.join(PUBLICO, 'icone-app-android-512.png'), pngComTransparencia(512, rgba))
   await salvar('apple-touch-icon.png', icone({ fundo: quadradoLimao, tamanho: 0.905, dx, dy }), 180)
   for (const lado of [192, 512]) {
     await salvar(`icone-app-${lado}.png`, icone({ fundo: arredondadoLimao, tamanho: 1, dx, dy }), lado)

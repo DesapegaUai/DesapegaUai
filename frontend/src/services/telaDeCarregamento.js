@@ -1,7 +1,6 @@
 // Tira a tela de carregamento do app instalado (o #carregamento do index.html, com o estilo em
 // src/styles/carregamento.css) quando o site já sabe se a pessoa está logada. Nunca antes de a carinha
-// terminar de se desenhar; depois disso, se ainda estiver carregando, a carinha continua viva. Na saída,
-// as barras do celular voltam a ficar brancas.
+// terminar de se desenhar; depois disso, se ainda estiver carregando, a carinha continua viva.
 // No navegador a tela nem aparece (o CSS só mostra no app), e tirar ela não muda nada.
 const SAIDA_MS = 250
 
@@ -33,7 +32,6 @@ export function esconderTelaDeCarregamento() {
   const esperar = pronta ? sorriuUmaVez(tela) : desenhoTerminou(tela)
   esperar.then(() => {
     tela.classList.add('carregamento-saindo')
-    document.querySelector('meta[name="theme-color"][media]')?.setAttribute('content', '#FFFFFF')
     setTimeout(() => tela.remove(), SAIDA_MS)
   })
 }
