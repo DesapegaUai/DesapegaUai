@@ -6,7 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#C6FE32",
+  "theme_color": "#FFFFFF",
   "background_color": "#C6FE32",
   "icons": [
     {
@@ -20,7 +20,7 @@
       "type": "image/png"
     },
     {
-      "src": "/icone-app-maskable-512.png",
+      "src": "/icone-app-android-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

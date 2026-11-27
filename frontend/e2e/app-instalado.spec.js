@@ -96,7 +96,7 @@ test('no app, a carinha se desenha no verde-limão e só sai depois de pronta e 
     await expect(tela).toBeVisible()
     await expect(tela).toHaveAttribute('role', 'status')
     await expect(tela.locator('.cg-sorriso')).toBeVisible()
-    expect(await temaDaPagina(pagina)).toBe('#C6FE32')
+    expect(await temaDaPagina(pagina)).toBe('#FFFFFF') // barras brancas também durante a carinha
     await pagina.waitForTimeout(2300) // a carinha já terminou de se desenhar (2,1 s)
     await expect(tela).toBeVisible()
     expect(await tela.locator('.cg-b3').evaluate((el) => getComputedStyle(el).opacity)).not.toBe('0')
@@ -131,6 +131,8 @@ test('no Android, ao abrir o app a carinha já começa pronta e no meio (continu
   const { contexto, pagina } = await abrirApp(baseURL, '/api/saude', { userAgent: CELULAR_ANDROID })
   try {
     await pagina.addInitScript(() => {
+      // as barras do celular da Rhayane (medidas no vídeo): 52 px em cima e 26 px embaixo
+      Object.defineProperty(screen, 'height', { get: () => innerHeight + 78 })
       let viu = false
       window.carregamentoSaiuEm = null
       new MutationObserver(() => {
@@ -151,11 +153,13 @@ test('no Android, ao abrir o app a carinha já começa pronta e no meio (continu
     expect(await tela.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(198, 254, 50)')
     for (const peca of ['.cg-u', '.cg-haste', '.cg-sorriso']) expect(await tela.locator(peca).evaluate((el) => parseFloat(getComputedStyle(el).strokeDashoffset))).toBe(0)
     for (const peca of ['.cg-a', '.cg-pingo', '.cg-b1', '.cg-b3']) expect(await tela.locator(peca).evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
-    // a carinha não fica torta: o peso dela está no meio da tela
+    // a carinha não fica torta: o peso dela está no meio na largura; na altura, sobe 13 px para ficar onde o
+    // Android desenha a dele (no meio da tela inteira, contando as barras)
+    expect(await pagina.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--carinha-sobe').trim())).toBe('13.0px')
     const foto = await pagina.screenshot()
     const fora = await pesoForaDoMeio(pagina, `data:image/png;base64,${foto.toString('base64')}`)
     expect(Math.abs(fora.x)).toBeLessThan(1)
-    expect(Math.abs(fora.y)).toBeLessThan(1)
+    expect(Math.abs((fora.y / 100) * TELA_DO_CELULAR.height + 13)).toBeLessThan(2)
     await pagina.evaluate(() => document.getAnimations().forEach((animacao) => animacao.play()))
 
     // fica até a carinha sorrir uma vez (1,7 s), mesmo com o site já pronto
@@ -176,6 +180,8 @@ test('os ícones do app existem e a carinha deles está no meio (não fica torta
   await page.goto('/api/saude')
   const manifest = await (await page.request.get('/site.webmanifest')).json()
   expect(manifest.background_color).toBe('#C6FE32')
+  // a barra de baixo do Android pega o theme_color: verde ali vira uma faixa durante todo o uso do app
+  expect(manifest.theme_color).toBe('#FFFFFF')
   for (const icone of manifest.icons) {
     const resposta = await page.request.get(icone.src)
     expect(resposta.ok(), icone.src).toBeTruthy()
@@ -183,6 +189,21 @@ test('os ícones do app existem e a carinha deles está no meio (não fica torta
   }
   const maskable = manifest.icons.find((icone) => icone.purpose === 'maskable')?.src
   expect(maskable).toBeTruthy()
+  // ícone do Android: beirada transparente (a abertura do Android desenhava uma linha na beira) e o miolo,
+  // que é o que aparece na tela inicial, opaco
+  const transparencia = await page.evaluate(async (url) => {
+    const imagem = new Image()
+    imagem.src = url
+    await imagem.decode()
+    const tela = Object.assign(document.createElement('canvas'), { width: 512, height: 512 })
+    const desenho = tela.getContext('2d')
+    desenho.drawImage(imagem, 0, 0, 512, 512)
+    const alfa = (x, y) => desenho.getImageData(x, y, 1, 1).data[3]
+    const recorteDaAbertura = Math.round(256 - 256 * 0.874) // a abertura mostra o miolo de 87,4%
+    const telaInicial = Math.round(256 - 256 * 0.8) // a tela inicial mostra o miolo de uns 80%
+    return { canto: alfa(2, 2), recorte: [alfa(recorteDaAbertura, 256), alfa(256, recorteDaAbertura)], telaInicial: [alfa(telaInicial, 256), alfa(256, 511 - telaInicial), alfa(telaInicial, telaInicial)], meio: alfa(256, 256) }
+  }, maskable)
+  expect(transparencia).toEqual({ canto: 0, recorte: [0, 0], telaInicial: [255, 255, 255], meio: 255 })
   for (const icone of [maskable, '/apple-touch-icon.png', '/icone-app-512.png', '/icon-512.png']) {
     const fora = await pesoForaDoMeio(page, icone)
     expect(Math.abs(fora.x), `${icone}: peso fora do meio na horizontal`).toBeLessThan(1)
