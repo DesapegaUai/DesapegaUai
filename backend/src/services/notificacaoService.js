@@ -9,9 +9,6 @@ import { lerId } from '../utils/validacao.js'
 import { lerPaginacao, lerRaio } from '../validations/localizacaoValidation.js'
 import * as push from './pushService.js'
 
-// as mesmas iniciais do avatar sem foto do site (primeira letra de até dois nomes)
-const iniciais = (nome) => nome.split(' ').filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase()
-
 const formatarPreco = (preco) => Number(preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 /**
@@ -32,13 +29,7 @@ export async function avisarAnuncioNovo(anuncio) {
     if (!avisos.length) return
 
     for (const aviso of avisos) avisarUsuarios([aviso.usuario_id], 'nova_notificacao', aviso)
-    const { enviados } = await push.enviarPara(avisos.map((a) => a.usuario_id), {
-      titulo: `Novo anúncio: ${anuncio.titulo}`.slice(0, 120),
-      texto,
-      url: `/anuncio/${anuncio.id}`,
-      icone: anuncio.fotos?.[0]?.pequena ?? null,
-      tag: `anuncio-${anuncio.id}`,
-    })
+    const { enviados } = await push.enviarPara(avisos.map((a) => a.usuario_id), push.avisoDeAnuncio(anuncio, { titulo: 'Novo anúncio', tag: `anuncio-${anuncio.id}` }))
     registrar('notificacao.anuncio_novo', { anuncio_id: anuncio.id, avisados: avisos.length, push_enviados: enviados })
   } catch (erro) {
     console.error('Não foi possível avisar sobre o anúncio novo:', erro.message)
@@ -57,7 +48,7 @@ export async function avisarAvaliacaoRecebida(avaliacao) {
     // quem desligou todos os avisos não recebe push; a avaliação continua no histórico do sininho
     const preferencias = await repo.buscarPreferencias(avaliacao.avaliado_id)
     if (!preferencias?.anuncios && !preferencias?.mensagens) return
-    await push.enviarPara([avaliacao.avaliado_id], { titulo: aviso.titulo, texto: aviso.texto, url: '/perfil', tag: `avaliacao-${avaliacao.id}` })
+    await push.enviarPara([avaliacao.avaliado_id], push.avisoDeAvaliacao(avaliacao))
   } catch (erro) {
     console.error('Não foi possível avisar sobre a avaliação:', erro.message)
   }
@@ -85,7 +76,7 @@ export async function avisarMensagemNova(mensagem, participantes) {
         titulo: (nome ?? 'Nova mensagem').slice(0, 120),
         texto: texto.length > 150 ? `${texto.slice(0, 150)}…` : texto,
         icone: foto,
-        iniciais: foto || !nome ? null : iniciais(nome),
+        iniciais: foto || !nome ? null : push.iniciaisDe(nome),
         url: `/conversas/${mensagem.conversa_id}`,
         tag: `conversa-${mensagem.conversa_id}`, // várias mensagens da mesma conversa ficam numa notificação só
       })

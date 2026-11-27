@@ -24,6 +24,11 @@
   }
 }
 
+/* recarregar a página ou voltar não é abrir o app: sem a tela (html.sem-carregamento, do abertura-3.js) */
+.sem-carregamento #carregamento {
+  display: none;
+}
+
 #carregamento.carregamento-saindo {
   opacity: 0;
   pointer-events: none;
@@ -59,7 +64,7 @@
 .cg-b2 { animation-delay: 1.72s, 2.3s; }
 .cg-b3 { animation-delay: 1.84s, 2.5s; } /* o último brilho é a última peça: o telaDeCarregamento.js espera ele */
 
-/* Android, app acabou de abrir (html.carinha-pronta, marcado pelo public/assets/abertura-2.js): o próprio
+/* Android, app acabou de abrir (html.carinha-pronta, marcado pelo public/assets/abertura-3.js): o próprio
    Android já mostrou a carinha no verde-limão liso. A nossa tela continua com ela pronta, no mesmo lugar e
    no mesmo fundo, e a carinha só ganha vida. --carinha-sobe: quanto a do Android fica mais alta (ver o .js) */
 @media (display-mode: standalone) {

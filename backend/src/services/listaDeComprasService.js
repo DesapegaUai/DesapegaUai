@@ -162,12 +162,8 @@ export async function avisarListasDeCompras(anuncio, { antes = null } = {}) {
     }
     if (!novos.size) return
 
-    const { enviados } = await push.enviarPara([...novos], {
-      titulo: `${antes ? 'Agora combina com a sua lista de compras' : 'Apareceu na sua lista de compras'}: ${anuncio.titulo}`.slice(0, 120),
-      texto: `${formatarPreco(anuncio.preco)} · ${local}`,
-      url: `/anuncio/${anuncio.id}`,
-      tag: `lista-${anuncio.id}`,
-    }).catch(() => ({ enviados: 0 }))
+    const { enviados } = await push.enviarPara([...novos], push.avisoDeAnuncio(anuncio, { titulo: 'Lista de compras', tag: `lista-${anuncio.id}` }))
+      .catch(() => ({ enviados: 0 }))
     registrar('notificacao.lista_compras', { anuncio_id: anuncio.id, avisados: novos.size, push_enviados: enviados, edicao: Boolean(antes) })
   } catch (erro) {
     console.error('Não foi possível avisar as listas de compras:', erro.message)

@@ -68,7 +68,12 @@ export async function avisarQuedaDePreco(anuncio, precoAntes) {
       const aviso = await repo.criarAviso({ usuarioId, tipo: 'queda_preco', anuncioId: anuncio.id, titulo, texto })
       avisarUsuarios([usuarioId], 'nova_notificacao', aviso)
     }
-    const { enviados } = await push.enviarPara(usuarios, { titulo, texto, url: `/anuncio/${anuncio.id}`, tag: `preco-${anuncio.id}` })
+    const noCelular = push.avisoDeAnuncio(anuncio, {
+      titulo: 'Baixou o preço',
+      detalhe: `de ${formatarPreco(precoAntes)} por ${formatarPreco(anuncio.preco)}`,
+      tag: `preco-${anuncio.id}`,
+    })
+    const { enviados } = await push.enviarPara(usuarios, noCelular)
       .catch(() => ({ enviados: 0 }))
     registrar('notificacao.queda_preco', { anuncio_id: anuncio.id, avisados: usuarios.length, push_enviados: enviados })
   } catch (erro) {

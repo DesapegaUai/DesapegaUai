@@ -4,12 +4,13 @@
 // avisado no sininho e no celular, sem saber quem denunciou.
 import * as anuncioModel from '../models/anuncioModel.js'
 import * as denunciaModel from '../models/denunciaAnuncioModel.js'
+import * as fotoModel from '../models/fotoModel.js'
 import { idsDasConversasDoAnuncio } from '../models/mensagemModel.js'
 import * as repo from '../repositories/notificacaoRepository.js'
 import { avisarUsuarios, publicarParaTodos } from '../socket.js'
 import { apagarDoDisco } from '../utils/arquivos.js'
 import { erroHttp } from '../utils/erroHttp.js'
-import { pastaDaConversa, pastaDoAnuncio } from '../utils/fotos.js'
+import { formatarFoto, pastaDaConversa, pastaDoAnuncio } from '../utils/fotos.js'
 import { registrar } from '../utils/log.js'
 import { lerId, lerOpcao, lerTexto } from '../utils/validacao.js'
 import * as push from './pushService.js'
@@ -17,11 +18,22 @@ import * as push from './pushService.js'
 export const MOTIVOS = ['proibido', 'golpe', 'improprio', 'falso', 'outro']
 export const PESSOAS_PARA_ANALISE = 3
 
-async function avisarVendedor(vendedorId, { tipo, anuncioId = null, titulo, texto, url }) {
+// no celular o título é curto (no Android ele divide a linha com o nome do app e a hora) e o nome do anúncio
+// vai no texto, com a foto dele à direita enquanto ele existir
+const TITULO_NO_CELULAR = { anuncio_em_analise: 'Anúncio em análise', anuncio_liberado: 'Anúncio liberado', anuncio_removido: 'Anúncio removido' }
+
+async function avisarVendedor(vendedorId, { tipo, anuncioId = null, anuncioTitulo, titulo, texto, url }) {
   try {
     const aviso = await repo.criarAviso({ usuarioId: vendedorId, tipo, anuncioId, titulo: titulo.slice(0, 120), texto: texto.slice(0, 255) })
     avisarUsuarios([vendedorId], 'nova_notificacao', aviso)
-    await push.enviarPara([vendedorId], { titulo: titulo.slice(0, 120), texto, url, tag: `denuncia-${anuncioId ?? 'removido'}` }).catch(() => {})
+    const capa = anuncioId ? formatarFoto(anuncioId, (await fotoModel.listarPorAnuncio(anuncioId))[0]) : null
+    await push.enviarPara([vendedorId], {
+      titulo: TITULO_NO_CELULAR[tipo] ?? titulo.slice(0, 120),
+      texto: `${anuncioTitulo} · ${texto}`.slice(0, 255),
+      url,
+      icone: capa?.pequena ?? null,
+      tag: `denuncia-${anuncioId ?? 'removido'}`,
+    }).catch(() => {})
   } catch (erro) {
     console.error('Não foi possível avisar o vendedor sobre a denúncia:', erro.message)
   }
@@ -49,6 +61,7 @@ export async function denunciar(anuncioIdBruto, usuarioId, corpo) {
     await avisarVendedor(anuncio.usuario_id, {
       tipo: 'anuncio_em_analise',
       anuncioId,
+      anuncioTitulo: anuncio.titulo,
       titulo: `Seu anúncio saiu da busca: ${anuncio.titulo}`,
       texto: 'Ele recebeu denúncias e a equipe do DesapegaUai vai revisar. Se estiver tudo certo, ele volta para a busca.',
       url: '/meus-anuncios',
@@ -76,6 +89,7 @@ export async function liberarAnuncio(anuncioId) {
     await avisarVendedor(anuncio.usuario_id, {
       tipo: 'anuncio_liberado',
       anuncioId,
+      anuncioTitulo: anuncio.titulo,
       titulo: `Seu anúncio voltou para a busca: ${anuncio.titulo}`,
       texto: 'A equipe do DesapegaUai revisou as denúncias e está tudo certo com ele.',
       url: `/anuncio/${anuncioId}`,
@@ -99,6 +113,7 @@ export async function removerAnuncio(anuncioId) {
   // o anúncio não existe mais: o aviso vai sem ele (anuncio_id vazio)
   await avisarVendedor(anuncio.usuario_id, {
     tipo: 'anuncio_removido',
+    anuncioTitulo: anuncio.titulo,
     titulo: `Seu anúncio foi removido: ${anuncio.titulo}`,
     texto: 'A equipe do DesapegaUai revisou as denúncias e o anúncio não segue as regras da plataforma.',
     url: '/meus-anuncios',

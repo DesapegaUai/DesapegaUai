@@ -127,7 +127,7 @@ test('no app, a carinha se desenha no verde-limão e só sai depois de pronta e 
   }
 })
 
-test('no Android, ao abrir o app a carinha já começa pronta e no meio (continua a abertura do Android) e ganha vida; recarregando, ela se desenha', async ({ baseURL }) => {
+test('no Android, ao abrir o app a carinha já começa pronta e no meio (continua a abertura do Android) e ganha vida; recarregando, abre direto, sem a carinha', async ({ baseURL }) => {
   const { contexto, pagina } = await abrirApp(baseURL, '/api/saude', { userAgent: CELULAR_ANDROID })
   try {
     await pagina.addInitScript(() => {
@@ -164,13 +164,18 @@ test('no Android, ao abrir o app a carinha já começa pronta e no meio (continu
 
     // fica até a carinha sorrir uma vez (1,7 s), mesmo com o site já pronto
     await expect(tela).toHaveCount(0, { timeout: 6000 })
-    expect(await pagina.evaluate(() => window.carregamentoSaiuEm - performance.getEntriesByName('first-paint')[0].startTime)).toBeGreaterThanOrEqual(1700 + 250 - 60)
+    // (folga: a animação começa um pouco antes da primeira pintura que o navegador anota)
+    expect(await pagina.evaluate(() => window.carregamentoSaiuEm - performance.getEntriesByName('first-paint')[0].startTime)).toBeGreaterThanOrEqual(1700 + 250 - 150)
 
-    // recarregar não é abrir o app: a carinha se desenha
-    await pagina.reload()
-    await expect(pagina.locator('#carregamento')).toBeVisible()
+    // recarregar (puxar a tela para baixo) não é abrir o app: abre direto, sem a tela de carregamento
+    await pagina.reload({ waitUntil: 'commit' })
+    await expect(pagina.locator('html')).toHaveClass(/sem-carregamento/)
     await expect(pagina.locator('html')).not.toHaveClass(/carinha-pronta/)
-    expect(await pagina.locator('.cg-b3').evaluate((el) => el.getAnimations().map((a) => a.animationName))).toContain('cg-surgir')
+    expect(await pagina.evaluate(() => {
+      const tela = document.getElementById('carregamento')
+      return tela ? getComputedStyle(tela).display : 'já saiu'
+    })).toMatch(/^(none|já saiu)$/)
+    await expect(pagina.getByRole('heading', { level: 1 }).first()).toBeVisible() // o site aparece direto
   } finally {
     await contexto.close()
   }

@@ -19,6 +19,9 @@
 // - public/icone-app-192.png e icone-app-512.png: os ícones "any" do manifest (instalar no computador).
 // - public/icon-192.png e icon-512.png: a logo da notificação (sw.js) e a que o Google mostra (seo.js), com o
 //   degradê da logo.
+// - public/icone-notificacao-96.png: a carinha em silhueta branca, sem fundo, no lugar do sino das
+//   notificações do Android (e na barra de cima do celular). O Android usa só o desenho, sem as cores, e
+//   pinta ele do jeito dele: por isso é branca e com o fundo transparente.
 // - public/abertura/*.jpg: a primeira tela do iPhone, uma por tamanho de tela, só com o degradê. Assim a
 //   carinha começa a se desenhar na tela de carregamento sem pulo. Em JPEG: o degradê em PNG fica pesado.
 import fs from 'node:fs/promises'
@@ -167,6 +170,8 @@ try {
     await salvar(`icone-app-${lado}.png`, icone({ fundo: arredondadoLimao, tamanho: 1, dx, dy }), lado)
     await salvar(`icon-${lado}.png`, icone({ fundo: fundoDaLogo, tamanho: 0.931, dx, dy }), lado)
   }
+  // a carinha ocupa quase toda a largura (o Android desenha esse ícone bem pequeno)
+  await salvar('icone-notificacao-96.png', icone({ fundo: '', tamanho: 1.08, dx, dy }).replaceAll('#2E3335', '#FFFFFF'), 96)
 
   await fs.mkdir(path.join(PUBLICO, 'abertura'), { recursive: true })
   const linhas = []
