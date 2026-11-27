@@ -1,19 +1,31 @@
-// Gera as imagens paradas da abertura do app instalado. Rodar de novo se a carinha ou as cores mudarem:
+// Gera os ícones do app e as telas de abertura do iPhone. Rodar de novo se a carinha ou as cores mudarem:
 //   node scripts/gerar-telas-de-abertura.mjs        (na pasta frontend)
 //
-// - public/icone-app-192.png e icone-app-512.png: a carinha num quadrado verde-limão liso (#C6FE32).
-//   O Android desenha a primeira tela do app com esse ícone no centro, em cima do background_color do
-//   site.webmanifest (o mesmo #C6FE32): o quadrado some e fica só a carinha no verde-limão.
-//   (Os icon-192/512 de antes continuam iguais: são os da notificação push e do logo para o Google.)
+// A carinha de todos os ícones sai da logo (public/favicon.svg) e é alinhada pelo PESO: o centro de toda a
+// parte escura (o "Uai", o sorriso e os brilhos) fica no meio do ícone. Centralizar pela caixa em volta deixa
+// a carinha torta para o olho: os brilhos e o pingo do "i" pesam do lado direito.
+//
+// - public/icone-app-maskable-512.png: o ícone do app no Android (o celular recorta em círculo ou gota) e a
+//   primeira tela do app, que o próprio Android desenha: o ícone no meio, em cima do background_color do
+//   site.webmanifest (o mesmo #C6FE32). Como o fundo do ícone é o mesmo verde-limão, fica só a carinha, e a
+//   tela de carregamento (src/styles/carregamento.css) continua com ela no mesmo lugar e tamanho.
+//   A carinha ocupa 74% do ícone e fica dentro do círculo de 80% que o Android nunca corta.
+// - public/apple-touch-icon.png: o ícone do app no iPhone.
+// - public/icone-app-192.png e icone-app-512.png: os ícones "any" do manifest (instalar no computador).
+// - public/icon-192.png e icon-512.png: a logo da notificação (sw.js) e a que o Google mostra (seo.js), com o
+//   degradê da logo.
 // - public/abertura/*.jpg: a primeira tela do iPhone, uma por tamanho de tela, só com o degradê. Assim a
-//   carinha começa a se desenhar na tela de carregamento (src/styles/carregamento.css) sem pulo. Em JPEG de alta
-//   qualidade: o degradê em PNG ficava com uns 350 KB por tela.
+//   carinha começa a se desenhar na tela de carregamento sem pulo. Em JPEG: o degradê em PNG fica pesado.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { chromium } from '@playwright/test'
 
 const PUBLICO = path.join(import.meta.dirname, '..', 'public')
+const INDEX = path.join(import.meta.dirname, '..', 'index.html')
+const LIMAO = '#C6FE32'
 const DEGRADE = 'linear-gradient(160deg, #E9FDB0 0%, #D4FE6E 35%, #C6FE32 55%, #98FD49 85%, #83FC55 100%)'
+// posição da carinha na tela de carregamento (o <g> do #carregamento no index.html), antes do ajuste do peso
+const CARINHA_DA_TELA = { x: -41.85, y: -63.7 }
 
 // tamanho da tela em pontos (como o iPhone informa ao site) e a densidade
 export const IPHONES = [
@@ -30,31 +42,91 @@ export const IPHONES = [
   { nome: 'iphone-se', largura: 375, altura: 667, escala: 2 }, // SE 2 e 3, 6, 7 e 8
 ]
 
-// a carinha do favicon.svg, trocando o degradê do quadrado pelo verde-limão liso
+// a logo sem o quadrado de fundo: só a carinha (e as definições do degradê, que não aparecem sozinhas)
 const favicon = await fs.readFile(path.join(PUBLICO, 'favicon.svg'), 'utf8')
-const iconeLiso = favicon.replace('fill="url(#g)"', 'fill="#C6FE32"')
-if (iconeLiso === favicon) throw new Error('não achei o fundo do favicon.svg para trocar a cor')
+const FUNDO_DA_LOGO = /<rect[^>]*fill="url\(#g\)"[^>]*\/>/
+const fundoDaLogo = favicon.match(FUNDO_DA_LOGO)?.[0]
+if (!fundoDaLogo) throw new Error('não achei o fundo do favicon.svg (o <rect> com o degradê)')
+const semFundo = favicon.replace(FUNDO_DA_LOGO, '')
+const carinha = semFundo.slice(semFundo.indexOf('>', semFundo.indexOf('<svg')) + 1, semFundo.lastIndexOf('</svg>'))
+
+// ícone de 512: fundo + a carinha em "tamanho" (1 = o da logo), centralizada e com o ajuste do peso (dx, dy)
+function icone({ fundo, tamanho, dx = 0, dy = 0 }) {
+  const ex = 256 * (1 - tamanho) + dx * tamanho
+  const ey = 256 * (1 - tamanho) + dy * tamanho
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">${fundo}<g transform="translate(${ex.toFixed(2)} ${ey.toFixed(2)}) scale(${tamanho})">${carinha}</g></svg>`
+}
 
 const navegador = await chromium.launch({ channel: 'chrome' }) // o mesmo Chrome dos testes (npm run e2e)
 try {
-  for (const tamanho of [192, 512]) {
-    const pagina = await navegador.newPage({ viewport: { width: tamanho, height: tamanho } })
-    await pagina.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:${tamanho}px;height:${tamanho}px}</style>${iconeLiso}`)
-    await pagina.screenshot({ path: path.join(PUBLICO, `icone-app-${tamanho}.png`), omitBackground: true })
-    await pagina.close()
+  const pagina = await navegador.newPage()
+
+  // centro de peso da parte escura, em unidades do desenho de 512 a partir do meio
+  const centroDePeso = (svg) => pagina.evaluate(async (svg) => {
+    const imagem = new Image()
+    imagem.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`
+    await imagem.decode()
+    const tela = document.createElement('canvas')
+    tela.width = 1000
+    tela.height = 1000
+    const desenho = tela.getContext('2d')
+    desenho.drawImage(imagem, 0, 0, 1000, 1000)
+    const pontos = desenho.getImageData(0, 0, 1000, 1000).data
+    let somaX = 0, somaY = 0, soma = 0
+    for (let y = 0; y < 1000; y++) {
+      for (let x = 0; x < 1000; x++) {
+        const k = (y * 1000 + x) * 4
+        const brilho = (pontos[k] + pontos[k + 1] + pontos[k + 2]) / 3
+        const peso = (pontos[k + 3] / 255) * Math.max(0, Math.min(1, (120 - brilho) / 70)) // só a cor da carinha
+        somaX += peso * (x + 0.5)
+        somaY += peso * (y + 0.5)
+        soma += peso
+      }
+    }
+    return { x: (somaX / soma / 1000) * 512 - 256, y: (somaY / soma / 1000) * 512 - 256 }
+  }, svg)
+
+  // acha o deslocamento que põe o peso no meio (3 rodadas de ajuste bastam)
+  let dx = 0, dy = 0
+  for (let rodada = 0; rodada < 3; rodada++) {
+    const fora = await centroDePeso(icone({ fundo: '', tamanho: 1, dx, dy }))
+    dx -= fora.x
+    dy -= fora.y
+  }
+
+  const salvar = async (arquivo, svg, lado) => {
+    await pagina.setViewportSize({ width: lado, height: lado })
+    await pagina.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:${lado}px;height:${lado}px}</style>${svg}`)
+    await pagina.screenshot({ path: path.join(PUBLICO, arquivo), omitBackground: true })
+  }
+  const quadradoLimao = `<rect width="512" height="512" fill="${LIMAO}"/>`
+  const arredondadoLimao = `<rect width="512" height="512" rx="120" fill="${LIMAO}"/>`
+  await salvar('icone-app-maskable-512.png', icone({ fundo: quadradoLimao, tamanho: 0.74, dx, dy }), 512)
+  await salvar('apple-touch-icon.png', icone({ fundo: quadradoLimao, tamanho: 0.905, dx, dy }), 180)
+  for (const lado of [192, 512]) {
+    await salvar(`icone-app-${lado}.png`, icone({ fundo: arredondadoLimao, tamanho: 1, dx, dy }), lado)
+    await salvar(`icon-${lado}.png`, icone({ fundo: fundoDaLogo, tamanho: 0.931, dx, dy }), lado)
   }
 
   await fs.mkdir(path.join(PUBLICO, 'abertura'), { recursive: true })
   const linhas = []
   for (const iphone of IPHONES) {
-    const pagina = await navegador.newPage({ viewport: { width: iphone.largura, height: iphone.altura }, deviceScaleFactor: iphone.escala })
-    await pagina.setContent(`<style>html,body{margin:0;height:100%;background:${DEGRADE}}</style>`)
+    const telaDoIphone = await navegador.newPage({ viewport: { width: iphone.largura, height: iphone.altura }, deviceScaleFactor: iphone.escala })
+    await telaDoIphone.setContent(`<style>html,body{margin:0;height:100%;background:${DEGRADE}}</style>`)
     const arquivo = `${iphone.nome}.jpg`
-    await pagina.screenshot({ path: path.join(PUBLICO, 'abertura', arquivo), type: 'jpeg', quality: 92 })
-    await pagina.close()
+    await telaDoIphone.screenshot({ path: path.join(PUBLICO, 'abertura', arquivo), type: 'jpeg', quality: 92 })
+    await telaDoIphone.close()
     linhas.push(`    <link rel="apple-touch-startup-image" media="(device-width: ${iphone.largura}px) and (device-height: ${iphone.altura}px) and (-webkit-device-pixel-ratio: ${iphone.escala}) and (orientation: portrait)" href="/abertura/${arquivo}" />`)
   }
-  console.log('Imagens geradas. As linhas do index.html (abertura do iPhone):\n')
+
+  // a carinha da tela de carregamento precisa do mesmo ajuste do peso
+  const posicao = `translate(${(CARINHA_DA_TELA.x + dx).toFixed(2)} ${(CARINHA_DA_TELA.y + dy).toFixed(2)}) scale(0.575)`
+  const index = await fs.readFile(INDEX, 'utf8')
+  console.log(`Ícones gerados (ajuste do peso: ${dx.toFixed(2)}, ${dy.toFixed(2)}).`)
+  console.log(index.includes(posicao)
+    ? 'A carinha do index.html já está alinhada pelo peso.'
+    : `ATENÇÃO: no index.html, troque o transform do <g> da carinha (#carregamento) por: ${posicao}`)
+  console.log('\nAs linhas do index.html (abertura do iPhone):\n')
   console.log(linhas.join('\n'))
 } finally {
   await navegador.close()
