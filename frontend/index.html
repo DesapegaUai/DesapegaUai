@@ -31,6 +31,8 @@
     <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/abertura/iphone-8-plus.jpg" />
     <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/abertura/iphone-se.jpg" />
     <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- tela de carregamento do app: no Android, quando o app acabou de abrir, começa com a carinha pronta -->
+    <script src="/assets/abertura-1.js"></script>
     <link rel="stylesheet" href="/src/styles/carregamento.css" />
     <title>DesapegaUai: compre e venda usados em Viçosa e região</title>
   </head>
@@ -38,7 +40,8 @@
     <!-- tela de carregamento do app instalado (só aparece no app; estilo em src/styles/carregamento.css) -->
     <div id="carregamento" role="status" aria-label="Carregando o DesapegaUai">
       <svg class="cg-carinha" viewBox="0 0 512 512" aria-hidden="true">
-        <g transform="translate(-41.85 -63.7) scale(0.575)" fill="#2E3335">
+        <!-- posição alinhada pelo peso (o mesmo ajuste dos ícones; ver scripts/gerar-telas-de-abertura.mjs) -->
+        <g transform="translate(-59.96 -66.37) scale(0.575)" fill="#2E3335">
           <path class="cg-u" pathLength="1000" d="M237.75 367.75V529.1a104.1 104.1 0 0 0 208.2 0V367.75" fill="none" stroke="#2E3335" stroke-width="66" stroke-linecap="round" />
           <g class="cg-a">
             <path stroke="#2E3335" stroke-width="10" stroke-linejoin="round" fill-rule="evenodd" d="M498 544.5a108 116.5 0 1 0 216 0a108 116.5 0 1 0-216 0ZM550.5 544a60.5 65 0 1 0 121 0a60.5 65 0 1 0-121 0Z" />
