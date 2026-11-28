@@ -79,6 +79,21 @@ export async function metasDaPagina(caminho, base = env.frontendUrl) {
         availability: vendido ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
         ...(condicao ? { itemCondition: condicao } : {}),
         url: `${base}/anuncio/${anuncio.id}`,
+        // pedidos do Search Console ("Listagens do comerciante"), com o que é verdade no DesapegaUai:
+        // a venda é entre pessoas, combinada e conferida na hora, sem pagamento pelo site: não há devolução
+        hasMerchantReturnPolicy: {
+          '@type': 'MerchantReturnPolicy',
+          applicableCountry: 'BR',
+          returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+        },
+        // e ninguém envia pelo correio: quem compra retira ou combina a entrega pelo chat (forma_entrega)
+        shippingDetails: {
+          '@type': 'OfferShippingDetails',
+          shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'BR' },
+          doesNotShip: true,
+        },
+        // marca e código de barras (GTIN), o terceiro pedido, ficam de fora: o anúncio não tem esses dados,
+        // e usado de pessoa comum quase nunca tem; inventar seria informação falsa para o Google
       },
     }
     return { titulo: `${titulo} | ${NOME}`, tituloDaPrevia: titulo, descricao, imagem, tipo: 'product', produto }
