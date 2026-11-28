@@ -59,6 +59,17 @@ test('o anúncio chega com título, preço, lugar e foto (Google e prévia do Wh
   assert.equal(produto.offers.price, '850.00')
   assert.equal(produto.offers.priceCurrency, 'BRL')
   assert.equal(produto.offers.availability, 'https://schema.org/InStock')
+  // o que o Search Console pediu, com o que é verdade aqui: sem devolução e sem envio pelo correio
+  assert.deepEqual(produto.offers.hasMerchantReturnPolicy, {
+    '@type': 'MerchantReturnPolicy',
+    applicableCountry: 'BR',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+  })
+  assert.deepEqual(produto.offers.shippingDetails, {
+    '@type': 'OfferShippingDetails',
+    shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'BR' },
+    doesNotShip: true,
+  })
   assert.equal(html.includes('name="robots"'), false)
 })
 

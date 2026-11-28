@@ -194,21 +194,26 @@ test('os ícones do app existem e a carinha deles está no meio (não fica torta
   }
   const maskable = manifest.icons.find((icone) => icone.purpose === 'maskable')?.src
   expect(maskable).toBeTruthy()
-  // ícone do Android: beirada transparente (a abertura do Android desenhava uma linha na beira) e o miolo,
-  // que é o que aparece na tela inicial, opaco
-  const transparencia = await page.evaluate(async (url) => {
+  // ícone do Android: TOTALMENTE OPACO e sem canal de transparência. Na abertura, o Android põe preto atrás de
+  // qualquer ponto transparente (uma beirada transparente virou uma faixa escura em volta da carinha)
+  const png = await (await page.request.get(maskable)).body()
+  expect(png.readUInt32BE(16), 'largura').toBe(1024)
+  expect(png[25], 'tipo de cor do PNG (2 = só cor, sem transparência)').toBe(2)
+  const beira = await page.evaluate(async (url) => {
     const imagem = new Image()
     imagem.src = url
     await imagem.decode()
-    const tela = Object.assign(document.createElement('canvas'), { width: 512, height: 512 })
+    const tela = Object.assign(document.createElement('canvas'), { width: 1024, height: 1024 })
     const desenho = tela.getContext('2d')
-    desenho.drawImage(imagem, 0, 0, 512, 512)
-    const alfa = (x, y) => desenho.getImageData(x, y, 1, 1).data[3]
-    const recorteDaAbertura = Math.round(256 - 256 * 0.874) // a abertura mostra o miolo de 87,4%
-    const telaInicial = Math.round(256 - 256 * 0.8) // a tela inicial mostra o miolo de uns 80%
-    return { canto: alfa(2, 2), recorte: [alfa(recorteDaAbertura, 256), alfa(256, recorteDaAbertura)], telaInicial: [alfa(telaInicial, 256), alfa(256, 511 - telaInicial), alfa(telaInicial, telaInicial)], meio: alfa(256, 256) }
+    desenho.drawImage(imagem, 0, 0)
+    const d = desenho.getImageData(0, 0, 1024, 1024).data
+    const cor = (x, y) => Array.from(d.slice((y * 1024 + x) * 4, (y * 1024 + x) * 4 + 4)).join(',')
+    // a beirada inteira (a última fileira de pontos dos quatro lados) é o verde-limão do fundo da abertura
+    const cores = new Set()
+    for (let i = 0; i < 1024; i++) [cor(i, 0), cor(i, 1023), cor(0, i), cor(1023, i)].forEach((c) => cores.add(c))
+    return [...cores]
   }, maskable)
-  expect(transparencia).toEqual({ canto: 0, recorte: [0, 0], telaInicial: [255, 255, 255], meio: 255 })
+  expect(beira).toEqual(['198,254,50,255'])
   for (const icone of [maskable, '/apple-touch-icon.png', '/icone-app-512.png', '/icon-512.png']) {
     const fora = await pesoForaDoMeio(page, icone)
     expect(Math.abs(fora.x), `${icone}: peso fora do meio na horizontal`).toBeLessThan(1)
